@@ -1,0 +1,164 @@
+(function($) {
+
+	$.fn.chain = function(func) {
+		return func.apply(this, Array.prototype.slice.call(arguments, 1));
+	};
+	
+}(jQuery));
+
+(function($) {
+	
+	dict = function(data) {
+		if (!(this instanceof dict)) {
+			return new dict(data);
+		}
+		this.data = data || {};
+	};
+	
+	dict.prototype = {
+		get: function(key, def) {
+			return key in this.data ? this.data[key] : def;
+		}
+	};
+	
+	element.ns.field.nested
+	
+	$(element).dict('ns.field.nested[]', 'value');
+	$(element).dict(ns, field).nested = 'value';
+	
+	$(element).set(ns, field, nested, 'value');
+	$(element).set(ns, field, nested, []
+	$(element).get(ns, field, nested);
+	$(element).get(query);
+	
+	$(element).dict(ns).get(field).set(nested, 'value');
+	$(element).dict(ns).get(field).setdefault(nested, 'value');
+	
+	$.data(ns).
+	
+	// element -> global -> cookie
+	
+	
+//	var d = dict();
+//	
+//	d.setdefault('field', dict()).
+//	
+//	$('body').$data(NS, dict).
+	
+}(jQuery));
+
+/*
+(function($) {
+	
+	$.fn.nsdata
+	$.fn.nsopt = function(ns, [opt])
+	$.nsdata
+	$.nsopt = function(ns, [opt])
+	$.nsoptDefine = function(ns, definition)
+	
+}(jQuery));
+
+(function($) {
+	
+	// plugin factory design
+	// - data namespace: $.myplugin
+	// - global methods: $.myplugin.globalMethod
+	// - public methods: $.fn.myplugin
+	// - $.pluginData:
+	//		global options (page, session)
+	//		global data (page, session)
+	//		$.fn.pluginData:
+	//			element options
+	//			element data
+	// - private methods: var func = function() {}; $.fn.chain(func, args)
+	
+	var NS = 'myplugin',
+		PRIV = $.plugin(NS).priv;
+	
+	$.fn.$priv
+	$.fn.$data
+	$.fn.$opt
+	
+	$.$[NS] = < all stuff >
+	
+	$('body').$data(NS, [type])
+	$('body').$opt(NS)
+	$('body').$priv(NS, 'anInternalMethod', arg1, arg2)
+	$.$data(NS)
+	$.$opt(NS)
+	
+	$.$create(NS, {
+		opt: {
+			anoption: ['defaultvalue', $.$persist.ELEMENT],
+		},
+		pub: {
+			_: function(opt) {
+				opt = this.$opt(NS, opt);
+				$('body').$priv(NS, 'anInternalMethod', arg1, arg2);
+			}
+		},
+		priv: {
+			anInternalMethod: function() {
+			}
+		},
+		glob:
+	});
+	
+	$.plugin({
+		ns: NS,
+		opt: {
+		},
+		pub: {
+			_: function(opt) {
+				opt = this.nsopt(NS, opt);
+				anInternalMethod.call($('body'), arg1, arg2);
+				$('body').chain(anInternalMethod, arg1, arg2);
+				$('body').chain(PRIV.anInternalMethod, arg1, arg2);
+				$('body').plugin(NS, 'anInternalMethod', arg1, arg2);
+			}
+		},
+		glob: {
+		},
+		priv: {
+		}
+	});
+	
+}(jQuery));
+*/
+
+
+// flagable design:
+
+$('ul').flagable({
+	type: 'check',
+	item: '> li',
+	eventType: 'click',
+	sync: ':checkbox'
+});
+
+
+
+
+// templating design:
+
+- use resig's micro-templating solution: http://ejohn.org/blog/javascript-micro-templating/
+- include fix for single quotes: http://www.west-wind.com/Weblog/posts/509108.aspx
+- use jqote syntax: http://aefxx.com/jquery-plugins/jqote/
+- add cdata stripping (jqote) (do we need this? do we want this? is html5 cdata compliant?)
+
+syntax:
+	    	<ul id="flagme">
+                <script type="text/smesh">
+                    <li>
+                    	<input type="checkbox" /><%= text %>
+                    </li>
+                </script>
+	    	</ul>
+	    	
+	    	$('#flagme').smesh(data);
+
+philosophy:
+- implicit template definition and identification
+    * definition = <script type="text/smesh">
+    * identifaction = is in the element in which it will be applied
+- template caching on the element and using jquery.al.data.js

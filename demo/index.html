@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="en" class="no-js">
+
+	<head>
+		<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+		
+		<title>
+			JAL revised
+		</title>
+		
+	    <script type="text/javascript" src="../lib/modernizr-1.1.min.js"></script>
+		<link rel="stylesheet" type="text/css" href="../lib/html5-reset-1.4.css" />
+		<link rel="stylesheet" type="text/css" href="../lib/jquery-ui-1.8rc1/themes/base/ui.all.css" />
+		<style type="text/css">
+			
+			body, body > div {
+				position: absolute;
+			}
+			
+			body {
+				top: 0;
+				right: 0;
+				bottom: 0;
+				left: 0;
+			}
+			
+			body > div {
+				display: none;
+			}
+			
+			#error-404 {
+				height: 4em;
+				width: 10em;
+				top: 30%;
+				left: 50%;
+				margin-left: -5em;
+				background-color: orange;
+			}
+			
+			#nav {
+				height: 4em;
+				top: 0;
+				right: 0;
+				left: 0;
+				background-color: blue;
+			}
+			#nav a {
+				color: white;
+			}
+			
+			#tags {
+				width: 15%;
+				top: 4em;
+				bottom: 0;
+				left: 0;
+				background-color: yellow;
+			}
+			
+			#basket {
+				width: 30%;
+				top: 4em;
+				right: 0;
+				bottom: 0;
+				background-color: lightblue;
+			}
+			
+			#contacts {
+				top: 4em;
+				right: 30%;
+				bottom: 0;
+				left: 15%;
+				background-color: grey;
+			}
+			#contacts > ul {
+				position: absolute;
+				top: 0;
+				right: 0;
+				bottom: 0;
+				left: 0;
+				overflow-x: hidden;
+				overflow-y: auto;
+			}
+			
+			#dpl-lists {
+				top: 4em;
+				right: 30%;
+				bottom: 0;
+				left: 0;
+			}
+			
+		</style>
+	</head>
+	
+	<body>
+		<div id="error-404">
+			<!--flirt
+				Pagina <%= url %> niet gevonden...
+			-->
+		</div>
+		<div id="nav">
+			<a href="#/contacts/timmolendijk">Adresboek</a>
+			<a href="#/dpl">De Perslijst</a>
+		</div>
+		<div id="tags">tags</div>
+		<div id="basket">basket</div>
+		<div id="contacts">
+			<ul>
+				<!--flirt
+					<li>
+						<input type="checkbox" name="item" value="<%= id %>" /><%= text %>
+					</li>
+				-->
+			</ul>
+		</div>
+		<div id="dpl-lists">dpl-lists</div>
+
+		<script type="text/javascript" src="http://ajax.googleapis.com/ajax/libs/jquery/1.4.1/jquery.js"></script>
+		<script type="text/javascript" src="../lib/jquery-ui-1.8rc1/ui/jquery-ui.js"></script>
+		<script type="text/javascript" src="../lib/underscore.js"></script>
+		<script type="text/javascript" src="../lib/jquery.ba-hashchange.js"></script>
+		<script type="text/javascript" src="../lib/jquery.form.js"></script>
+		<script type="text/javascript" src="../src/jquery.al.data.js"></script>
+		<script type="text/javascript" src="../src/jquery.al.perceivable.js"></script>
+		<script type="text/javascript" src="../src/jquery.al.flirt.js"></script>
+		<script type="text/javascript" src="../src/jquery.al.lazyloadable.js"></script>
+		<script type="text/javascript" src="../src/jquery.al.flagable.js"></script>
+		<script type="text/javascript">
+			
+			jQuery(function($) {
+				
+				// use $.state
+				
+			});
+			
+		</script>
+	</body>
+
+</html>
