@@ -12,19 +12,24 @@
 		<link rel="stylesheet" type="text/css" href="../lib/jquery-ui-1.8rc1/themes/base/ui.all.css" />
 		<script type="text/javascript" src="http://ajax.googleapis.com/ajax/libs/jquery/1.4.1/jquery.js"></script>
 		<script type="text/javascript" src="http://github.com/jquery/qunit/raw/master/qunit/qunit.js"></script>
+		<script type="text/javascript">
+			QUnit.jsDump.HTML = false;
+		</script>
 		<script type="text/javascript" src="../lib/jquery-ui-1.8rc1/tests/jquery.simulate.js"></script>
 		<script type="text/javascript" src="../lib/jquery-ui-1.8rc1/ui/jquery-ui.js"></script>
 		<script type="text/javascript" src="../lib/underscore.js"></script>
 		<script type="text/javascript" src="../lib/jquery.ba-hashchange.js"></script>
 		<script type="text/javascript" src="../lib/jquery.form.js"></script>
 		<script type="text/javascript" src="../src/jquery.al.data.js"></script>
+		<script type="text/javascript" src="../src/jquery.al.state.js"></script>
 		<script type="text/javascript" src="../src/jquery.al.perceivable.js"></script>
 		<script type="text/javascript" src="../src/jquery.al.flirt.js"></script>
 		<script type="text/javascript" src="../src/jquery.al.lazyloadable.js"></script>
 		<script type="text/javascript" src="../src/jquery.al.flagable.js"></script>
 		<script type="text/javascript" src="data.js"></script>
-		<script type="text/javascript" src="flagable.js"></script>
+		<script type="text/javascript" src="state.js"></script>
 		<script type="text/javascript" src="flirt.js"></script>
+		<script type="text/javascript" src="flagable.js"></script>
 	</head>
 	<body>
 		<h1 id="qunit-header">jQuery App Layer &bull; test suite</h1>
@@ -46,6 +51,10 @@
 					</li>
 				-->
 			</ul>
+			<div id="block">block</div>
+			<div id="block1">block1</div>
+			<div id="block2">block2</div>
+			<div id="block3">block3</div>
 		</div>
 	</body>
 

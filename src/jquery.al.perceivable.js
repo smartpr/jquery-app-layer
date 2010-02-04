@@ -1,5 +1,5 @@
 (function($) {
-
+/* TODO: phase out aop
 $.aop.around({target: $.fn, method: 'show'}, function(invocation) {
     // TODO: Check detectVisible for every element. Also, move to one (manual)
     // loop, or another solution that makes this function fast in case of no
@@ -30,7 +30,7 @@ $.aop.around({target: $.fn, method: 'show'}, function(invocation) {
     });
     return result;
 });
-
+*/
 // TODO: This architecture only works with event handlers on the same element
 // that show() called on. I think this is not what we want. Think again about
 // the exact function of this system.
