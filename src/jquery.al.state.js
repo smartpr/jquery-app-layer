@@ -291,9 +291,9 @@ $[ns] = function() {
 		state.elements = $(state.elements);
 	}
 	
-	$(window).bind('hashchange', function() {
+	$(window).bind('hashchange', function(e) {
 		var uri = window.location.hash,
-			matches = [],
+			match, matches = [], args = [],
 			i, l, state;
 		
 		if (uri.length > 0 && uri[0] === '#') {
@@ -302,8 +302,10 @@ $[ns] = function() {
 		
 		for (i = 0, l = states.length; i < l; i++) {
 			state = states[i];
-			if (state.pattern.test(uri)) {
+			match = state.pattern.exec(uri);
+			if (match !== null) {
 				matches.push(state);
+				args.push(match.slice(1));
 				if (typeof state.state === 'string' && state.state.length > 0) {
 					break;
 				}
@@ -312,7 +314,7 @@ $[ns] = function() {
 		
 		for (i = 0, l = matches.length; i < l; i++) {
 			state = matches[i];
-			state.enter();
+			state.enter.apply(state, args[i]);
 		}
 	});
 };

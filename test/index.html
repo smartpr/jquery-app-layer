@@ -2,6 +2,11 @@
 <html lang="en">
 
 	<head>
+		<!--
+		IE8 runs 'intranet sites' in compatibility mode by default, which we do
+		not want as we are not supporting IE7.
+		-->
+		<meta http-equiv="X-UA-Compatible" content="IE=Edge">
 		<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
 		
 		<title>
@@ -13,6 +18,8 @@
 		<script type="text/javascript" src="http://ajax.googleapis.com/ajax/libs/jquery/1.4.1/jquery.js"></script>
 		<script type="text/javascript" src="http://github.com/jquery/qunit/raw/master/qunit/qunit.js"></script>
 		<script type="text/javascript">
+			// Prevents escaping of object descriptions. Wonder why QUnit
+			// doesn't disable this by default.
 			QUnit.jsDump.HTML = false;
 		</script>
 		<script type="text/javascript" src="../lib/jquery-ui-1.8rc1/tests/jquery.simulate.js"></script>
