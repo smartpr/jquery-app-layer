@@ -270,7 +270,7 @@ $(window).bind('hashchange', function(e) {
 var ns = 'state',
 	stateDefault = {
 		// Unnamed states are non-final states.
-		state: null,
+		name: null,
 		// A pattern that matches nothing effectively disables a state.
 		pattern: /$./,
 		elements: [],
@@ -281,8 +281,9 @@ var ns = 'state',
 $[ns] = function() {
 	var states = Array.prototype.slice.call(arguments);
 	
-	// Do some preparsing and interpretation on the provided states, in order to
-	// bring them to a level in which they can be used for routing.
+	// Create condensed state definitions based on supplied arguments.
+	// TODO: Validate characters in name (in order to prevent conflicts with
+	//       the identifier we choose to represent '*' (any event namespace)).
 	for (var i = 0, l = states.length, state; i < l; i++) {
 		state = states[i] = $.extend({}, stateDefault, states[i]);
 		if (typeof state.pattern === 'string') {
@@ -292,30 +293,58 @@ $[ns] = function() {
 	}
 	
 	$(window).bind('hashchange', function(e) {
-		var uri = window.location.hash,
-			match, matches = [], args = [],
-			i, l, state;
+		var $this = $(this),
+			uri = window.location.hash,
+			matches = [],
+			i, l, state, match;
 		
 		if (uri.length > 0 && uri[0] === '#') {
 			uri = uri.substr(1);
 		}
 		
+		// Collect matching state definitions.
 		for (i = 0, l = states.length; i < l; i++) {
 			state = states[i];
 			match = state.pattern.exec(uri);
-			if (match !== null) {
-				matches.push(state);
-				args.push(match.slice(1));
-				if (typeof state.state === 'string' && state.state.length > 0) {
-					break;
-				}
+			if (match === null) {
+				continue;
+			}
+			matches.push({
+				state: state,
+				params: match.slice(1)
+			});
+			if (state.name && typeof state.name === 'string') {
+				break;
 			}
 		}
 		
-		for (i = 0, l = matches.length; i < l; i++) {
-			state = matches[i];
-			state.enter.apply(state, args[i]);
+		// Trigger events and callbacks.
+		// TODO: Use $.fetch() and $.store() as soon as we have implemented them.
+		// TODO: Define stateenter and stateleave as special events via
+		//       $.event.special to enable binding 'stateenter.*' and
+		//       'stateleave.*' instead of 'stateenter.all' and 'stateleave.all'.
+		// Leave current state.
+		var current = $(this).fetch(ns, 'current');
+		if (current) {
+			current.state.leave.apply(current.state, current.params);
+			$this.
+				trigger('stateleave.all', current.params).
+				trigger('stateleave.' + current.state.name, current.params);
 		}
+		// Set and enter new current state.
+		// TODO: Is it ok that stored current state is updated only after the
+		//       enter events and callbacks are triggered?
+		current = undefined;
+		for (i = 0, l = matches.length; i < l; i++) {
+			current = matches[i];
+			current.state.enter.apply(current.state, current.params);
+		}
+		if (current) {
+			$this.
+				trigger('stateenter.all', current.params).
+				trigger('stateenter.' + current.state.name, current.params);
+		}
+		$(this).store(ns, 'current', current);
 	});
 };
 
