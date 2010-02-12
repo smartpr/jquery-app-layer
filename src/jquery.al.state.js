@@ -53,6 +53,19 @@ which suck
 or try an attempt at building a reversing algorithm... which is hard and will never be perfect
 but it's probably our best option (as it can be postponed to some undetermined moment in the future */
 
+/* API sugar idea:
+		// TODO: Define stateenter and stateleave as special events via
+		//       $.event.special to enable binding 'stateenter.*' and
+		//       'stateleave.*' as nicer ways of denoting 'stateenter._' and
+		//       'stateleave._'.
+*/
+
+/* API sugar idea:
+support sinatra pattern syntax (translate to regexp internally)
+*/
+
+/* idea: allow for a 'reload' state, which defines a pattern that results in reloading the previous
+	state in history */
 
 /* define states:
 
@@ -268,7 +281,7 @@ $(window).bind('hashchange', function(e) {
 (function($) {
 
 var ns = 'state',
-	stateDefault = {
+	definition = {
 		// Unnamed states are non-final states.
 		name: null,
 		// A pattern that matches nothing effectively disables a state.
@@ -279,20 +292,23 @@ var ns = 'state',
 	};
 
 $[ns] = function() {
+	// TODO: Exit if states are yet defined, perhaps switch to alternate
+	//       behavior (getter?)
+	
 	var states = Array.prototype.slice.call(arguments);
 	
 	// Create condensed state definitions based on supplied arguments.
-	// TODO: Validate characters in name (in order to prevent conflicts with
-	//       the identifier we choose to represent '*' (any event namespace)).
+	// TODO: Validate characters in name as it should be a valid event namespace
+	//       and not conflicting with the identifier for 'any namespace': '_'. 
 	for (var i = 0, l = states.length, state; i < l; i++) {
-		state = states[i] = $.extend({}, stateDefault, states[i]);
+		state = states[i] = $.extend({}, definition, states[i]);
 		if (typeof state.pattern === 'string') {
 			state.pattern = new RegExp(state.pattern);
 		}
 		state.elements = $(state.elements);
 	}
 	
-	$(window).bind('hashchange', function(e) {
+	$(window).bind('hashchange', function() {
 		var $this = $(this),
 			uri = window.location.hash,
 			matches = [],
@@ -318,18 +334,16 @@ $[ns] = function() {
 			}
 		}
 		
-		// Trigger events and callbacks.
+		// Change state; trigger events and callbacks.
 		// TODO: Use $.fetch() and $.store() as soon as we have implemented them.
-		// TODO: Define stateenter and stateleave as special events via
-		//       $.event.special to enable binding 'stateenter.*' and
-		//       'stateleave.*' instead of 'stateenter.all' and 'stateleave.all'.
 		// Leave current state.
-		var current = $(this).fetch(ns, 'current');
+		var current = $(this).fetch(ns, 'current'),
+			$active = current ? current.state.elements : $();
 		if (current) {
 			current.state.leave.apply(current.state, current.params);
 			$this.
-				trigger('stateleave.all', current.params).
-				trigger('stateleave.' + current.state.name, current.params);
+				trigger($.extend({type: 'stateleave._'}, current), current.params).
+				trigger($.extend({type: 'stateleave.' + current.state.name}, current), current.params);
 		}
 		// Set and enter new current state.
 		// TODO: Is it ok that stored current state is updated only after the
@@ -337,12 +351,22 @@ $[ns] = function() {
 		current = undefined;
 		for (i = 0, l = matches.length; i < l; i++) {
 			current = matches[i];
+			current.state.elements.
+				each(function() {
+					if ($active.index(this) === -1) {
+						var $this = $(this);
+						$this.trigger($.extend({type: 'stateenter._'}, current), current.params);
+						if (current.state.name !== null) {
+							$this.trigger($.extend({type: 'stateenter.' + current.state.name}, current), current.params);
+						}
+					}
+				});
 			current.state.enter.apply(current.state, current.params);
 		}
 		if (current) {
 			$this.
-				trigger('stateenter.all', current.params).
-				trigger('stateenter.' + current.state.name, current.params);
+				trigger($.extend({type: 'stateenter._'}, current), current.params).
+				trigger($.extend({type: 'stateenter.' + current.state.name}, current), current.params);
 		}
 		$(this).store(ns, 'current', current);
 	});
