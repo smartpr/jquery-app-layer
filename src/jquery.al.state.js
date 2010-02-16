@@ -353,12 +353,24 @@ $[ns] = function() {
 			current = matches[i];
 			current.state.elements.
 				each(function() {
-					if ($active.index(this) === -1) {
-						var $this = $(this);
-						$this.trigger($.extend({type: 'stateenter._'}, current), current.params);
-						if (current.state.name !== null) {
-							$this.trigger($.extend({type: 'stateenter.' + current.state.name}, current), current.params);
+					var activeIdx = $active.index(this);
+					if (activeIdx !== -1) {
+						if (JSON.stringify($active.eq(activeIdx).fetch(ns, 'current').params) === JSON.stringify(current.params)) {
+							return true;
 						}
+					}
+					var $this = $(this),
+						elemState = $this.fetch(ns, 'current');
+					if (elemState && (elemState.state !== current.state || JSON.stringify(elemState.params) !== JSON.stringify(current.params))) {
+						$this.trigger($.extend({type: 'stateleave._'}, elemState), elemState.params);
+						if (elemState.state.name !== null) {
+							$this.trigger($.extend({type: 'stateleave.' + elemState.state.name}, elemState), elemState.params);
+						}
+					}
+					$this.store(ns, 'current', current);
+					$this.trigger($.extend({type: 'stateenter._'}, current), current.params);
+					if (current.state.name !== null) {
+						$this.trigger($.extend({type: 'stateenter.' + current.state.name}, current), current.params);
 					}
 				});
 			current.state.enter.apply(current.state, current.params);

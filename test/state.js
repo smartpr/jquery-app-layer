@@ -81,7 +81,7 @@ asyncTest('Change to state without parameters', 11, function() {
 	});
 });
 
-asyncTest('Change to state with parameters', 5, function() {
+asyncTest('Change to state with parameters', 7, function() {
 	onenter = function() {
 		same($.makeArray(arguments), ['hello'], "If the entered state defines parameters, their value(s) are passed to the controller");
 	};
@@ -89,6 +89,7 @@ asyncTest('Change to state with parameters', 5, function() {
 		ok('name' in this && 'pattern' in this && 'elements' in this, "Controller is being called on state leave with 'this' being the state definition");
 		equals(this.name, 'static', "And with the correct state definition");
 	};
+	
 	$window.bind({
 		'stateenter.witharg': function(e) {
 			var args = $.makeArray(arguments).slice(1);
@@ -96,7 +97,42 @@ asyncTest('Change to state with parameters', 5, function() {
 			same(args, e.params, "And also in a field of the event object");
 		},
 	});
+	
+	$blocks.eq(3).bind({
+		'stateenter._': function(e) {
+			equals(e.type, 'stateenter', "General element-level stateenter event is triggered on element #" + this.id);
+			equals(e.state.name, 'witharg', "And with the correct state definition");
+		}
+	});
+	$blocks.slice(0, 3).bind({
+		'stateenter._': function(e) {
+			ok(false, "This point should not be reached, as stateenter event should not be triggered on element #" + this.id);
+		}
+	});
+	
 	window.location.hash = '/witharg/hello';
+	
+	wait(function() {
+		$window.unbind('stateenter stateleave');
+		$blocks.unbind('stateenter stateleave');
+		start();
+	});
+});
+
+asyncTest('Change to same state with different parameters', 4, function() {
+	$blocks.slice(2, 4).bind({
+		'stateenter._': function(e) {
+			equals(e.type, 'stateenter', "General element-level stateenter event is triggered on element #" + this.id);
+			equals(e.state.name, 'witharg', "And with the correct state definition");
+		}
+	});
+	$blocks.slice(0, 2).bind({
+		'stateenter._': function(e) {
+			ok(false, "This point should not be reached, as stateenter event should not be triggered on element #" + this.id);
+		}
+	});
+	
+	window.location.hash = '/witharg/goodbye';
 	
 	wait(function() {
 		$window.unbind('stateenter stateleave');
