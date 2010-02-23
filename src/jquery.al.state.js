@@ -1,3 +1,9 @@
+/* APPLICABILITY:
+	basic rule of thumb: if you want a state to be part of browser history, model
+	it using this plugin. (and then it's automatically permalinkable.)
+	
+	*/
+
 /* possible scenario's for a content block, when going from current to new state
 
 // block that is not part of current but part of new state:
@@ -310,7 +316,7 @@ $[ns] = function() {
 	
 	$(window).bind('hashchange', function() {
 		var $this = $(this),
-			uri = window.location.hash,
+			uri = location.hash,
 			matches = [],
 			i, l, state, match;
 		
@@ -334,6 +340,47 @@ $[ns] = function() {
 			}
 		}
 		
+		// SCENARIOS:
+		// 0. page is loaded
+		// 1. state x with block1 & block2 is entered; block1 is perceivable, block2 is hidden
+		// 2. state y(a) with block2 & block3 is entered; block3 is visible yet unperceivable
+		// 3. state y(b) is entered
+		// 4. state z with block4 is entered
+		// 5. state x is entered
+		
+		// CHANGE TO matches:
+		
+		// window.bindone:
+		//		stateleave:
+		//			for match in current:
+		//				match.state.leave
+		//		stateenter:
+		//			for match in matches:
+		//				match.state.enter
+		//		stateready:
+		//			for match in matches:
+		//				match.state.ready
+		// TODO: move to element loop?
+		// window.queue:
+		//		if current:
+		//			stateleave
+		//		stateenter
+		//		stateready
+		
+		// hide all elements in current that do not occur in matches
+		
+		// for elem in elements-in(matches):
+		//		if matches-that-contain(matches, elem) != elem.current:
+		//			elem.queue:
+		//				visible & unperceivable
+		//				if elem.current:
+		//					stateleave
+		//				stateenter
+		//				visible & perceivable
+		//				stateready
+		
+		
+		
 		// Change state; trigger events and callbacks.
 		// TODO: Use $.fetch() and $.store() as soon as we have implemented them.
 		// Leave current state.
@@ -351,6 +398,43 @@ $[ns] = function() {
 		current = undefined;
 		for (i = 0, l = matches.length; i < l; i++) {
 			current = matches[i];
+			
+			// REGARDLESS OF VISIBILITY:
+			// for element in current.state.elements:
+			//		if element.current:
+			//			if element.current.state.name !== current.state.name || element.current.params !== current.params:
+			//				trigger stateleave
+			//				trigger stateenter
+			//		else:
+			//			trigger stateenter
+			
+			// REGARDFUL OF VISIBILITY:
+			// TODO: whenever depending on visibility event handlers: make sure they are always triggered
+			// $active.subtract(current.state.elements).hide()
+			// for async element in current.state.elements:
+			//		if !element.current:
+			//			element.bind visible:
+			//				enable callback
+			//				trigger stateenter, next
+			//			TODO: element should be able to do something on perceivability as well.
+			//				simply bind visibility event? then why not simply bind visible
+			//				event as well (instead of stateenter event)?
+			//				afterthought: should it really? isn't perceivability a matter for
+			//				the global scope? i should investigate what, besides focus, needs
+			//				perceivability.
+			//		if element.current !== current:
+			//			element.bind hidden:
+			//				element.show
+			//			element.bind unperceivable:
+			//				enable callback
+			//				trigger stateleave, callback
+			//			element.bind visible:
+			//				trigger stateenter, next
+			//		TODO: simply hide and then show is too course-grained for the scenario in which the element is already visible,
+			//			in which case a visibility switch would suffice.
+			//		TODO: what to do when element is already hidden, resulting in no unperceivable event?
+			//		element.hide
+			
 			current.state.elements.
 				each(function() {
 					var activeIdx = $active.index(this);
@@ -376,6 +460,8 @@ $[ns] = function() {
 			current.state.enter.apply(current.state, current.params);
 		}
 		if (current) {
+			// TODO: i think we shouldn't trigger the (or any) global event until all block-level
+			//		stuff is done (and perceivable). same applies to enter and leave controllers(?)
 			$this.
 				trigger($.extend({type: 'stateenter._'}, current), current.params).
 				trigger($.extend({type: 'stateenter.' + current.state.name}, current), current.params);
