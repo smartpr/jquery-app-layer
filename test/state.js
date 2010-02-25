@@ -46,10 +46,10 @@ asyncTest('Change to state without parameters', 11, function() {
 	};
 	
 	$window.bind({
-		'stateenter._': function(e) {
+		'stateenter._': function(e, name) {
 			equals(e.type, 'stateenter', "General global stateenter event is triggered");
-			equals(e.state.name, 'static', "And with the correct state definition");
-			same(e.params, [], "No parameters is represented as an empty array");
+			equals(name, 'static', "And with the correct state definition");
+			same(e.states[e.states.length - 1].params, [], "No parameters is represented as an empty array");
 			equals(this, window, "While 'this' is (as usual) the element to which the handler is bound");
 		},
 		'stateenter.static': function(e) {

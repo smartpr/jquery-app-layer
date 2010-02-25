@@ -282,8 +282,6 @@ $(window).bind('hashchange', function(e) {
 */
 
 
-
-
 (function($) {
 
 var ns = 'state',
@@ -295,6 +293,18 @@ var ns = 'state',
 		elements: [],
 		enter: $.noop,
 		leave: $.noop
+	},
+	$trigger = function(type, states, callback) {
+		var e = {states: states},
+			l = states.length,
+			named = states[l - 1],
+			args = [named.state.name];
+		for (var i = 0; i < l; i++) {
+			$.merge(args, states[i].params);
+		}
+		this.
+			trigger($.extend({type: type + '._'}, e), args).
+			trigger($.extend({type: type + '.' + named.state.name}, e), args);
 	};
 
 $[ns] = function() {
@@ -366,6 +376,24 @@ $[ns] = function() {
 		//			stateleave
 		//		stateenter
 		//		stateready
+		// TODO: use $.fetch
+		var current = $this.fetch(ns, 'current');
+		$this.
+			queue(ns, function(next) {
+				if (current) {
+					$(this).chain($trigger, 'stateleave', current);
+				}
+				next();
+			}).
+			queue(ns, function(next) {
+				$(this).chain($trigger, 'stateenter', matches);
+				next();
+			}).
+			queue(ns, function(next) {
+				$(this).chain($trigger, 'stateready', matches);
+				next();
+			}).
+			dequeue(ns);
 		
 		// hide all elements in current that do not occur in matches
 		
@@ -379,8 +407,11 @@ $[ns] = function() {
 		//				visible & perceivable
 		//				stateready
 		
+		// current = matches
+		// TODO: use $.store
+		$this.store(ns, 'current', matches);
 		
-		
+		/*
 		// Change state; trigger events and callbacks.
 		// TODO: Use $.fetch() and $.store() as soon as we have implemented them.
 		// Leave current state.
@@ -467,6 +498,7 @@ $[ns] = function() {
 				trigger($.extend({type: 'stateenter.' + current.state.name}, current), current.params);
 		}
 		$(this).store(ns, 'current', current);
+		*/
 	});
 };
 
