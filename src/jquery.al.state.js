@@ -294,8 +294,8 @@ var ns = 'state',
 		enter: $.noop,
 		leave: $.noop
 	},
-	$trigger = function(type, states, callback) {
-		var e = {states: states},
+	$trigger = function(type, states, flexicallback) {
+		var e = {states: states, callback: flexicallback},
 			l = states.length,
 			named = states[l - 1],
 			args = [named.state.name];
@@ -379,23 +379,28 @@ $[ns] = function() {
 		// TODO: use $.fetch
 		var current = $this.fetch(ns, 'current');
 		$this.
-			queue(ns, function(next) {
+			flexiqueue(ns, [function(flexicallback) {
 				if (current) {
-					$(this).chain($trigger, 'stateleave', current);
+					$(this).chain($trigger, 'stateleave', current, flexicallback);
 				}
-				next();
-			}).
-			queue(ns, function(next) {
-				$(this).chain($trigger, 'stateenter', matches);
-				next();
-			}).
-			queue(ns, function(next) {
-				$(this).chain($trigger, 'stateready', matches);
-				next();
-			}).
+			}, function(flexicallback) {
+				$(this).chain($trigger, 'stateenter', matches, flexicallback);
+			}, function(flexicallback) {
+				// TODO: Wasn't the idea behind stateready that it would only
+				// be triggered when all blocks are ready too?
+				$(this).chain($trigger, 'stateready', matches, flexicallback);
+			}]).
 			dequeue(ns);
 		
+		var $matches = $();
+		for (i = 0, l = matches.length; i < l; i++) {
+			$matches.add(matches[i].state.elements);
+		}
+		
 		// hide all elements in current that do not occur in matches
+		$current.filter(function() {
+			return $matches.index(this) === -1;
+		}).hide();
 		
 		// for elem in elements-in(matches):
 		//		if matches-that-contain(matches, elem) != elem.current:
@@ -406,6 +411,36 @@ $[ns] = function() {
 		//				stateenter
 		//				visible & perceivable
 		//				stateready
+		
+		// TODO: set element.current somewhere (in a stateenter handler, or right after triggering stateleave?)
+		$matches.
+			filter(function() {
+				// TODO: Write comparator. Can't we use the :data selector?
+				return $(this).fetch(ns, 'current') !== matches;
+			}).
+				flexiqueue(ns, [function() {
+					// TODO: if this code is indeed synchronous, we could move
+					// it out of the queue... (but do we want to? we don't want
+					// to hide a block any longer than absolutely necessary)
+					$(this).
+						css('visibility', 'hidden').
+						show();
+				}, function(fcb) {
+					var $this = $(this),
+						current = $this.fetch(ns, 'current');
+					if (current) {
+						$this.chain($trigger, 'stateleave', current, fcb);
+					}
+				}, function(fcb) {
+					$(this).chain($trigger, 'stateenter', matches, fcb);
+				}]).
+				end().
+			flexiqueue(ns, function() {
+				$(this).
+					show().
+					css('visibility', 'visible');
+			}).
+			dequeue(ns);
 		
 		// current = matches
 		// TODO: use $.store

@@ -6,8 +6,3 @@ $.fn.chain = function(func) {
 
 }(jQuery));
 
-(function($) {
-
-$.E
-
-}(jQuery));

@@ -61,9 +61,9 @@ asyncTest('Change to state without parameters', 11, function() {
 	});
 	
 	$blocks.slice(1, 3).bind({
-		'stateenter._': function(e) {
+		'stateenter._': function(e, name) {
 			equals(e.type, 'stateenter', "General element-level stateenter event is triggered on element #" + this.id);
-			equals(e.state.name, 'static', "And with the correct state definition");
+			equals(name, 'static', "And with the correct state definition");
 		}
 	});
 	$([$blocks[0], $blocks[3]]).bind({
@@ -92,16 +92,16 @@ asyncTest('Change to state with parameters', 7, function() {
 	
 	$window.bind({
 		'stateenter.witharg': function(e) {
-			var args = $.makeArray(arguments).slice(1);
+			var args = $.makeArray(arguments).slice(2);
 			same(args, ['hello'], "If the entered state defines parameters, their value(s) are passed as arguments to the event handler");
-			same(args, e.params, "And also in a field of the event object");
+			same(args, e.states[e.states.length - 1].params, "And also in the event object");
 		},
 	});
 	
 	$blocks.eq(3).bind({
-		'stateenter._': function(e) {
+		'stateenter._': function(e, name) {
 			equals(e.type, 'stateenter', "General element-level stateenter event is triggered on element #" + this.id);
-			equals(e.state.name, 'witharg', "And with the correct state definition");
+			equals(name, 'witharg', "And with the correct state definition");
 		}
 	});
 	$blocks.slice(0, 3).bind({
@@ -121,9 +121,9 @@ asyncTest('Change to state with parameters', 7, function() {
 
 asyncTest('Change to same state with different parameters', 4, function() {
 	$blocks.slice(2, 4).bind({
-		'stateenter._': function(e) {
+		'stateenter._': function(e, name) {
 			equals(e.type, 'stateenter', "General element-level stateenter event is triggered on element #" + this.id);
-			equals(e.state.name, 'witharg', "And with the correct state definition");
+			equals(name, 'witharg', "And with the correct state definition");
 		}
 	});
 	$blocks.slice(0, 2).bind({
@@ -149,12 +149,12 @@ asyncTest('Reset state', 7, function() {
 		ok(false, "This point should not be reached, as no state matches and thus no controller is invoked");
 	};
 	$window.bind({
-		'stateleave._': function(e) {
+		'stateleave._': function(e, name) {
 			equals(e.type, 'stateleave', "General global stateleave event is triggered");
-			equals(e.state.name, 'witharg', "And with the correct state definition");
-			var args = $.makeArray(arguments).slice(1);
+			equals(name, 'witharg', "And with the correct state definition");
+			var args = $.makeArray(arguments).slice(2);
 			same(args, ['hello'], "If the left state defines parameters, their value(s) are passed as arguments to the event handler");
-			same(args, e.params, "And also in a field of the event object");
+			same(args, e.states[e.states.length - 1].params, "And also in the event object");
 		},
 		'stateleave.witharg': function(e) {
 			equals(e.type, 'stateleave', "Matching state-specific global stateleave event is triggered");
