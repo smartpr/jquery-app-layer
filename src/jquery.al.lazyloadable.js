@@ -18,9 +18,19 @@ $.widget('al.lazyloadable', {
 	_create: function() {
 		var self = this;
 		
-		self.options.load.call(self.element, function(html) {
-			self.element.html(html);
-		});
+		self.invalidate();
+	},
+	
+	invalidate: function(html) {
+		var self = this,
+			set = function(html) {
+				self.element.html(html);
+			};
+		
+		if (html !== undefined) {
+			return set(html);
+		}
+		self.options.load.call(self.element, set);
 	}
 	
 });

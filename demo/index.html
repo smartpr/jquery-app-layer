@@ -71,9 +71,29 @@
 				bottom: 0;
 				background-color: lightblue;
 			}
+			#basket > ul {
+				position: absolute;
+				top: 0;
+				right: 0;
+				bottom: 0;
+				left: 0;
+				overflow-x: hidden;
+				overflow-y: auto;
+			}
+			#basket > ul > li {
+				border-top: 1px solid blue;
+				padding: .5em;
+			}
+			
+			#contacts-controls {
+				top: 4em;
+				right: 30%;
+				left: 15%;
+				height: 2em;
+			}
 			
 			#contacts {
-				top: 4em;
+				top: 6em;
 				right: 30%;
 				bottom: 0;
 				left: 15%;
@@ -101,6 +121,20 @@
 				left: 0;
 			}
 			
+			#webfiles-controls {
+				top: 4em;
+				right: 0;
+				left: 0;
+				height: 2em;
+			}
+			
+			#webfiles {
+				top: 6em;
+				right: 0;
+				bottom: 0;
+				left: 0;
+			}
+			
 		</style>
 	</head>
 	
@@ -111,21 +145,49 @@
 			-->
 		</div>
 		<div id="nav">
-			<a class="contacts" href="#/contacts/timmolendijk">Adresboek</a>
+			<a class="contacts" href="#/contacts">Adresboek</a>
 			<a class="dpl" href="#/dpl">De Perslijst</a>
+			<a class="webfiles" href="#/files">Bestanden</a>
 		</div>
 		<div id="tags">tags</div>
-		<div id="basket">basket</div>
+		<div id="basket">
+			<ul>
+				<!--flirt
+					<li>
+						<%= email %><br />
+						<%= description %>
+					</li>
+				-->
+			</ul>
+		</div>
+		<div id="contacts-controls">
+			<button>Naar verzendlijst</button>
+		</div>
 		<div id="contacts">
 			<ul>
 				<!--flirt
 					<li>
-						<input type="checkbox" name="item" value="<%= id %>" /><%= text %>
+						<input type="checkbox" name="contact" value="<%= id %>" />
+						<%= name %><br />
+						<%= emails.join(', ') %>
 					</li>
 				-->
 			</ul>
 		</div>
 		<div id="dpl-lists">dpl-lists</div>
+		<div id="webfiles-controls">
+			<input type="file" name="bestandje" /><button>Toevoegen</button>
+		</div>
+		<div id="webfiles">
+			<ul>
+				<!--flirt
+					<li>
+						<input type="checkbox" name="contact" value="<%= id %>" />
+						<%= name %> (<%= size %> KB)
+					</li>
+				-->
+			</ul>
+		</div>
 
 		<script type="text/javascript" src="http://ajax.googleapis.com/ajax/libs/jquery/1.4.1/jquery.js"></script>
 		<script type="text/javascript" src="../lib/jquery-ui-1.8rc1/ui/jquery-ui.js"></script>
@@ -139,6 +201,7 @@
 		<script type="text/javascript" src="../src/jquery.al.flirt.js"></script>
 		<script type="text/javascript" src="../src/jquery.al.lazyloadable.js"></script>
 		<script type="text/javascript" src="../src/jquery.al.flagable.js"></script>
+		<script type="text/javascript" src="../../smartpr-api/src/jquery.smartpr.js"></script>
 		<script type="text/javascript">
 			
 			jQuery(function($) {
@@ -148,12 +211,16 @@
 					elements: '#nav'
 				}, {
 					name: 'contacts',
-					pattern: '^\/contacts/(\\w+)$',
-					elements: '#tags, #basket, #contacts'
+					pattern: '^\/contacts$',
+					elements: '#tags, #basket, #contacts-controls, #contacts'
 				}, {
 					name: 'dpl',
 					pattern: /^\/dpl$/,
 					elements: '#basket, #dpl-lists'
+				}, {
+					name: 'files',
+					pattern: /^\/files$/,
+					elements: '#webfiles-controls, #webfiles'
 				});
 				
 				$('#nav').bind({
@@ -165,18 +232,75 @@
 					}
 				});
 				
-				$('#contacts').bind({
-					'stateleave.contacts': function() {
+				$('#basket').bind({
+					'stateenter._': function(e) {
+						// TODO: Should call e.callback.expect() here(??) ...
+						// is not possible as long as lazyloadable creation call
+						// may be ignored.
 						$(this).children('ul').
-							lazyloadable('destroy');
-					},
-					'stateenter.contacts': function(e, name, user) {
+							lazyloadable({
+								load: function(cb) {
+									var $this = this;
+									e.callback.expect();
+									$.smartpr.recipients.get(function(data) {
+										cb($this.flirt(data, false));
+										e.callback.call();
+									});
+								}
+							});
+					}
+				});
+				
+				$('#contacts-controls').bind({
+					'stateenter.contacts': function() {
+						var $this = $(this);
+						$this.find('button').click(function() {
+							$.smartpr.recipients.add(_.map($('#contacts > ul :checkbox').serializeArray(), function(obj) {
+								return parseInt(obj.value);
+							}), function(data) {
+								$('#basket > ul').lazyloadable('invalidate', $('#basket > ul').flirt(data, false));
+							});
+							return false;
+						});
+					}
+				});
+				
+				$('#contacts').bind({
+					'stateenter.contacts': function(e) {
 						e.callback.expect();
 						$(this).children('ul').
 							lazyloadable({
 								load: function(cb) {
 									var $this = this;
-									$.getJSON('http://twitter.com/statuses/user_timeline/' + user + '.json?callback=?', function(data) {
+									$.smartpr.contacts.get(function(data) {
+										cb($this.flirt(data, false));
+										e.callback.call();
+									});
+								}
+							});
+					}
+				});
+				
+				$('#webfiles-controls').bind({
+					'stateenter.files': function() {
+						var $this = $(this);
+						$this.find('button').click(function() {
+							$.smartpr.webfiles.add($this.find(':file')[0], function(data) {
+								$('#webfiles > ul').lazyloadable('invalidate', $('#webfiles > ul').flirt(data, false));
+							});
+							return false;
+						});
+					}
+				});
+				
+				$('#webfiles').bind({
+					'stateenter.files': function(e) {
+						e.callback.expect();
+						$(this).children('ul').
+							lazyloadable({
+								load: function(cb) {
+									var $this = this;
+									$.smartpr.webfiles.get(function(data) {
 										cb($this.flirt(data, false));
 										e.callback.call();
 									});
