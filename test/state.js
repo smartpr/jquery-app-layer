@@ -14,6 +14,10 @@ var $window = $(window),
 
 $.state(
 	{
+		pattern: '^\/',
+		elements: $blocks.eq(0)
+	},
+	{
 		name: 'static',
 		pattern: '^\/static$',
 		elements: '#block1, #block2',
@@ -39,7 +43,7 @@ $.state(
 
 module('state');
 
-asyncTest('Change to state without parameters', 11, function() {
+asyncTest('Change to state without parameters', 11 /*13*/, function() {
 	onenter = function() {
 		ok('name' in this && 'pattern' in this && 'elements' in this, "Controller is being called on state enter with 'this' being the state definition");
 		equals(this.name, 'static', "And with the correct state definition");
@@ -60,13 +64,13 @@ asyncTest('Change to state without parameters', 11, function() {
 		}
 	});
 	
-	$blocks.slice(1, 3).bind({
+	$blocks.slice(0, 3).bind({
 		'stateenter._': function(e, name) {
 			equals(e.type, 'stateenter', "General element-level stateenter event is triggered on element #" + this.id);
 			equals(name, 'static', "And with the correct state definition");
 		}
 	});
-	$([$blocks[0], $blocks[3]]).bind({
+	$blocks.eq(3).bind({
 		'stateenter._': function(e) {
 			ok(false, "This point should not be reached, as stateenter event should not be triggered on element #" + this.id);
 		}
@@ -81,7 +85,7 @@ asyncTest('Change to state without parameters', 11, function() {
 	});
 });
 
-asyncTest('Change to state with parameters', 7, function() {
+asyncTest('Change to state with parameters', 8 /*9*/, function() {
 	onenter = function() {
 		same($.makeArray(arguments), ['hello'], "If the entered state defines parameters, their value(s) are passed to the controller");
 	};
@@ -98,13 +102,13 @@ asyncTest('Change to state with parameters', 7, function() {
 		},
 	});
 	
-	$blocks.eq(3).bind({
+	$([$blocks[0], $blocks[2], $blocks[3]]).bind({
 		'stateenter._': function(e, name) {
 			equals(e.type, 'stateenter', "General element-level stateenter event is triggered on element #" + this.id);
 			equals(name, 'witharg', "And with the correct state definition");
 		}
 	});
-	$blocks.slice(0, 3).bind({
+	$blocks.eq(1).bind({
 		'stateenter._': function(e) {
 			ok(false, "This point should not be reached, as stateenter event should not be triggered on element #" + this.id);
 		}
@@ -120,13 +124,35 @@ asyncTest('Change to state with parameters', 7, function() {
 });
 
 asyncTest('Change to same state with different parameters', 4, function() {
-	$blocks.slice(2, 4).bind({
+	$([$blocks[0], $blocks[2]]).bind({
+		'stateenter._': function(e, name) {
+			equals(e.type, 'stateenter', "General element-level stateenter event is triggered on element #" + this.id);
+			equals(name, 'static', "And with the correct state definition");
+		}
+	});
+	$([$blocks[1], $blocks[3]]).bind({
+		'stateenter._': function(e) {
+			ok(false, "This point should not be reached, as stateenter event should not be triggered on element #" + this.id);
+		}
+	});
+	
+	window.location.hash = '/static';
+	
+	wait(function() {
+		$window.unbind('stateenter stateleave');
+		$blocks.unbind('stateenter stateleave');
+		start();
+	});
+});
+
+asyncTest('Change back to previously visited state', 6, function() {
+	$([$blocks[0], $blocks[2], $blocks[3]]).bind({
 		'stateenter._': function(e, name) {
 			equals(e.type, 'stateenter', "General element-level stateenter event is triggered on element #" + this.id);
 			equals(name, 'witharg', "And with the correct state definition");
 		}
 	});
-	$blocks.slice(0, 2).bind({
+	$blocks.eq(1).bind({
 		'stateenter._': function(e) {
 			ok(false, "This point should not be reached, as stateenter event should not be triggered on element #" + this.id);
 		}
@@ -141,9 +167,9 @@ asyncTest('Change to same state with different parameters', 4, function() {
 	});
 });
 
-asyncTest('Reset state', 7, function() {
+asyncTest('Reset state', 6 /*7*/, function() {
 	onleave = function() {
-		same($.makeArray(arguments), ['hello'], "If the left state defines parameters, their value(s) are passed to the controller");
+		same($.makeArray(arguments), ['goodbye'], "If the left state defines parameters, their value(s) are passed to the controller");
 	};
 	onenter = function() {
 		ok(false, "This point should not be reached, as no state matches and thus no controller is invoked");
@@ -153,7 +179,7 @@ asyncTest('Reset state', 7, function() {
 			equals(e.type, 'stateleave', "General global stateleave event is triggered");
 			equals(name, 'witharg', "And with the correct state definition");
 			var args = $.makeArray(arguments).slice(2);
-			same(args, ['hello'], "If the left state defines parameters, their value(s) are passed as arguments to the event handler");
+			same(args, ['goodbye'], "If the left state defines parameters, their value(s) are passed as arguments to the event handler");
 			same(args, e.states[e.states.length - 1].params, "And also in the event object");
 		},
 		'stateleave.witharg': function(e) {

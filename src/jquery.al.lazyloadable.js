@@ -18,12 +18,8 @@ $.widget('al.lazyloadable', {
 	_create: function() {
 		var self = this;
 		
-		self.element.bind('visible', function(e) {
-			e.data.expectsCallback = true;
-			self.options.load.call(self.element, function(html) {
-				self.element.html(html);
-				e.data.callback();
-			});
+		self.options.load.call(self.element, function(html) {
+			self.element.html(html);
 		});
 	}
 	

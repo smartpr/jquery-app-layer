@@ -321,7 +321,7 @@ $[ns] = function() {
 		if (typeof state.pattern === 'string') {
 			state.pattern = new RegExp(state.pattern);
 		}
-		state.elements = $(state.elements);
+		state.elements = $(state.elements).get();
 	}
 	
 	$(window).bind('hashchange', function() {
@@ -384,18 +384,26 @@ $[ns] = function() {
 					$(this).chain($trigger, 'stateleave', current, flexicallback);
 				}
 			}, function(flexicallback) {
-				$(this).chain($trigger, 'stateenter', matches, flexicallback);
-			}, function(flexicallback) {
+				if (matches.length > 0) {
+					$(this).chain($trigger, 'stateenter', matches, flexicallback);
+				}
+			}/*, function(flexicallback) {
 				// TODO: Wasn't the idea behind stateready that it would only
 				// be triggered when all blocks are ready too?
 				$(this).chain($trigger, 'stateready', matches, flexicallback);
-			}]).
+			}*/]).
 			dequeue(ns);
 		
-		var $matches = $();
+		var $matches = [];
 		for (i = 0, l = matches.length; i < l; i++) {
-			$matches.add(matches[i].state.elements);
+			$.merge($matches, matches[i].state.elements);
 		}
+		$matches = $($.unique($matches));
+		var $current = [];
+		for (i = 0, l = $.isArray(current) ? current.length : 0; i < l; i++) {
+			$.merge($current, current[i].state.elements);
+		}
+		$current = $($.unique($current));
 		
 		// hide all elements in current that do not occur in matches
 		$current.filter(function() {
@@ -416,7 +424,7 @@ $[ns] = function() {
 		$matches.
 			filter(function() {
 				// TODO: Write comparator. Can't we use the :data selector?
-				return $(this).fetch(ns, 'current') !== matches;
+				return !_.isEqual($(this).fetch(ns, 'current'), matches);
 			}).
 				flexiqueue(ns, [function() {
 					// TODO: if this code is indeed synchronous, we could move
@@ -432,7 +440,10 @@ $[ns] = function() {
 						$this.chain($trigger, 'stateleave', current, fcb);
 					}
 				}, function(fcb) {
-					$(this).chain($trigger, 'stateenter', matches, fcb);
+					$(this).store(ns, 'current', matches.length > 0 ? matches : undefined);
+					if (matches.length > 0) {
+						$(this).chain($trigger, 'stateenter', matches, fcb);
+					}
 				}]).
 				end().
 			flexiqueue(ns, function() {
@@ -444,7 +455,7 @@ $[ns] = function() {
 		
 		// current = matches
 		// TODO: use $.store
-		$this.store(ns, 'current', matches);
+		$this.store(ns, 'current', matches.length > 0 ? matches : undefined);
 		
 		/*
 		// Change state; trigger events and callbacks.
