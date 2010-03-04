@@ -23,14 +23,15 @@ $.widget('al.lazyloadable', {
 	
 	invalidate: function(html) {
 		var self = this,
-			set = function(html) {
+			render = function(html) {
 				self.element.html(html);
+				// TODO: trigger render event.
 			};
 		
 		if (html !== undefined) {
-			return set(html);
+			return render(html);
 		}
-		self.options.load.call(self.element, set);
+		self.options.load.call(self.element, render);
 	}
 	
 });

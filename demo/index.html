@@ -201,7 +201,7 @@
 		<script type="text/javascript" src="../src/jquery.al.flirt.js"></script>
 		<script type="text/javascript" src="../src/jquery.al.lazyloadable.js"></script>
 		<script type="text/javascript" src="../src/jquery.al.flagable.js"></script>
-		<script type="text/javascript" src="../../smartpr-api/src/jquery.smartpr.js"></script>
+		<script type="text/javascript" src="http://api.smartpr.dev:81/client.js"></script>
 		<script type="text/javascript">
 			
 			jQuery(function($) {
@@ -265,13 +265,40 @@
 					}
 				});
 				
-				$('#contacts').bind({
+				$('#contacts-search').one({
+					'stateenter.contacts': function(e) {
+						$(this).find(':search').
+							bind({
+								'change': function(e) {
+									$('#contacts > ul').lazyloadable('invalidate');
+								}
+							});
+					}
+				})
+				
+				$('#contacts').one({
 					'stateenter.contacts': function(e) {
 						e.callback.expect();
 						$(this).children('ul').
+							bind({
+								'checkablecheck': function(e, $checked) {
+									console.log('checked ' + $checked.length);
+								},
+								'checkableuncheck': $.noop, // TODO: inverse of checkablecheck
+								'checkablerender': function(e, $checked) {
+									$selected.
+										addClass('checked').
+										find(':checkbox').attr('checked', true);
+								}
+							}).
+							checkable({
+								item: '> li'
+							}).
 							lazyloadable({
 								load: function(cb) {
 									var $this = this;
+									// Here we take filter and sort parameters
+									// and supply them to data getter.
 									$.smartpr.contacts.get(function(data) {
 										cb($this.flirt(data, false));
 										e.callback.call();
