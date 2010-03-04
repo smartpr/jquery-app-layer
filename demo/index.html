@@ -285,8 +285,11 @@
 									console.log('checked ' + $checked.length);
 								},
 								'checkableuncheck': $.noop, // TODO: inverse of checkablecheck
+								
+								// TODO: Problem is that render is a lazyloadable thing, while
+								// $checked is a checkable thing.
 								'checkablerender': function(e, $checked) {
-									$selected.
+									$checked.
 										addClass('checked').
 										find(':checkbox').attr('checked', true);
 								}
@@ -297,7 +300,7 @@
 							lazyloadable({
 								load: function(cb) {
 									var $this = this;
-									// Here we take filter and sort parameters
+									// TODO: Here we take filter and sort parameters
 									// and supply them to data getter.
 									$.smartpr.contacts.get(function(data) {
 										cb($this.flirt(data, false));
