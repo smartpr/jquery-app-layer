@@ -44,6 +44,11 @@
 				left: 0;
 				background-color: blue;
 			}
+			#nav .busy {
+				float: right;
+				background-color: yellow;
+				display: none;
+			}
 			#nav a {
 				display: block;
 				float: left;
@@ -145,6 +150,7 @@
 			-->
 		</div>
 		<div id="nav">
+			<div class="busy"></div>
 			<a class="contacts" href="#/contacts">Adresboek</a>
 			<a class="dpl" href="#/dpl">De Perslijst</a>
 			<a class="webfiles" href="#/files">Bestanden</a>
@@ -162,6 +168,7 @@
 		</div>
 		<div id="contacts-controls">
 			<button>Naar verzendlijst</button>
+			<input type="text" />
 		</div>
 		<div id="contacts">
 			<ul>
@@ -201,7 +208,7 @@
 		<script type="text/javascript" src="../src/jquery.al.flirt.js"></script>
 		<script type="text/javascript" src="../src/jquery.al.lazyloadable.js"></script>
 		<script type="text/javascript" src="../src/jquery.al.flagable.js"></script>
-		<script type="text/javascript" src="http://api.smartpr.dev:81/client.js"></script>
+		<script type="text/javascript" src="../../smartpr-api-client/src/jquery.smartpr.js"></script>
 		<script type="text/javascript">
 			
 			jQuery(function($) {
@@ -223,14 +230,32 @@
 					elements: '#webfiles-controls, #webfiles'
 				});
 				
-				$('#nav').bind({
-					'stateleave._': function(e, name) {
-						$(this).find('a.' + name).removeClass('selected');
-					},
-					'stateenter._': function(e, name) {
-						$(this).find('a.' + name).addClass('selected');
-					}
-				});
+				$('#nav').
+					one({
+						'stateenter._': function(e) {
+							var $this = $(this),
+								$busy = $this.find('.busy');
+							$(window).bind({
+								'busystart': function(e, msg) {
+									$busy.text(msg).show();
+								},
+								'busyend': function(e, msg) {
+									$busy.text(msg);
+									setTimeout(function() {
+										$busy.fadeOut();
+									}, 2000);
+								}
+							});
+						}
+					}).
+					bind({
+						'stateleave._': function(e, name) {
+							$(this).find('a.' + name).removeClass('selected');
+						},
+						'stateenter._': function(e, name) {
+							$(this).find('a.' + name).addClass('selected');
+						}
+					});
 				
 				$('#basket').bind({
 					'stateenter._': function(e) {
@@ -254,24 +279,18 @@
 				$('#contacts-controls').bind({
 					'stateenter.contacts': function() {
 						var $this = $(this);
-						$this.find('button').click(function() {
-							$.smartpr.recipients.add(_.map($('#contacts > ul :checkbox').serializeArray(), function(obj) {
-								return parseInt(obj.value);
-							}), function(data) {
-								$('#basket > ul').lazyloadable('invalidate', $('#basket > ul').flirt(data, false));
-							});
-							return false;
-						});
-					}
-				});
-				
-				$('#contacts-search').one({
-					'stateenter.contacts': function(e) {
-						$(this).find(':search').
-							bind({
-								'change': function(e) {
-									$('#contacts > ul').lazyloadable('invalidate');
-								}
+						$this.
+							find('button').click(function() {
+								$.smartpr.recipients.add(_.map($('#contacts > ul :checkbox').serializeArray(), function(obj) {
+									return parseInt(obj.value);
+								}), function(data) {
+									$('#basket > ul').lazyloadable('invalidate', $('#basket > ul').flirt(data, false));
+								});
+								return false;
+							}).end().
+							find('input[type=text]').keypress(function(e) {
+								console.log(e.which);
+								$('#contacts > ul').lazyloadable('invalidate');
 							});
 					}
 				})
@@ -280,30 +299,32 @@
 					'stateenter.contacts': function(e) {
 						e.callback.expect();
 						$(this).children('ul').
-							bind({
-								'checkablecheck': function(e, $checked) {
+/*							bind({
+								'checkableflag': function(e, $checked) {
 									console.log('checked ' + $checked.length);
 								},
-								'checkableuncheck': $.noop, // TODO: inverse of checkablecheck
-								
-								// TODO: Problem is that render is a lazyloadable thing, while
-								// $checked is a checkable thing.
-								'checkablerender': function(e, $checked) {
-									$checked.
+								'checkableunflag': $.noop // TODO: inverse of checkableflag
+							}).
+							checkable({
+								items: '> li',
+								renderflag: function() {
+									this.
 										addClass('checked').
 										find(':checkbox').attr('checked', true);
 								}
 							}).
-							checkable({
-								item: '> li'
-							}).
+							bind({
+								'lazyloadablerender': $.noop
+							}).*/
 							lazyloadable({
 								load: function(cb) {
 									var $this = this;
+									$(window).trigger('busystart', ["Contacten worden geladen..."]);
 									// TODO: Here we take filter and sort parameters
 									// and supply them to data getter.
 									$.smartpr.contacts.get(function(data) {
 										cb($this.flirt(data, false));
+										$(window).trigger('busyend', ["Contacten zijn geladen"]);
 										e.callback.call();
 									});
 								}
