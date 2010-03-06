@@ -96,6 +96,9 @@
 				left: 15%;
 				height: 2em;
 			}
+			#contacts-controls button {
+				float: right;
+			}
 			
 			#contacts {
 				top: 6em;
@@ -155,7 +158,19 @@
 			<a class="dpl" href="#/dpl">De Perslijst</a>
 			<a class="webfiles" href="#/files">Bestanden</a>
 		</div>
-		<div id="tags">tags</div>
+		<div id="tags">
+			<ul>
+				<li>These are your tags:</li>
+				<!--flirt
+					<li>
+						<%= group.toUpperCase() %>:
+						<%--flirt:members
+							<a href="#/tags/<%= id %>" class="tag"><%= name %></a>
+						--%>
+					</li>
+				-->
+			</ul>
+		</div>
 		<div id="basket">
 			<ul>
 				<!--flirt
@@ -168,11 +183,16 @@
 		</div>
 		<div id="contacts-controls">
 			<button>Naar verzendlijst</button>
-			<input type="text" />
+			<input type="search" />
+			Ordening: <select>
+				<option name="name">Naam</option>
+				<option name="company">Bedrijfsnaam</option>
+			</select>
+			Selecteer: <a class="check-all" href="">alles</a> <a class="check-none" href="">geen</a>
 		</div>
 		<div id="contacts">
 			<ul>
-				<!--flirt
+				<!--flirt:dataview-item
 					<li>
 						<input type="checkbox" name="contact" value="<%= id %>" />
 						<%= name %><br />
@@ -180,6 +200,7 @@
 					</li>
 				-->
 			</ul>
+			<span class="more">Dat was 'm voor nu, maar je kan altijd <a href="">meer laden...</a></span>
 		</div>
 		<div id="dpl-lists">dpl-lists</div>
 		<div id="webfiles-controls">
@@ -276,21 +297,71 @@
 					}
 				});
 				
+				$('#tags').one('stateenter._', function(e) {
+					var $this = $(this);
+					e.callback.expect();
+					$.smartpr.tags.get(function(data) {
+						var groups = [],
+							i = data.length,
+							groupname;
+						// TODO: Move sorting to API client(?)
+						data.sort(function(a, b) {
+							a = a.name.toLowerCase();
+							b = b.name.toLowerCase();
+							return a < b ? -1 : a > b ? 1 : 0;
+						});
+						// TODO: Optimize
+						while (i--) {
+							groupname = data[i].name[0].toLowerCase();
+							if (data[i - 1] === undefined || groupname !== data[i - 1].name[0].toLowerCase()) {
+								groups.unshift({
+									group: groupname,
+									members: data.splice(i)
+								});
+							}
+						}
+						$this.children('ul').
+							dataview({
+								data: groups
+							}).
+							checkable({
+								item: 'a',
+								flag: function(tags) {
+									var $query = $('#contacts-controls').find('input[type=search]');
+									$query.val($.map(tags, function(tag) {
+										return 'label:' + tag.id;
+									}).join(' ') + $query.val());
+								},
+								unflag: $.noop	// TODO: remove filters from search
+							});
+						e.callback.call();
+					});
+				});
+				
 				$('#contacts-controls').bind({
 					'stateenter.contacts': function() {
 						var $this = $(this);
 						$this.
 							find('button').click(function() {
-								$.smartpr.recipients.add(_.map($('#contacts > ul :checkbox').serializeArray(), function(obj) {
-									return parseInt(obj.value);
-								}), function(data) {
+								var add = $('#contacts > ul').checkable('flagged');
+								if (add === true) {
+									add = $this.find('input[type=search]').val();
+								}
+								$.smartpr.recipients.add(add, function(data) {
 									$('#basket > ul').lazyloadable('invalidate', $('#basket > ul').flirt(data, false));
 								});
 								return false;
 							}).end().
-							find('input[type=text]').keypress(function(e) {
-								console.log(e.which);
-								$('#contacts > ul').lazyloadable('invalidate');
+							find('input[type=search]').bind('keypress change', function(e) {
+								$('#contacts > ul').dataview('invalidate');
+							}).end().
+							find('a.check-all').click(function(e) {
+								e.preventDefault();
+								$('#contacts > ul').checkable('flag');
+							}).end().
+							find('a.check-none').click(function(e) {
+								e.preventDefault();
+								$('#contacts > ul').checkable('unflag');
 							});
 					}
 				})
@@ -299,7 +370,30 @@
 					'stateenter.contacts': function(e) {
 						e.callback.expect();
 						$(this).children('ul').
-/*							bind({
+							dataview({
+								data: function(render, after, upToAndIncluding) {
+									$.progress.notify("Contacten worden geladen...");
+									var $this = this,
+										query = $('#contacts-controls input[type=search]').val(),
+										ordering = $('#contacts-controls select option:selected').attr('name'),
+										start = after && after[ordering] || undefined,
+										end = upToAndIncluding && upToAndIncluding[ordering] || undefined;
+									// TODO: Redesign to the API client taking an options object
+									$.smartpr.contacts.get(ordering, query, start, end, 50, function(data, total) {
+										render(ordering, data, total);
+										e.callback.call();
+										$.progress.success("Contacten zijn geladen");
+									});
+								},
+								// TODO: This smells like something we could/should design using events/callbacks
+								more: $(this).find('.more').find('a').dblclick(function() {
+									$.progress.notify("Meer contacten worden geladen...");
+									$(this).children('ul').dataview('more', function() {
+										$.progress.success("Meer contacten zijn geladen");
+									});
+								}).end()
+							}).
+							bind({
 								'checkableflag': function(e, $checked) {
 									console.log('checked ' + $checked.length);
 								},
@@ -311,22 +405,6 @@
 									this.
 										addClass('checked').
 										find(':checkbox').attr('checked', true);
-								}
-							}).
-							bind({
-								'lazyloadablerender': $.noop
-							}).*/
-							lazyloadable({
-								load: function(cb) {
-									var $this = this;
-									$(window).trigger('busystart', ["Contacten worden geladen..."]);
-									// TODO: Here we take filter and sort parameters
-									// and supply them to data getter.
-									$.smartpr.contacts.get(function(data) {
-										cb($this.flirt(data, false));
-										$(window).trigger('busyend', ["Contacten zijn geladen"]);
-										e.callback.call();
-									});
 								}
 							});
 					}

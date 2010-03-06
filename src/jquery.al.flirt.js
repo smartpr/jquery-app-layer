@@ -33,6 +33,8 @@ an approach which carefully puts parsed html in place of the template, without
 touching non-flirts in the same container? or is it ok to just take over the entire
 container?
 
+TODO: Automatic nested looping (f.e. tags block: loop groups, then loop group members)
+
 */
 
 (function($) {
