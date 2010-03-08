@@ -1,0 +1,5 @@
+why?
+
+- modular, non-monolithic, keep it simple if your requirements don't demand complexity, increase complexity gradually (cf. sproutcore, cappucino)
+- web-native, does not try to move you away from html/css (cf. sproutcore, cappucino)
+- stands on shoulders of giants (jquery, jquery ui)

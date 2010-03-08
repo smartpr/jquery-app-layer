@@ -37,6 +37,20 @@ TODO: Automatic nested looping (f.e. tags block: loop groups, then loop group me
 
 */
 
+/*
+
+Next iteration API design:
+
+$('ul').flirt('set', 'tmpl-name', data-object-or-list-of-data-objects);
+
+$('ul').flirt('append', 'tmpl-name', data-object-or-list-of-data-objects);
+
+var html = $('ul').flirt('get', 'tmpl-name', data-object-or-list-of-data-objects);
+
+
+*/
+
+
 (function($) {
 
 var NS = 'flirt';
