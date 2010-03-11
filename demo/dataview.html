@@ -23,11 +23,12 @@
 				<%= display %>/<%= total %> item(s)
 			-->
 		</div>
-		<ul id="dataview">
+		<input type="search" />
+		<ol id="dataview">
 			<!--flirt
 				<li><%= text %> (<%= created_at %>)</li>
 			-->
-		</ul>
+		</ol>
 		<a href="" id="more">More</a>
 
 		<script type="text/javascript" src="http://ajax.googleapis.com/ajax/libs/jquery/1.4.1/jquery.js"></script>
@@ -42,36 +43,33 @@
 			jQuery(function($) {
 				
 				var $dataview = $('#dataview'),
-					$more = $('#more');
+					$more = $('#more'),
+					$search = $('input[type=search]');
 				
 				$dataview.dataview({
-					data: function(render, after) {
-						$.getJSON('http://twitter.com/statuses/user_timeline/timmolendijk.json?callback=?', function(data) {
-							/*
-							var i = -1;
-							if (after !== undefined) {
-								for (i = 0, l = data.length; i < l; i++) {
-									if (data[i] === after) {
-										break;
-									}
-								}
-							}
-							*/
-							render(data);
+					data: function(cb, after) {
+						var url = 'http://twitter.com/statuses/user_timeline/timmolendijk.json?count=10&callback=?';
+						if (after !== undefined) {
+							url += '&max_id=' + after.id;
+						}
+						$.getJSON(url, function(data) {
+							cb(data);
 						});
 					},
-					chunkSize: 5,
-					nomore: function() {
-						$more.hide();
-					},
-					invalidate: function() {
-						$('#summary').flirt({display: $(this).dataview('display'), total: $(this).dataview('total')});
+					key: 'id',
+					grep: function(item) {
+						var query = $.trim($search.val());
+						return query ? item.text.indexOf(query) !== -1 : true;
 					}
+				});
+				
+				$search.bind('change', function() {
+					$dataview.dataview('invalidate');
 				});
 				
 				$more.click(function(e) {
 					e.preventDefault();
-					$dataview.dataview('more');
+					$dataview.dataview('load');
 				});
 				
 			});
