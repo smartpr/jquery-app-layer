@@ -12,11 +12,16 @@ var $dataview = $('#dataview'),
 
 module('dataview');
 
-test("Data via a function", 10, function() {
+test("Data via a function", 11, function() {
+	
+	var attempt = 0;
 	
 	$dataview.dataview({
-		data: function(cb) {
-			equals(this, $dataview[0], "Data function's context is the element in which the view is created");
+		data: function(cb, after) {
+			if (attempt === 0) {
+				equals(this, $dataview[0], "Data function's context is the element in which the view is created");
+			}
+			attempt++;
 			cb(data);
 		}
 	});
@@ -39,6 +44,12 @@ test("Data via a function", 10, function() {
 	
 	data[0].age = 27;
 	data.splice(6, 1);
+	
+	$dataview.dataview('option', 'key', 'id');
+	$dataview.dataview('load');
+	$dataview.dataview('option', 'key', null);
+	equals($dataview.dataview('loadedCount'), 6, "Load does not actually add data if the provided data set is identical to the already loaded set");
+	
 	$dataview.dataview('destroy');
 	
 });
@@ -61,9 +72,10 @@ test("Data directly", 2, function() {
 });
 */
 
-test("Data via a lazy loading function", 27, function() {
+test("Data via a lazy loading function", 28, function() {
 	
-	var attempt = 0;
+	var attempt = 0,
+		firstChunk;
 	
 	$dataview.dataview({
 		data: function(cb, after) {
@@ -71,7 +83,7 @@ test("Data via a lazy loading function", 27, function() {
 			switch (attempt) {
 				case 0:
 					equals(after, undefined, "No last data item is supplied as this is the first data function call");
-					d = data.slice(0, 3);
+					d = firstChunk = data.slice(0, 3);
 					l--;
 					break;
 				case 1:
@@ -99,6 +111,7 @@ test("Data via a lazy loading function", 27, function() {
 	equals($dataview.dataview('displayCount'), 4, "Correct internal representation for number of displayed items");
 	equals($dataview.dataview('loadedCount'), 4, "Correct internal representation for number of loaded items");
 	equals($dataview.dataview('totalCount'), 6, "Correct internal representation for size of total data set");
+	equals(firstChunk.length, 3, "Object that was supplied in a previous call is not modified");
 	
 	$dataview.dataview('load');
 	equals($dataview.find('li').length, 8, "More data (as decided by data function) is added on demand");
