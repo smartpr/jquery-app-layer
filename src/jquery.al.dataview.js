@@ -1,19 +1,5 @@
 (function($) {
 
-// Finds out if two data collections contain the same items (as defined by
-// keyProperty) in the same order.
-var isIdenticalData = function(d1, d2, keyProperty) {
-	if (keyProperty === null || !$.isArray(d1) || !$.isArray(d2) || d1.length !== d2.length) {
-		return false;
-	}
-	for (var i = 0, l = d1.length; i < l; i++) {
-		if (d1[i][keyProperty] !== d2[i][keyProperty]) {
-			return false;
-		}
-	}
-	return true;
-};
-
 $.widget('al.dataview', {
 	
 	options: {
@@ -64,7 +50,7 @@ $.widget('al.dataview', {
 			// identical copies that have no effect on the set of clean data,
 			// and would therefore very likely go unnoticed. This could happen
 			// if load is (accidently) called superfluously.
-			if (isIdenticalData(self._data, data, self.options.key)) {
+			if (self._isIdenticalToRawData(data)) {
 				cb();
 				return;
 			}
@@ -182,6 +168,24 @@ $.widget('al.dataview', {
 		}
 		
 		return data;
+	},
+	
+	// Finds out if the supplied data collection contains the same items
+	// (identity as defined by options.key) in the same order as the raw data
+	// that has already been loaded.
+	_isIdenticalToRawData: function(data) {
+		var self = this,
+			keyProperty = self.options.key;
+		
+		if (keyProperty === null || !$.isArray(self._data) || !$.isArray(data) || self._data.length !== data.length) {
+			return false;
+		}
+		for (var i = 0, l = self._data.length; i < l; i++) {
+			if (self._data[i][keyProperty] !== data[i][keyProperty]) {
+				return false;
+			}
+		}
+		return true;
 	}
 	
 });
