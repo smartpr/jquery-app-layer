@@ -1,6 +1,6 @@
 jQuery(function($) {
 
-var $dataview = $('#dataview'),
+var $dataview,
 	data = [
 		{id: 1, name: "Tim Molendijk", age: 27},
 		{id: 3, name: "Art Molendijk", age: 25},
@@ -10,7 +10,11 @@ var $dataview = $('#dataview'),
 		{id: 5, name: "Teunis Molendijk", age: 61}
 	];
 
-module('dataview');
+module('dataview', {
+	setup: function() {
+		$dataview = $('#dataview');
+	}
+});
 
 test("Data via a function", 11, function() {
 	

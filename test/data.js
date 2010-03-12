@@ -62,7 +62,7 @@ test('$.fn.del', function() {
 	same(this.$ul.data(), {key: {level2: true, 'level2"': false}}, "Data on other elements is unaffected");
 	
 	this.$both.del('key', 'level2"');
-	same(this.$div.data(), null, "Empty objects collapse to undefined and fields with value undefined collapse to being deleted");
+	same(this.$div.data(), {}, "Empty objects collapse to undefined and fields with value undefined collapse to being deleted");
 	same(this.$ul.data(), {key: {level2: true}}, "Deleting data from multiple elements results in a change with regard to the existing data on each individual element");
 });
 

@@ -40,8 +40,7 @@ $.fn.fetch = function() {
 		path = arguments,
 		data = $this.data();
 	
-	// $.fn.data() returns null when the element holds no data.
-	if (data === null) {
+	if ($.isEmptyObject(data)) {
 		data = undefined;
 	}
 	for (var i = 0, l = path.length; data !== undefined && i < l; i++) {

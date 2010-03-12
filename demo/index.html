@@ -81,7 +81,7 @@
 			}
 			#basket > ul {
 				position: absolute;
-				top: 0;
+				top: 2em;
 				right: 0;
 				bottom: 0;
 				left: 0;
@@ -173,7 +173,7 @@
 					</li>
 				-->
 			</ul>
-			<ul class="filter">
+			<ul class="apply">
 				<li>Bevestig:</li>
 				<!--flirt
 					<li>
@@ -242,7 +242,7 @@
 		<script type="text/javascript" src="../src/jquery.al.data.js"></script>
 		<script type="text/javascript" src="../src/jquery.al.state.js"></script>
 		<script type="text/javascript" src="../src/jquery.al.flirt.js"></script>
-		<script type="text/javascript" src="../src/jquery.al.lazyloadable.js"></script>
+		<script type="text/javascript" src="../src/jquery.al.dataview.js"></script>
 		<script type="text/javascript" src="../src/jquery.al.flagable.js"></script>
 		<script type="text/javascript" src="../../smartpr-api-client/src/jquery.smartpr.js"></script>
 		<script type="text/javascript">
@@ -298,23 +298,29 @@
 						e.callback.expect();
 						var $this = $(this);
 						$this.
-							children('input[type=search]').bind('keypress change', function(e) {
-								$this.children('ul').
-									dataview('query', "jsonquery query").
-									dataview('invalidate');
+							children('input[type=search]').bind('keydown', function() {
+								setTimeout(function() {
+									$this.children('ul').dataview('invalidate');
+								}, 300);
 							}).end().
 							children('ul').dataview({
-								data: function(render) {
+								data: function(cb) {
 									var $this = this;
 									$.smartpr.recipients.get(function(data) {
-										render(data);
+										cb(data);
 										e.callback.call();
 									});
+								},
+								threshold: 50,
+								key: 'id',
+								grep: function(item) {
+									var query = $.trim($this.children('input[type=search]').val());
+									return item.email.indexOf(query) !== -1;
 								}
 							});
 					}
 				});
-				
+				/*
 				$('#tags').one('stateenter._', function(e) {
 					var $this = $(this);
 					e.callback.expect();
@@ -476,7 +482,7 @@
 							});
 					}
 				});
-				
+				*/
 			});
 			
 		</script>
