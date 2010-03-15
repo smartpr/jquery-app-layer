@@ -189,7 +189,7 @@ asyncTest('Reset state', 6 /*7*/, function() {
 			ok(false, "Non-matching state-specific global stateleave event is not triggered");
 		}
 	});
-	window.location.hash = '';
+	window.location.hash = '#';
 	
 	wait(function() {
 		// TODO: Use $.fetch() as soon as we have implemented it.
