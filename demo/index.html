@@ -146,6 +146,42 @@
 				left: 0;
 			}
 			
+			#edit {
+				width: 70%;
+				top: 4em;
+				right: 0;
+				bottom: 0;
+			}
+			#edit > div {
+				position: absolute;
+				top: 0;
+				right: 0;
+				bottom: 0;
+				left: 0;
+			}
+			#edit > .general {
+				background-color: lightgrey;
+			}
+			#edit > .personalized {
+				display: none;
+				background-color: lightyellow;
+			}
+			#edit > div > div {
+				position: absolute;
+				top: 1em;
+				right: 1em;
+				bottom: 1em;
+				left: 1em;
+			}
+			#edit textarea, #edit iframe {
+				display: block;
+				border: 0;
+				margin: 0;
+				padding: 0;
+				width: 100%;
+				height: 100%;
+			}
+			
 		</style>
 	</head>
 	
@@ -160,6 +196,7 @@
 			<a class="contacts" href="#/contacts">Adresboek</a>
 			<a class="dpl" href="#/dpl">De Perslijst</a>
 			<a class="webfiles" href="#/files">Bestanden</a>
+			<a class="send" href="#/send">Verzending</a>
 		</div>
 		<div id="tags">
 			<ul class="filter">
@@ -186,7 +223,7 @@
 			</ul>
 		</div>
 		<div id="basket">
-			<input type="search" />
+			<input type="search" class="grep" />
 			<ul>
 				<!--flirt
 					<li>
@@ -231,10 +268,21 @@
 				-->
 			</ul>
 		</div>
+		
+		<div id="edit">
+			<div class="general">
+				<div><textarea></textarea></div>
+			</div>
+			<div class="personalized">
+				<div><textarea></textarea></div>
+			</div>
+		</div>
 
-		<script type="text/javascript" src="http://ajax.googleapis.com/ajax/libs/jquery/1.4.1/jquery.js"></script>
+		<script type="text/javascript" src="http://ajax.googleapis.com/ajax/libs/jquery/1.4.2/jquery.js"></script>
 		<script type="text/javascript" src="../lib/jquery-ui-1.8rc1/ui/jquery-ui.js"></script>
 		<script type="text/javascript" src="../lib/underscore.js"></script>
+		<script type="text/javascript" src="../lib/xinha.js"></script>
+		<script type="text/javascript" src="../lib/rix.js"></script>
 		<script type="text/javascript" src="../lib/jquery.ba-hashchange.js"></script>
 		<script type="text/javascript" src="../lib/jquery.form.js"></script>
 		<script type="text/javascript" src="../src/jquery.al.util.js"></script>
@@ -264,6 +312,10 @@
 					name: 'files',
 					pattern: /^\/files$/,
 					elements: '#webfiles-controls, #webfiles'
+				}, {
+					name: 'send',
+					pattern: /^\/send$/,
+					elements: '#edit'
 				});
 				
 				$('#nav').
@@ -298,7 +350,7 @@
 						e.callback.expect();
 						var $this = $(this);
 						$this.
-							children('input[type=search]').bind('keydown', function() {
+							children('.grep').bind('keydown', function() {
 								setTimeout(function() {
 									$this.children('ul').dataview('invalidate');
 								}, 300);
@@ -314,12 +366,42 @@
 								threshold: 50,
 								key: 'id',
 								grep: function(item) {
-									var query = $.trim($this.children('input[type=search]').val());
+									var query = $.trim($this.children('.grep').val());
 									return item.email.indexOf(query) !== -1;
 								}
 							});
 					}
 				});
+				
+				$('#edit').one('stateenter._', function(e) {
+					e.callback.expect();
+					var $this = $(this);
+					$this.rix({
+						templatetags: {
+							voornaam: 'voornaam',
+							titel_achternaam: 'titel & achternaam',
+							stad: 'stad',
+							bedrijfsnaam: 'bedrijfsnaam'
+						},
+						onClean: function() {
+							return confirm("Wil je de HTML automatisch opschonen?\n\nDit is aan te bevelen, zeker indien de code afkomstig is van een ander programma zoals Microsoft Word.");
+						}
+					});
+					
+					var $textarea = $this.find('.general textarea'),
+						textarea = $textarea.get(0),
+						handlers = $textarea.pluginData('rix');
+					
+					handlers.onDisplay.call(textarea, function() {
+						e.callback.call();
+					});
+				});
+				
+				$('#edit').bind('stateready._', function(e) {
+					var $textarea = $(this).find('.general textarea');
+					$textarea.pluginData('rix').onVisible.call($textarea[0], $.noop);
+				});
+				
 				/*
 				$('#tags').one('stateenter._', function(e) {
 					var $this = $(this);
@@ -413,6 +495,11 @@
 				$('#contacts').one({
 					'stateenter.contacts': function(e) {
 						e.callback.expect();
+						$(this).find('a.local').click(function(e) {
+								
+							}).end().
+							find('a.dpl').click(function(e) {
+							});
 						$(this).find('.more').find('a').dblclick(function() {
 									$.progress.notify("Meer contacten worden geladen...");
 									$(this).children('ul').dataview('more', function() {

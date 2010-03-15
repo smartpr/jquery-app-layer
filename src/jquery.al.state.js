@@ -451,6 +451,9 @@ $[ns] = function() {
 					show().
 					css('visibility', 'visible');
 			}).
+			flexiqueue(ns, function(fcb) {
+				$(this).chain($trigger, 'stateready', matches, fcb);
+			}).
 			dequeue(ns);
 		
 		// current = matches
