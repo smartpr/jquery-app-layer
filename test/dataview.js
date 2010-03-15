@@ -76,7 +76,7 @@ test("Data directly", 2, function() {
 });
 */
 
-test("Data via a lazy loading function", 28, function() {
+test("Data via a lazy loading function", 31, function() {
 	
 	var attempt = 0,
 		firstChunk;
@@ -124,6 +124,11 @@ test("Data via a lazy loading function", 28, function() {
 	
 	// This call should not result in another attempt to fetch data.
 	equals($dataview.dataview('load'), false, "If all data is already loaded, attempts to load more fail with a return value of false");
+	
+	$dataview.dataview('option', 'key', 'does-not-exist');
+	equals($dataview.find('li').length, 8, "Invalid identity parameter behaves like no identity parameter");
+	equals($dataview.dataview('displayCount'), 8, "Correct internal representation for number of displayed items");
+	equals($dataview.dataview('loadedCount'), 8, "Correct internal representation for number of loaded items");
 	
 	$dataview.dataview('option', 'key', 'id');
 	equals($dataview.find('li').length, 5, "Identity parameter results in automatic deduplication");

@@ -132,13 +132,15 @@ $.widget('al.dataview', {
 		if (keyProperty === null) {
 			return data;
 		}
-		
 		for (var i = 0, l = data.length; i < l; i++) {
 			key = data[i][keyProperty];
-			if ($.inArray(key, keys) === -1) {
-				keys.push(key);
-				clean.push(data[i]);
+			// Only way for data not to be clean is if it has a key value and
+			// this value has been seen before.
+			if (keyProperty in data[i] && $.inArray(key, keys) !== -1) {
+				continue;
 			}
+			keys.push(key);
+			clean.push(data[i]);
 		}
 		return clean;
 	},
