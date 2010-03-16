@@ -154,7 +154,7 @@
 			}
 			#edit > div {
 				position: absolute;
-				top: 0;
+				top: 2em;
 				right: 0;
 				bottom: 0;
 				left: 0;
@@ -270,6 +270,8 @@
 		</div>
 		
 		<div id="edit">
+			<a href="" class="edit-general">General</a>
+			<a href="" class="edit-personalized">Personalized</a>
 			<div class="general">
 				<div><textarea></textarea></div>
 			</div>
@@ -281,6 +283,16 @@
 		<script type="text/javascript" src="http://ajax.googleapis.com/ajax/libs/jquery/1.4.2/jquery.js"></script>
 		<script type="text/javascript" src="../lib/jquery-ui-1.8rc1/ui/jquery-ui.js"></script>
 		<script type="text/javascript" src="../lib/underscore.js"></script>
+<!--		<script type="text/javascript">
+				_editor_url = '.';
+			</script>-->
+<!--		<script type="text/javascript" src="../../sandbox/xinha/XinhaCore.js"></script>-->
+<!--		<script type="text/javascript" src="../../sandbox/xinha/modules/GetHtml/TransformInnerHTML.js"></script>-->
+<!--		<script type="text/javascript" src="../../sandbox/xinha/modules/CreateLink/link.js"></script>-->
+<!--		<script type="text/javascript" src="../../sandbox/xinha/modules/CreateLink/pluginMethods.js"></script>-->
+<!--		<script type="text/javascript" src="../../sandbox/xinha/modules/InsertImage/insert_image.js"></script>-->
+<!--		<script type="text/javascript" src="../../sandbox/xinha/modules/InsertImage/pluginMethods.js"></script>-->
+<!--		<script type="text/javascript" src="../../sandbox/xinha/modules/Gecko/Gecko.js"></script>-->
 		<script type="text/javascript" src="../lib/xinha.js"></script>
 		<script type="text/javascript" src="../lib/rix.js"></script>
 		<script type="text/javascript" src="../lib/jquery.ba-hashchange.js"></script>
@@ -373,6 +385,38 @@
 					}
 				});
 				
+				$('#edit a.edit-general').click(function(e) {
+					e.preventDefault();
+					var $on = $('#edit .general'),
+						$off = $('#edit .personalized'),
+						handlers = $off.find('textarea').pluginData('rix');
+					$off.hide();
+					handlers.onHidden.call($off.find('textarea')[0]);
+					handlers = $on.find('textarea').pluginData('rix');
+					$on.show();
+					setTimeout(function() {
+						handlers.onDisplay.call($on.find('textarea')[0], function() {
+							handlers.onVisible.call($on.find('textarea')[0]);
+						});
+					}, 100);
+				});
+				
+				$('#edit a.edit-personalized').click(function(e) {
+					e.preventDefault();
+					var $on = $('#edit .personalized'),
+						$off = $('#edit .general'),
+						handlers = $off.find('textarea').pluginData('rix');
+					$off.hide();
+					handlers.onHidden.call($off.find('textarea')[0]);
+					handlers = $on.find('textarea').pluginData('rix');
+					$on.show();
+					setTimeout(function() {
+						handlers.onDisplay.call($on.find('textarea')[0], function() {
+							handlers.onVisible.call($on.find('textarea')[0]);
+						});
+					}, 100);
+				});
+				
 				$('#edit').one('stateenter._', function(e) {
 					e.callback.expect();
 					var $this = $(this);
@@ -392,9 +436,11 @@
 						textarea = $textarea.get(0),
 						handlers = $textarea.pluginData('rix');
 					
-					handlers.onDisplay.call(textarea, function() {
-						e.callback.call();
-					});
+					setTimeout(function() {
+						handlers.onDisplay.call(textarea, function() {
+							e.callback.call();
+						});
+					}, 0);
 				});
 				
 				$('#edit').bind('stateready._', function(e) {
