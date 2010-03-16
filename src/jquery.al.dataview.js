@@ -35,44 +35,67 @@ $.widget('al.dataview', {
 		self.load(cb);
 	},
 	
-	load: function(cb) {
+	load: function(data, cb) {
 		var self = this;
+		if ($.isFunction(data)) {
+			cb = data;
+			data = undefined;
+		}
+		data = data === undefined ? self.options.data : data;
 		cb = cb || $.noop;
 		
-		if (self.options.data === null || self._expectCount !== null && self.loadedCount() >= self._expectCount) {
+		if (self._expectCount !== null && self.loadedCount() >= self._expectCount) {
 			cb();
 			return false;
 		}
 		
-		self.options.data.call(self.element[0], function(data, expectCount) {
+		if ($.isFunction(data)) {
+		
+			data.call(self.element[0], function(data, expectCount) {
 			
-			// Prevent a scenario in which the raw data store is flooded with
-			// identical copies that have no effect on the set of clean data,
-			// and would therefore very likely go unnoticed. This could happen
-			// if load is (accidently) called superfluously.
-			if (self._isIdenticalToRawData(data)) {
-				cb();
-				return;
-			}
-			
-			if (expectCount !== undefined) {
-				self._expectCount = expectCount;
-			}
-			
-			if ($.isArray(data)) {
-				if ('_data' in self) {
-					// Append data without modifying the existing object (as it
-					// may be used outside this widget as well).
-					data = $.merge($.merge([], self._data), data);
+				// Prevent a scenario in which the raw data store is flooded with
+				// identical copies that have no effect on the set of clean data,
+				// and would therefore very likely go unnoticed. This could happen
+				// if load is (accidently) called superfluously.
+				if (self._isIdenticalToRawData(data)) {
+					cb();
+					return;
 				}
-				self._data = data;
-			}
 			
-			self.invalidate();
+				if (expectCount !== undefined) {
+					self._expectCount = expectCount;
+				}
+			
+				self._append(data);
+				cb();
+			
+			}, '_data' in self ? self._data[self._data.length - 1] : undefined);
+			
+		} else {
+			
+			self._append(data);
 			cb();
 			
-		}, '_data' in self ? self._data[self._data.length - 1] : undefined);
+		}
+		
 		return true;
+	},
+	
+	_append: function(data) {
+		var self = this;
+		
+		if (!$.inArray(data) || data.length === 0) {
+			return;
+		}
+		
+		if ('_data' in self) {
+			// Append data without modifying the existing object (as it
+			// may be used outside this widget as well).
+			data = $.merge($.merge([], self._data), data);
+		}
+		self._data = data;
+		
+		self.invalidate();
 	},
 	
 	invalidate: function() {

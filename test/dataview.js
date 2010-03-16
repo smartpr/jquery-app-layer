@@ -16,7 +16,7 @@ module('dataview', {
 	}
 });
 
-test("Data via a function", 11, function() {
+test("Data via a function", 15, function() {
 	
 	var attempt = 0;
 	
@@ -36,7 +36,7 @@ test("Data via a function", 11, function() {
 	
 	data[0].age = 28;
 	$dataview.dataview('invalidate');
-	equals($dataview.find('li:first').text(), "Tim Molendijk (28)", "Updated data (even without passing it explicitly) is reflected by the view upon invalidate");
+	equals($dataview.find('li:first').text(), "Tim Molendijk (28)", "Updated data is reflected by the view upon invalidate");
 	
 	data.push({id: 6, name: "Bassie & Adriaan", age: 134});
 	equals($dataview.dataview('displayCount'), 7, "Correct internal representation for number of displayed items");
@@ -44,7 +44,7 @@ test("Data via a function", 11, function() {
 	equals($dataview.dataview('totalCount'), 7, "Correct internal representation for size of total data set");
 	
 	$dataview.dataview('invalidate');
-	equals($dataview.find('li').length, 7, "Added data (even without passing it explicitly) is reflected by the view upon invalidate");
+	equals($dataview.find('li').length, 7, "Inexplicitly added data is reflected by the view upon invalidate");
 	
 	data[0].age = 27;
 	data.splice(6, 1);
@@ -53,6 +53,12 @@ test("Data via a function", 11, function() {
 	$dataview.dataview('load');
 	$dataview.dataview('option', 'key', null);
 	equals($dataview.dataview('loadedCount'), 6, "Load does not actually add data if the provided data set is identical to the already loaded set");
+	
+	$dataview.dataview('load', [{id: 7, name: "Sjakie van de Chocoladefabriek", age: 13}]);
+	equals($dataview.find('li').length, 7, "Explicitly added data is reflected by the view upon invalidate");
+	equals($dataview.dataview('displayCount'), 7, "Correct internal representation for number of displayed items");
+	equals($dataview.dataview('loadedCount'), 7, "Correct internal representation for number of loaded items");
+	equals($dataview.dataview('totalCount'), 7, "Correct internal representation for size of total data set");
 	
 	$dataview.dataview('destroy');
 	
@@ -110,7 +116,7 @@ test("Data via a lazy loading function", 31, function() {
 	equals($dataview.dataview('loadedCount'), 3, "Correct internal representation for number of loaded items");
 	equals($dataview.dataview('totalCount'), 5, "Correct internal representation for size of total data set");
 
-	equals($dataview.dataview('load'), true, "If data is loaded successfully, return value is true");
+	equals($dataview.dataview('load'), true, "If data loading is successful or at least attempted, return value is true");
 	equals($dataview.find('li').length, 4, "More data (as decided by data function) is added on demand");
 	equals($dataview.dataview('displayCount'), 4, "Correct internal representation for number of displayed items");
 	equals($dataview.dataview('loadedCount'), 4, "Correct internal representation for number of loaded items");
