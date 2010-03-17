@@ -569,15 +569,15 @@
 								data: function(cb, after) {
 									// $.progress.notify("Contacten worden geladen...");
 									var $this = this,
-										filter = $('#contacts-controls input[type=search]').val(),
-										ordering = $('#contacts-controls select option:selected').attr('name'),
-										start = after && after[ordering] || undefined;
+										filter = $.trim($('#contacts-controls input[type=search]').val()) || undefined,
+										order = $('#contacts-controls select option:selected').attr('name'),
+										start = after && after[order] || undefined;
 									// TODO: Redesign to the API client taking an options object (really?)
 									$.smartpr.contacts.get(function(data, total) {
 										cb(data, total);
 										e.callback.call();
 										// $.progress.success("Contacten zijn geladen");
-									}, ordering, filter, start, 50);
+									}, /*order, filter, start, 50,*/);
 								}/*,
 								nomore: function() {
 									$(this).find('.more').hide();

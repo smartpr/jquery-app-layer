@@ -35,6 +35,9 @@ $.widget('al.dataview', {
 		self.load(cb);
 	},
 	
+	// If we are certain that we have all data this method does nothing and
+	// returns false. In all other cases it will attempt to load more data and
+	// returns true, regardless of the result.
 	load: function(data, cb) {
 		var self = this;
 		if ($.isFunction(data)) {
@@ -53,10 +56,10 @@ $.widget('al.dataview', {
 		
 			data.call(self.element[0], function(data, expectCount) {
 			
-				// Prevent a scenario in which the raw data store is flooded with
-				// identical copies that have no effect on the set of clean data,
-				// and would therefore very likely go unnoticed. This could happen
-				// if load is (accidently) called superfluously.
+				// Prevent a scenario in which the raw data store is flooded
+				// with identical copies that have no effect on the set of clean
+				// data, and would therefore very likely go unnoticed. This
+				// could happen if load is (accidently) called superfluously.
 				if (self._isIdenticalToRawData(data)) {
 					cb();
 					return;
