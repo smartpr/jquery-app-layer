@@ -189,10 +189,6 @@
 	</head>
 	
 	<body>
-		<form method="post" action="http://app.smartpr.dev:81/api/recipients/">
-			<input type="checkbox" name="contacts" value="1" />
-			<input type="submit" />
-		</form>
 		<div id="error-404">
 			<!--flirt
 				Pagina <%= url %> niet gevonden...
@@ -242,9 +238,9 @@
 		</div>
 		<div id="contacts-controls">
 			<button>Naar verzendlijst</button>
-			<input type="search" />
+			<input type="search" class="query" />
 			Ordening: <select>
-				<option name="name">Naam</option>
+				<option name="firstname">Naam</option>
 				<option name="company">Bedrijfsnaam</option>
 			</select>
 			Selecteer: <a class="check-all" href="">alles</a> <a class="check-none" href="">geen</a>
@@ -398,6 +394,11 @@
 								grep: function(item) {
 									var query = $.trim($this.children('.grep').val());
 									return item.email.indexOf(query) !== -1;
+								},
+								sort: function(a, b) {
+									a = a.email;
+									b = b.email;
+									return a < b ? -1 : a > b ? 1 : 0;
 								}
 							});
 					}
@@ -524,12 +525,12 @@
 						e.callback.call();
 					});
 				});
-				
+				*/
 				$('#contacts-controls').bind({
 					'stateenter.contacts': function() {
 						var $this = $(this);
 						$this.
-							find('button').click(function() {
+/*							find('button').click(function() {
 								var add = $('#contacts > ul').checkable('flagged');
 								if (add === true) {
 									add = $this.find('input[type=search]').val();
@@ -540,10 +541,12 @@
 									$('#basket > ul').dataview('invalidate');
 								});
 								return false;
-							}).end().
-							find('input[type=search]').bind('keypress change', function(e) {
-								$('#contacts > ul').dataview('reload');
-							}).end().
+							}).end().*/
+							find('.query').bind('keydown', function(e) {
+								setTimeout(function() {
+									$('#contacts > ul').dataview('reload');
+								}, 300);
+							})/*.end().
 							find('a.check-all').click(function(e) {
 								e.preventDefault();
 								// $('#contacts > ul').checkable('flag');
@@ -551,10 +554,10 @@
 							find('a.check-none').click(function(e) {
 								e.preventDefault();
 								// $('#contacts > ul').checkable('unflag');
-							});
+							})*/;
 					}
-				})
-				*/
+				});
+				
 				$('#contacts').one({
 					'stateenter.contacts': function(e) {
 						e.callback.expect();
@@ -568,16 +571,18 @@
 							dataview({
 								data: function(cb, after) {
 									// $.progress.notify("Contacten worden geladen...");
+									$(window).trigger('busystart', "Contacten worden geladen...");
 									var $this = this,
-										filter = $.trim($('#contacts-controls input[type=search]').val()) || undefined,
+										filter = $.trim($('#contacts-controls .query').val()) || undefined,
 										order = $('#contacts-controls select option:selected').attr('name'),
 										start = after && after[order] || undefined;
 									// TODO: Redesign to the API client taking an options object (really?)
 									$.smartpr.contacts.get(function(data, total) {
 										cb(data, total);
 										e.callback.call();
+										$(window).trigger('busyend', "Contacten zijn geladen...");
 										// $.progress.success("Contacten zijn geladen");
-									}, /*order, filter, start, 50,*/);
+									}, order, filter, start);
 								}/*,
 								nomore: function() {
 									$(this).find('.more').hide();
@@ -585,9 +590,9 @@
 							});
 						$('a.to-basket', $(this).children('ul')[0]).live('click', function(e) {
 							e.preventDefault();
-							$.smartpr.recipients.add([parseInt($(this).attr('href'))], function(data) {
-								$('#contacts').children('ul').dataview('load', data);
-							});
+							$.smartpr.recipients.add(function(data) {
+								$('#basket').children('ul').dataview('load', data);
+							}, [parseInt($(this).attr('href'))]);
 						});
 							/*.
 							bind({
