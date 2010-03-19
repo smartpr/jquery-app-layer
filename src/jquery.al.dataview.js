@@ -87,7 +87,7 @@ $.widget('al.dataview', {
 	_append: function(data) {
 		var self = this;
 		
-		if (!$.inArray(data) || data.length === 0) {
+		if (!$.isArray(data) || data.length === 0) {
 			return;
 		}
 		
