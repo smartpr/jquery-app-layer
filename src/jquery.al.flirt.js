@@ -86,4 +86,38 @@ $.fn[NS] = function(data, commit) {
 	return $this.html(html);
 };
 
+
+
+
+  // By default, Underscore uses ERB-style template delimiters, change the
+  // following template settings to use alternative delimiters.
+  $.flirtSettings = {
+    start       : '<%',
+    end         : '%>',
+    interpolate : /<%=(.+?)%>/g,
+    down        : /<!-(\w+?)\s(.*)->/g
+  };
+
+  // JavaScript templating a-la ERB, pilfered from John Resig's
+  // "Secrets of the JavaScript Ninja", page 83.
+  // Single-quote fix from Rick Strahl's version.
+  $.flirt = function(str, data) {
+    var c  = $.flirtSettings;
+    for (var i = 0; i < 10; i++) {
+      str=str.replace(c.down, "<%for(i[" + i + "] = 0; i[" + i + "] < $1.length; i[" + i + "]++) { with($1[i[" + i + "]]) { %>$2<% }} %>");
+    }
+    var fn = new Function('obj',
+      'var p=[],i=[],print=function(){p.push.apply(p,arguments);};' +
+      'with(obj){p.push(\'' +
+      str.replace(/[\r\t\n]/g, " ")
+         .replace(new RegExp("'(?=[^"+c.end[0]+"]*"+c.end+")","g"),"\t")
+         .split("'").join("\\'")
+         .split("\t").join("'")
+         .replace(c.interpolate, "',$1,'")
+         .split(c.start).join("');")
+         .split(c.end).join("p.push('")
+         + "');}return p.join('');");
+    return data ? fn(data) : fn;
+  };
+
 }(jQuery));
