@@ -38,6 +38,8 @@ $.widget('al.dataview', {
 	// If we are certain that we have all data this method does nothing and
 	// returns false. In all other cases it will attempt to load more data and
 	// returns true, regardless of the result.
+	// TODO: Introduce a 'replace' argument, whose default corresponds with
+	// options.key being null or not.
 	load: function(data, cb) {
 		var self = this;
 		if ($.isFunction(data)) {
@@ -92,8 +94,8 @@ $.widget('al.dataview', {
 		}
 		
 		if ('_data' in self) {
-			// Append data without modifying the existing object (as it
-			// may be used outside this widget as well).
+			// Append data without modifying the existing object (as it may be
+			// used outside of this widget as well).
 			data = $.merge($.merge([], self._data), data);
 		}
 		self._data = data;

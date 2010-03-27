@@ -3,16 +3,16 @@
 l1			<img src="yadda" />
 l1			<span>
 				<%= group %>
-				<%--tags
-l2					<strong><a href="" class="tag"><%= name =></a></strong>, 
-				%-->
+				<!-tags
+l2					<strong><a href="" class="tag"><%= name %></a></strong>, 
+				->
 			</span>
 			&bull;
 		-->
 		</div>
 
 
-$('ul').dataview('set', [
+$('div').dataview('set', [
 	{
 		group: "Molendijk",
 		tags: [
@@ -36,3 +36,5 @@ $('a.tag', $('ul')[0]).live('click', function(e) {
 	d.name = 'clicked';
 	$(this).dataview('invalidate');
 });
+
+comment element -> template functie -> aanroepen met data -> html -> invoegen in dom -> nieuwe dom elements
