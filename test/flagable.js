@@ -4,7 +4,7 @@ var $flagable;
 
 module('flagable', {
 	setup: function() {
-		$flagable = $('#dataview');
+		$flagable = $('#flagable');
 	}
 });
 
@@ -23,10 +23,10 @@ test("Flag and unflag", 26, function() {
 	
 	$flagable.bind({
 		flagableflag: function(e, items) {
-			equals(items, null, "flagableflag event triggered with correct items");
+			equals(items, null, "flag event triggered with correct items");
 		},
 		flagableunflag: function(e, items) {
-			ok(false, "This point should not be reached, as no flagableunflag event must be triggered (with items: " + items + ")");
+			ok(false, "This point should not be reached, as no unflag event must be triggered (with items: " + items + ")");
 		}
 	});
 	$flagable.flagable('flag', null);
@@ -36,10 +36,10 @@ test("Flag and unflag", 26, function() {
 	
 	$flagable.bind({
 		flagableflag: function(e, items) {
-			ok(false, "This point should not be reached, as no flagableflag event must be triggered (with items: " + items + ")");
+			ok(false, "This point should not be reached, as no flag event must be triggered (with items: " + items + ")");
 		},
 		flagableunflag: function(e, items) {
-			ok(false, "This point should not be reached, as no flagableunflag event must be triggered (with items: " + items + ")");
+			ok(false, "This point should not be reached, as no unflag event must be triggered (with items: " + items + ")");
 		}
 	});
 	$flagable.flagable('flag', 1);
@@ -49,10 +49,10 @@ test("Flag and unflag", 26, function() {
 	
 	$flagable.bind({
 		flagableflag: function(e, items) {
-			ok(false, "This point should not be reached, as no flagableflag event must be triggered (with items: " + items + ")");
+			ok(false, "This point should not be reached, as no flag event must be triggered (with items: " + items + ")");
 		},
 		flagableunflag: function(e, items) {
-			same(items, [1, 2], "flagableunflag event triggered with correct items");
+			same(items, [1, 2], "unflag event triggered with correct items");
 		}
 	});
 	$flagable.flagable('unflag', [1, 2]);
@@ -62,10 +62,10 @@ test("Flag and unflag", 26, function() {
 	
 	$flagable.bind({
 		flagableflag: function(e, items) {
-			same(items, [2], "flagableflag event triggered with correct items");
+			same(items, [2], "flag event triggered with correct items");
 		},
 		flagableunflag: function(e, items) {
-			ok(false, "This point should not be reached, as no unflagableflag event must be triggered (with items: " + items + ")");
+			ok(false, "This point should not be reached, as no unflag event must be triggered (with items: " + items + ")");
 		}
 	});
 	$flagable.flagable('flag', [2, 3]);
@@ -75,10 +75,10 @@ test("Flag and unflag", 26, function() {
 	
 	$flagable.bind({
 		flagableflag: function(e, items) {
-			ok(false, "This point should not be reached, as no flagableflag event must be triggered (with items: " + items + ")");
+			ok(false, "This point should not be reached, as no flag event must be triggered (with items: " + items + ")");
 		},
 		flagableunflag: function(e, items) {
-			equals(items, null, "flagableunflag event triggered with correct items");
+			equals(items, null, "unflag event triggered with correct items");
 		}
 	});
 	$flagable.flagable('unflag', null);
@@ -88,10 +88,10 @@ test("Flag and unflag", 26, function() {
 	
 	$flagable.bind({
 		flagableflag: function(e, items) {
-			same(items, [1], "flagableflag event triggered with correct items");
+			same(items, [1], "flag event triggered with correct items");
 		},
 		flagableunflag: function(e, items) {
-			ok(false, "This point should not be reached, as no flagableunflag event must be triggered (with items: " + items + ")");
+			ok(false, "This point should not be reached, as no unflag event must be triggered (with items: " + items + ")");
 		}
 	});
 	$flagable.flagable('flag', 1);
@@ -101,10 +101,10 @@ test("Flag and unflag", 26, function() {
 	
 	$flagable.bind({
 		flagableflag: function(e, items) {
-			same(items, [2, 3], "flagableflag event triggered with correct items");
+			same(items, [2, 3], "flag event triggered with correct items");
 		},
 		flagableunflag: function(e, items) {
-			ok(false, "This point should not be reached, as no flagableunflag event must be triggered (with items: " + items + ")");
+			ok(false, "This point should not be reached, as no unflag event must be triggered (with items: " + items + ")");
 		}
 	});
 	$flagable.flagable('flag', [2, 3]);
@@ -114,10 +114,10 @@ test("Flag and unflag", 26, function() {
 	
 	$flagable.bind({
 		flagableflag: function(e, items) {
-			ok(false, "This point should not be reached, as no flagableflag event must be triggered (with items: " + items + ")");
+			ok(false, "This point should not be reached, as no flag event must be triggered (with items: " + items + ")");
 		},
 		flagableunflag: function(e, items) {
-			same(items, [1, 3], "flagableunflag event triggered with correct items");
+			same(items, [1, 3], "unflag event triggered with correct items");
 		}
 	});
 	$flagable.flagable('unflag', [1, 3, 4]);
@@ -127,16 +127,31 @@ test("Flag and unflag", 26, function() {
 	
 	$flagable.bind({
 		flagableflag: function(e, items) {
-			ok(false, "This point should not be reached, as no flagableflag event must be triggered (with items: " + items + ")");
+			ok(false, "This point should not be reached, as no flag event must be triggered (with items: " + items + ")");
 		},
 		flagableunflag: function(e, items) {
-			same(items, [2], "flagableunflag event triggered with correct items");
+			same(items, [2], "unflag event triggered with correct items");
 		}
 	});
 	$flagable.flagable('unflag', null);
 	same($flagable.flagable('flagged'), [], "Unflagging all items after some items were explicitly flagged does impact flagged items");
 	equals($flagable.flagable('unflagged'), null, "But it does not have an effect on unflagged items");
 	$flagable.unbind();
+	
+});
+
+test("Link to DOM", 1, function() {
+	
+	var $li = $flagable.children('li:first');
+	
+	$flagable.flagable({
+		elements: '#flagable > li',
+		flag: function(e, data) {
+			same(data[0], [$li[0]], "Correct item is flagged after click");
+		}
+	});
+	
+	$li.simulate('click');
 	
 });
 
@@ -160,8 +175,8 @@ test('flag event', function() {
 
 	q.$ul.
 		flagable({item: '#main > ul > li'}).
-		bind('flagableflag', function(e, $items) {
-			equals(e.type, 'flagableflag', "flag event triggered");
+		bind('flag', function(e, $items) {
+			equals(e.type, 'flag', "flag event triggered");
 			equals($items[0], q.$li[0], "Flagged item supplied as data");
 		});
 	q.$li.simulate('click');
@@ -174,8 +189,8 @@ test('unflag event', function() {
 
 	q.$ul.
 		flagable({item: '#main > ul > li'}).
-		bind('flagableunflag', function(e, $items) {
-			equals(e.type, 'flagableunflag', "unflag event triggered");
+		bind('unflag', function(e, $items) {
+			equals(e.type, 'unflag', "unflag event triggered");
 			equals($items[0], q.$li[0], "Unflagged item supplied as data");
 		});
 	q.$li.simulate('click').simulate('click');

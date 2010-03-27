@@ -13,9 +13,9 @@ $('ul').flagable({
 	},
 	unflagLast: function(item) {
 	},
-	flagRender: function($elements) {
+	invalidateFlagged: function($elements) {
 	},
-	unflagRender: function($elements) {
+	invalidateUnflagged: function($elements) {
 	}
 });
 
@@ -27,6 +27,10 @@ Internally this translates to:
 
 $('ul').flagable('flag', items | $elements | null)
 $('ul').flagable('unflag', items | $elements | null)
+
+$('ul').flagable('invalidate')
+
+
 */
 
 (function($) {
@@ -34,6 +38,8 @@ $('ul').flagable('unflag', items | $elements | null)
 $.widget('al.flagable', {
 	
 	options: {
+		elements: '> *',
+		bind: 'click',
 		id: null
 	},
 	
@@ -42,6 +48,10 @@ $.widget('al.flagable', {
 		
 		self._flagged = [];	// $.RecordSet(self.options.id);
 		self._inverted = false;
+		
+		$(self.options.elements, self.element[0]).live(self.options.bind, function(e) {
+			self.toggle(this);
+		});
 	},
 	
 	flag: function(items, invert) {
@@ -93,17 +103,36 @@ $.widget('al.flagable', {
 		self.flag(items, true);
 	},
 	
-	flagged: function(invert) {
+	toggle: function(items) {
+		var self = this,
+			flag = [],
+			unflag = [];
+		
+		if (!$.isArray(items)) {
+			return self.toggle([items]);
+		}
+		
+		for (var i = 0, l = items.length; i < l; i++) {
+			(self.flagged(items[i]) ? unflag : flag).push(items[i]);
+		}
+		self.unflag(unflag);
+		self.flag(flag);
+	},
+	
+	flagged: function(item, invert) {
 		invert = !!invert;
 		var self = this;
 		
+		if (item !== undefined) {
+			return self._inverted === invert ? $.inArray(item, self._flagged) !== -1 : $.inArray(item, self._flagged) === -1;
+		}
 		return self._inverted === invert ? self._flagged : null;
 	},
 	
-	unflagged: function() {
+	unflagged: function(item) {
 		var self = this;
 		
-		return self.flagged(true);
+		return self.flagged(item, true);
 	}
 	
 });

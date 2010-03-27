@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en" class="no-js">
+
+	<head>
+		<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+		
+		<title>
+			JAL dataview
+		</title>
+		
+	    <script type="text/javascript" src="../lib/modernizr-1.1.min.js"></script>
+<!--		<link rel="stylesheet" type="text/css" href="../lib/html5-reset-1.4.css" />-->
+		<link rel="stylesheet" type="text/css" href="../lib/jquery-ui-1.8rc1/themes/base/ui.all.css" />
+		<style type="text/css">
+			
+			li.checked {
+				background-color: yellow;
+			}
+			
+		</style>
+	</head>
+	
+	<body>
+		<ul>
+			<li>item 1</li>
+			<li>item 2</li>
+			<li>item 3</li>
+		</ul>
+
+		<script type="text/javascript" src="http://ajax.googleapis.com/ajax/libs/jquery/1.4.1/jquery.js"></script>
+		<script type="text/javascript" src="../lib/jquery-ui-1.8rc1/ui/jquery-ui.js"></script>
+		<script type="text/javascript" src="../lib/underscore.js"></script>
+		<script type="text/javascript" src="../src/jquery.al.flexicallback.js"></script>
+		<script type="text/javascript" src="../src/jquery.al.data.js"></script>
+		<script type="text/javascript" src="../src/jquery.al.flirt.js"></script>
+		<script type="text/javascript" src="../src/jquery.al.dataview.js"></script>
+		<script type="text/javascript" src="../src/jquery.al.flagable.js"></script>
+		<script type="text/javascript">
+			
+			jQuery(function($) {
+				
+				var $flagable = $('ul:first'),
+					items = 'li';
+				
+				$flagable.flagable({
+					elements: items,
+					flag: function(e, data) {
+						(data[0] === null ? $flagable.find(items) : $(data[0])).addClass('checked');
+					},
+					unflag: function(e, data) {
+						(data[0] === null ? $flagable.find(items) : $(data[0])).removeClass('checked');
+					}
+				});
+				
+			});
+			
+		</script>
+	</body>
+
+</html>
