@@ -1,5 +1,5 @@
 /*
-$('ul').flagable({
+$('ul').flaggable({
 	elements: '> li',
 	bind: 'click',
 	id: 'fieldName',
@@ -19,38 +19,52 @@ $('ul').flagable({
 	}
 });
 
-$('ul').flagable('flagged')		=> items | null
-$('ul').flagable('unflagged')	=> null | items
+$('ul').flaggable('flagged')		=> items | null
+$('ul').flaggable('unflagged')	=> null | items
 Internally this translates to:
 	flagged: items
 	inverse: false | true
 
-$('ul').flagable('flag', items | $elements | null)
-$('ul').flagable('unflag', items | $elements | null)
+$('ul').flaggable('flag', items | $elements | null)
+$('ul').flaggable('unflag', items | $elements | null)
 
-$('ul').flagable('invalidate')
+$('ul').flaggable('invalidate')
 
 
 */
 
 (function($) {
 
-$.widget('al.flagable', {
+var dataview = function() {
+	return this.dataview('get');
+};
+
+$.widget('al.flaggable', {
 	
 	options: {
-		elements: '> *',
+		elements: null,
+		data: false,
 		bind: 'click',
+		handle: $.noop,
 		id: null
 	},
 	
 	_create: function() {
 		var self = this;
 		
+		if (self.options.data === true) {
+			self.options.data = dataview;
+		}
 		self._flagged = [];	// $.RecordSet(self.options.id);
 		self._inverted = false;
 		
+		if (self.options.elements === null) {
+			return;
+		}
+		
 		$(self.options.elements, self.element[0]).live(self.options.bind, function(e) {
-			self.toggle(this);
+			self.toggle($.isFunction(self.options.data) ? self.options.data.call(this) : this);
+			return self.options.handle.call(this, e);
 		});
 	},
 	
@@ -65,7 +79,7 @@ $.widget('al.flagable', {
 			}
 			self._flagged = [];	// self._flagged.clear();
 			self._inverted = !invert;
-			self._trigger(trigger, undefined, [null]);
+			self._trigger(trigger, undefined, {items: null});
 			return;
 		}
 		
@@ -75,7 +89,7 @@ $.widget('al.flagable', {
 		
 		if (self._inverted === invert) {
 			$.merge(self._flagged, items);	// self._flagged.add(items)
-			self._trigger(trigger, undefined, [items]);
+			self._trigger(trigger, undefined, {items: items});
 			return;
 		}
 		
@@ -93,7 +107,7 @@ $.widget('al.flagable', {
 			}
 		}
 		if (impacted.length > 0) {
-			self._trigger(trigger, undefined, [impacted]);
+			self._trigger(trigger, undefined, {items: impacted});
 		}
 	},
 	
@@ -149,13 +163,13 @@ $.widget('al.flagable', {
 
 
 WISHLIST
-- Support this syntax: $('section > ul').flagable({item: '> li'});
-  which will end up as: $('section > ul').flagable({item: 'section > ul > li'});
+- Support this syntax: $('section > ul').flaggable({item: '> li'});
+  which will end up as: $('section > ul').flaggable({item: 'section > ul > li'});
   Default value for option item can be '> *' in that case.
 - Cache methods such as flagged().
 
 
-$.widget('al.flagable', {
+$.widget('al.flaggable', {
 
 	options: {
 		item: 'li',
@@ -193,7 +207,7 @@ $.widget('al.flagable', {
 
 });
 
-$.widget('al.selectable', $.al.flagable, {
+$.widget('al.selectable', $.al.flaggable, {
 
 	options: {
 		minOne: false,

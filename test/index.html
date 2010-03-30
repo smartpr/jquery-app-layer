@@ -23,7 +23,7 @@
 			QUnit.jsDump.HTML = false;
 		</script>
 		<script type="text/javascript" src="../lib/jquery-ui-1.8rc1/tests/jquery.simulate.js"></script>
-		<script type="text/javascript" src="../lib/jquery-ui-1.8rc1/ui/jquery-ui.js"></script>
+		<script type="text/javascript" src="http://ajax.googleapis.com/ajax/libs/jqueryui/1.8.0/jquery-ui.js"></script>
 		<script type="text/javascript" src="../lib/underscore.js"></script>
 		<script type="text/javascript" src="../lib/jquery.ba-hashchange.js"></script>
 		<script type="text/javascript" src="../lib/jquery.form.js"></script>
@@ -34,13 +34,13 @@
 <!--		<script type="text/javascript" src="../src/jquery.al.perceivable.js"></script>-->
 		<script type="text/javascript" src="../src/jquery.al.flirt.js"></script>
 		<script type="text/javascript" src="../src/jquery.al.dataview.js"></script>
-		<script type="text/javascript" src="../src/jquery.al.flagable.js"></script>
+		<script type="text/javascript" src="../src/jquery.al.flaggable.js"></script>
 		<script type="text/javascript" src="data.js"></script>
 		<script type="text/javascript" src="flexicallback.js"></script>
 		<script type="text/javascript" src="state.js"></script>
 		<script type="text/javascript" src="flirt.js"></script>
 		<script type="text/javascript" src="dataview.js"></script>
-		<script type="text/javascript" src="flagable.js"></script>
+		<script type="text/javascript" src="flaggable.js"></script>
 	</head>
 	<body>
 		<h1 id="qunit-header">jQuery App Layer &bull; test suite</h1>
@@ -67,7 +67,7 @@
 					<li><%= name %> (<%= age %>)</li>
 				-->
 			</ul>
-			<ul id="flagable">
+			<ul id="flaggable">
 				<li>
 					<a href="1">item 1</a>
 					<a href="2">item 2</a>
@@ -77,6 +77,14 @@
 					<a href="4">item 4</a>
 					<a href="2">item 2</a>
 					<a href="5">item 5</a>
+				</li>
+				<li>
+					<ul>
+						<li>
+							<a href="6">item 6</a>
+							<a href="2">item 2</a>
+						</li>
+					</ul>
 				</li>
 			</ul>
 			<div id="block0">block0</div>
