@@ -36,7 +36,7 @@ $('ul').flaggable('invalidate')
 (function($) {
 
 var dataview = function() {
-	return this.dataview('get');
+	return $(this).dataview('get');
 };
 
 $.widget('al.flaggable', {
@@ -137,10 +137,10 @@ $.widget('al.flaggable', {
 		invert = !!invert;
 		var self = this;
 		
-		if (item !== undefined) {
-			return self._inverted === invert ? $.inArray(item, self._flagged) !== -1 : $.inArray(item, self._flagged) === -1;
+		if (item === undefined) {
+			return self._inverted === invert ? self._flagged : null;
 		}
-		return self._inverted === invert ? self._flagged : null;
+		return (self._inverted === invert) === ($.inArray(item, self._flagged) !== -1);
 	},
 	
 	unflagged: function(item) {
