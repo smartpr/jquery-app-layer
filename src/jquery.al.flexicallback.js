@@ -1,3 +1,10 @@
+/*
+TODO:
+- always use "new Flexicallback" as it's more efficient
+- don't use $.extend(this, {}) inside Flexicallback as it adds to the noise
+- put Flexicallback in a var declaration of its own to reduce indentation
+*/
+
 (function($) {
 
 var Flexicallback = function(callback) {

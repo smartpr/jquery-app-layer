@@ -1,59 +1,144 @@
-/*
-// templating design:
+(function($) {
 
-- use resig's micro-templating solution: http://ejohn.org/blog/javascript-micro-templating/
-- include fix for single quotes: http://www.west-wind.com/Weblog/posts/509108.aspx
-- use jqote syntax: http://aefxx.com/jquery-plugins/jqote/
-- add cdata stripping (jqote) (do we need this? do we want this? is html5 cdata compliant?)
+var settings = {
+	executeStart: '<%',
+	executeEnd: '%>',
+	interpolateStart: '<%=',
+	interpolateEnd: '%>',
+	nestStart: '<!-',
+	nestEnd: '->',
+	safeId: '_flirt-temporary-placeholder'
+};
 
-syntax:
-	    	<ul id="flagme">
-                <script type="text/smesh">
-                    <li>
-                    	<input type="checkbox" /><%= text %>
-                    </li>
-                </script>
-	    	</ul>
-	    	
-	    	$('#flagme').smesh(data);
+var regexps;
+var compileRegexps = function() {
+	regexps = {
+		singleQuoteHack: new RegExp("'(?=[^" + settings.executeEnd[0] + "]*" + settings.executeEnd + ")", 'g'),
+		interpolation: new RegExp(settings.interpolateStart + '(.+?)' + settings.interpolateEnd, 'g'),
+		nestingLeaf: new RegExp(settings.nestStart + '(\\w+)\\s((?:[\\S\\s](?!' + settings.nestStart + '))+?)' + settings.nestEnd)
+	};
+};
+compileRegexps();
 
-philosophy:
-- implicit template definition and identification
-    * definition = <!--FLIRT ... -->
-    * identifaction = is in the element in which it will be applied
-- template caching on the element and using jquery.al.data.js
+var compile = function(template) {
+	return new Function('data',
+		'var p=this.p=[];' +
+		'this.print=function(){p.push.apply(p,arguments);};' +
+		'with(data){this.p.push(\'' +
+		template.replace(/[\r\t\n]/g, " ").
+			replace(regexps.singleQuoteHack, "\t").
+			split("'").join("\\'").
+			split("\t").join("'").
+			replace(regexps.interpolation, "',$1,'").
+			split(settings.executeStart).join("');").
+			split(settings.executeEnd).join("this.p.push('") +
+		"');}" +
+		"return this.nodes(p);"
+	);
+};
+var nodes = function(parts) {
+	if (!$.isArray(parts)) {
+		parts = [parts];
+	}
+	
+	var nodeParts = [],
+		nodePart,
+		i = parts.length;
+	while (i--) {
+		nodePart = parts[i];
+		if (nodePart instanceof $) {
+			nodeParts.push([i, nodePart]);
+			parts[i] = '<div id="' + settings.safeId + i + '" />';
+		}
+	}
+	
+	var $nodes = $('<div>' + parts.join('') + '</div>');
+	i = nodeParts.length;
+	while (i--) {
+		nodePart = nodeParts[i];
+		$nodes.find('#' + settings.safeId + nodePart[0]).replaceWith(nodePart[1]);
+	}
+	return $nodes.contents();
+};
 
-new name: flirt (FLirt Is Resig's Templating)
+var Flirt = function(template, which, cb) {
+	if (!(this instanceof Flirt)) {
+		return new Flirt(template, which, cb);
+	}
+	
+	if (typeof template === 'string') {
+		var reduced,
+			compiled = [],
+			t = 0;
+		while (true) {
+			reduced = template.replace(regexps.nestingLeaf, function(match, field, part) {
+				compiled[++t] = compile(part);
+				return settings.interpolateStart + 'this.flirt.parse(' + field + ',' + t + ')' + settings.interpolateEnd;
+			});
+			if (reduced === template) {
+				break;
+			}
+			template = reduced;
+		}
+		compiled[0] = compile(template);
+		template = compiled;
+	}
+	if (cb === undefined && $.isFunction(which)) {
+		cb = which;
+		which = undefined;
+	}
+	if (which === undefined) {
+		which = 0;
+	}
+	
+	this.parse = function(data, t) {
+		if (!$.isArray(data)) {
+			data = [data];
+		}
+		if (t === undefined) {
+			t = which;
+		}
+		var $part,
+			$all = $('<div />');
+		for (var i = 0, l = data.length; i < l; i++) {
+			$part = template[t].call({flirt: this, nodes: nodes}, data[i]);
+			if ($.isFunction(cb)) {
+				cb.call($part, data[i], new Flirt(template, t));
+			}
+			$all.append($part);
+		}
+		return $all.contents();
+	};
+};
 
-move to ui widget structure: flirt('get', data) , flirt('set', data), flirt('append', data)
-(instead of commit argument)
+$.flirt = function(template, data, cb) {
+	if (cb === undefined && $.isFunction(data)) {
+		cb = data;
+		data = undefined;
+	}
+	
+	if (data === undefined) {
+		if ($.isPlainObject(template)) {
+			$.extend(settings, template);
+			compileRegexps();
+		}
+		return settings;
+	}
+	
+	return new Flirt(template, cb).parse(data);
+};
 
-also: think about how much sophistication we really need. is it worth implementing
-an approach which carefully puts parsed html in place of the template, without
-touching non-flirts in the same container? or is it ok to just take over the entire
-container?
-
-TODO: Automatic nested looping (f.e. tags block: loop groups, then loop group members)
-
-*/
-
-/*
-
-Next iteration API design:
-
-$('ul').flirt('set', 'tmpl-name', data-object-or-list-of-data-objects);
-
-$('ul').flirt('append', 'tmpl-name', data-object-or-list-of-data-objects);
-
-var html = $('ul').flirt('get', 'tmpl-name', data-object-or-list-of-data-objects);
+}(jQuery));
 
 
-*/
+
+
+
 
 
 (function($) {
 
-var NS = 'flirt';
+var NS = 'flirt_outdated';
 
 $.fn[NS] = function(data, commit) {
 	var $this = this,
@@ -85,39 +170,5 @@ $.fn[NS] = function(data, commit) {
 	}
 	return $this.html(html);
 };
-
-
-
-
-  // By default, Underscore uses ERB-style template delimiters, change the
-  // following template settings to use alternative delimiters.
-  $.flirtSettings = {
-    start       : '<%',
-    end         : '%>',
-    interpolate : /<%=(.+?)%>/g,
-    down        : /<!-(\w+?)\s(.*)->/g
-  };
-
-  // JavaScript templating a-la ERB, pilfered from John Resig's
-  // "Secrets of the JavaScript Ninja", page 83.
-  // Single-quote fix from Rick Strahl's version.
-  $.flirt = function(str, data) {
-    var c  = $.flirtSettings;
-    for (var i = 0; i < 10; i++) {
-      str=str.replace(c.down, "<%for(i[" + i + "] = 0; i[" + i + "] < $1.length; i[" + i + "]++) { with($1[i[" + i + "]]) { %>$2<% }} %>");
-    }
-    var fn = new Function('obj',
-      'var p=[],i=[],print=function(){p.push.apply(p,arguments);};' +
-      'with(obj){p.push(\'' +
-      str.replace(/[\r\t\n]/g, " ")
-         .replace(new RegExp("'(?=[^"+c.end[0]+"]*"+c.end+")","g"),"\t")
-         .split("'").join("\\'")
-         .split("\t").join("'")
-         .replace(c.interpolate, "',$1,'")
-         .split(c.start).join("');")
-         .split(c.end).join("p.push('")
-         + "');}return p.join('');");
-    return data ? fn(data) : fn;
-  };
 
 }(jQuery));

@@ -33,16 +33,16 @@
 		<script type="text/javascript" src="../src/jquery.al.state.js"></script>
 <!--		<script type="text/javascript" src="../src/jquery.al.perceivable.js"></script>-->
 		<script type="text/javascript" src="../src/jquery.al.flirt.js"></script>
-		<script type="text/javascript" src="../src/jquery.al.dataview.js"></script>
+<!--		<script type="text/javascript" src="../src/jquery.al.dataview.js"></script>-->
 		<script type="text/javascript" src="../src/jquery.al.listview.js"></script>
 		<script type="text/javascript" src="../src/jquery.al.flaggable.js"></script>
 		<script type="text/javascript" src="data.js"></script>
 		<script type="text/javascript" src="flexicallback.js"></script>
 		<script type="text/javascript" src="state.js"></script>
 		<script type="text/javascript" src="flirt.js"></script>
-		<script type="text/javascript" src="dataview.js"></script>
-		<script type="text/javascript" src="listview.js"></script>
-		<script type="text/javascript" src="flaggable.js"></script>
+<!--		<script type="text/javascript" src="dataview.js"></script>-->
+<!--		<script type="text/javascript" src="listview.js"></script>-->
+<!--		<script type="text/javascript" src="flaggable.js"></script>-->
 	</head>
 	<body>
 		<h1 id="qunit-header">jQuery App Layer &bull; test suite</h1>
@@ -77,13 +77,25 @@
 				<!-- this is a regular comment -->
 			</ul>
 			<ul id="flirt">
-				<!--flirt
-					<li><%= text %>
-				-->
-				<!-- regular comment -->
-				<!--flirt
+				<li>Header</li>
+				<!--
+					<li>
+						<%= group %>:
+						<!-members
+							[<strong><a href="<%= id %>" style="font-family:<%= fonts.join(',') %>;"><%= name %></a></strong> <!-fonts
+								<%= data %>,
+							->]
+						->
+						(<%= members.length %>)
+					</li>
+					<li>
+						those were ids
+						<!-members
+							<%= id %>,
+						->...
 					</li>
 				-->
+				<!-- this is a regular comment -->
 			</ul>
 			<ul id="listview">
 				<!--flirt

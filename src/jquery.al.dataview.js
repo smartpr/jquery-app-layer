@@ -59,19 +59,19 @@ var settings = {
 				'for(var i=0,l=data.length;i<l;i++){r+=self.templates[id].call({templates:self.templates}, data[i]);}' +
 				'return r;' +
 			'};' +
-			'with(self.obj){self.p.push(\'' +
+			'with(self.obj){this.p.push(\'' +
 			str.replace(/[\r\t\n]/g, " ").
 				replace(new RegExp("'(?=[^" + settings.end[0] + "]*" + settings.end + ")","g"),"\t").
 				split("'").join("\\'").
 				split("\t").join("'").
 				replace(settings.interpolate, "',$1,'").
 				split(settings.start).join("');").
-				split(settings.end).join("self.p.push('") +
+				split(settings.end).join("this.p.push('") +
 			"');}return self.p.join('');"
 		);
 	};
 
-$.fn.dataview = function(action, data) {
+$.fn.dataview_outdated = function(action, data) {
 	var template = '<!-' + this[0].data + '->',
 		compiled = [],
 		t = 0;
@@ -88,6 +88,47 @@ $.fn.dataview = function(action, data) {
 	template = compile(template)
 	return template.call({templates: compiled}, data);
 };
+
+var getClosestViewOf = function(element) {
+	// TODO: we could ditch reverse and use filter(':data(dataview.data):last')
+	return $(element).parentsUntil('html').andSelf().reverse().filter(':data(dataview.data):first');
+};
+
+$.fn.dataview = function(action, template, data) {
+	
+	switch (action) {
+	
+		case 'set':
+			
+			// create recordset
+			this.
+				flirt('clear').
+				flirt(data, template, function(data) {
+					// transform data to record via recordset (keep an eye on memory!)
+					$(this).store('dataview', 'data', data);
+				});
+			break;
+			
+		case 'get':
+			
+			return getClosestViewOf(this[0]).fetch('dataview', 'data');
+			break;
+			
+		case 'invalidate':
+			
+			this.each(function() {
+				var $view = getClosestViewOf(this);
+				$view.flirt($view.fetch('dataview', 'data'), function(data) {
+					$(this).store('dataview', 'data', data);
+				});
+			});
+			break;
+		
+	}
+	return this;
+	
+};
+
 
 }(jQuery));
 
