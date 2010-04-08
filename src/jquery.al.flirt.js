@@ -122,7 +122,9 @@ $.flirt = function(template, data, cb) {
 			$.extend(settings, template);
 			compileRegexps();
 		}
-		return settings;
+		// Do not return the actual settings object in order to prevent
+		// inconsistent behavior in case the returned object is modified.
+		return $.extend({}, settings);
 	}
 	
 	return new Flirt(template, cb).parse(data);
