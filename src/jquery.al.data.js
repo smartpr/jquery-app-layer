@@ -72,6 +72,9 @@ $.fn.del = function() {
 	return $.fn.store.apply(this, $.merge(arguments, [undefined]));
 };
 
+// TODO: Design and implement semantics of ":data(family.name)" (without '='). Options:
+// - validates if data field exists (could be useful to quickly select elements that have a certain data setting)
+// - validates if data field evaluates to true (this is consistent with: fetch('family', 'name') ? true : false)
 $.expr[':'].data = function(elem, index, meta, stack) {
 	var param = meta[3].split('='),
 		$elem = $(elem),

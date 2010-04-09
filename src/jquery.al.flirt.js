@@ -61,9 +61,9 @@ var nodes = function(parts) {
 	return $nodes.contents();
 };
 
-var Flirt = function(template, which, cb) {
+var Flirt = function(template, which) {
 	if (!(this instanceof Flirt)) {
-		return new Flirt(template, which, cb);
+		return new Flirt(template, which);
 	}
 	
 	if (typeof template === 'string') {
@@ -73,7 +73,7 @@ var Flirt = function(template, which, cb) {
 		while (true) {
 			reduced = template.replace(regexps.nestingLeaf, function(match, field, part) {
 				compiled[++t] = compile(part);
-				return settings.interpolateStart + 'this.flirt.parse(' + field + ',' + t + ')' + settings.interpolateEnd;
+				return settings.interpolateStart + 'this.flirt.parse(' + field + ',' + t + ',this.cb)' + settings.interpolateEnd;
 			});
 			if (reduced === template) {
 				break;
@@ -83,17 +83,17 @@ var Flirt = function(template, which, cb) {
 		compiled[0] = compile(template);
 		template = compiled;
 	}
-	if (cb === undefined && $.isFunction(which)) {
-		cb = which;
-		which = undefined;
-	}
 	if (which === undefined) {
 		which = 0;
 	}
 	
-	this.parse = function(data, t) {
+	this.parse = function(data, t, cb) {
 		if (!$.isArray(data)) {
 			data = [data];
+		}
+		if (cb === undefined && $.isFunction(t)) {
+			cb = t;
+			t = undefined;
 		}
 		if (t === undefined) {
 			t = which;
@@ -101,9 +101,11 @@ var Flirt = function(template, which, cb) {
 		var $part,
 			$all = $('<div />');
 		for (var i = 0, l = data.length; i < l; i++) {
-			$part = template[t].call({flirt: this, nodes: nodes}, data[i]);
+			$part = template[t].call({flirt: this, cb: cb, nodes: nodes}, data[i]);
+			// TODO: invalidation
+//			$part.store('flirt', 'source', new Flirt(template, t));
 			if ($.isFunction(cb)) {
-				cb.call($part, data[i], new Flirt(template, t));
+				cb.call($part, data[i]);
 			}
 			$all.append($part);
 		}
@@ -127,50 +129,98 @@ $.flirt = function(template, data, cb) {
 		return $.extend({}, settings);
 	}
 	
-	return new Flirt(template, cb).parse(data);
+	return new Flirt(template).parse(data, cb);
 };
 
-}(jQuery));
-
-
-
-
-
-
-
-(function($) {
-
-var NS = 'flirt_outdated';
-
-$.fn[NS] = function(data, commit) {
-	var $this = this,
-		template = $this.fetch(NS, 'template'),
-		html = '';
+var $findTemplates = function(filter, max) {
+	var nodes = [];
 	
-	if (template === undefined) {
-		template = '';
-		$this.contents('[nodeType=8]').each(function() {
-			if (this.data.substr(0, NS.length).toLowerCase() === NS) {
-				template += $.trim(this.data.substr(NS.length));
-				$(this).remove();
-			}
-		});
-		if (!template) {
-			return null;
+	if (this.length > 0) {
+		
+		$.merge(nodes, this.filter(function() {
+			return this.nodeType === 8 && filter.apply(this, arguments) === true;
+		}).get());
+		
+		if (max === undefined || nodes.length < max) {
+			var remainder = max === undefined ?
+				undefined :
+				max - nodes.length;
+			$.merge(nodes, this.filter('[nodeType=1]').contents().
+				chain($findTemplates, filter, remainder).get());
 		}
-		template = _.template(template);
-		$this.store(NS, 'template', template);
+		
 	}
-	if (!$.isArray(data)) {
-		data = [data];
+	
+	return $(max === undefined ? nodes : nodes.slice(0, max));
+};
+
+$.fn.flirt = function(action, data, templateName, cb) {
+	if (typeof action !== 'string') {
+		cb = templateName;
+		templateName = data;
+		data = action;
+		action = 'set';
 	}
-	for (var i = 0, l = data.length; i < l; i++) {
-		html += template(data[i]);
+	
+	switch (action) {
+	
+		case 'set':
+			var templateFilter = new RegExp('^' + (templateName ? templateName + '\\s' : ''));
+			
+			this.each(function() {
+				// TODO: invalidation
+//				var flirt = $this.fetch('flirt', 'source');
+//				if (flirt) {
+//					$this.replaceWith(flirt.parse(data, cb));
+//					return true;
+//				}
+				
+				var $template = $(this).chain($findTemplates, function() {
+					var flirt = $(this).fetch('flirt');
+					return flirt && flirt.name === templateName ||
+						templateFilter.test(this.data);
+				}, 1);
+				if ($template.length === 0) {
+					return true;
+				}
+				
+				var flirt = $template.fetch('flirt', 'compiled');
+				if (!flirt) {
+					flirt = new Flirt($template[0].data.substr(templateName ? templateName.length + 1 : 0));
+					$template.store('flirt', {
+						name: templateName,
+						compiled: flirt
+					});
+				}
+				
+				$template.before(flirt.parse(data, cb).store('flirt', 'clearable', true));
+			});
+			
+			break;
+	
+		case 'clear':
+			templateName = data;
+			var clear = [];
+			
+			this.each(function() {
+				$(this).chain($findTemplates, function() {
+					var flirt = $(this).fetch('flirt');
+					return flirt && (templateName === undefined || flirt.name === templateName);
+				}).each(function() {
+					var node = this.previousSibling;
+					while (node && $(node).fetch('flirt', 'clearable') === true) {
+						clear.push(node);
+						node = node.previousSibling;
+					}
+				});
+			});
+			
+			$(clear).remove();
+			break;
+	
 	}
-	if (commit === false) {
-		return html;
-	}
-	return $this.html(html);
+	return this;
 };
 
 }(jQuery));
+

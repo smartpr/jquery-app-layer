@@ -94,7 +94,7 @@ var getClosestViewOf = function(element) {
 	return $(element).parentsUntil('html').andSelf().reverse().filter(':data(dataview.data):first');
 };
 
-$.fn.dataview = function(action, template, data) {
+$.fn.dataview = function(action, templateName, data) {
 	
 	switch (action) {
 	
@@ -103,7 +103,7 @@ $.fn.dataview = function(action, template, data) {
 			// create recordset
 			this.
 				flirt('clear').
-				flirt(data, template, function(data) {
+				flirt(data, templateName, function(data) {
 					// transform data to record via recordset (keep an eye on memory!)
 					$(this).store('dataview', 'data', data);
 				});
@@ -113,16 +113,17 @@ $.fn.dataview = function(action, template, data) {
 			
 			return getClosestViewOf(this[0]).fetch('dataview', 'data');
 			break;
-			
-		case 'invalidate':
-			
-			this.each(function() {
-				var $view = getClosestViewOf(this);
-				$view.flirt($view.fetch('dataview', 'data'), function(data) {
-					$(this).store('dataview', 'data', data);
-				});
-			});
-			break;
+		
+		// TODO: invalidation	
+//		case 'invalidate':
+//			
+//			this.each(function() {
+//				var $view = getClosestViewOf(this);
+//				$view.flirt($view.fetch('dataview', 'data'), function(data) {
+//					$(this).store('dataview', 'data', data);
+//				});
+//			});
+//			break;
 		
 	}
 	return this;

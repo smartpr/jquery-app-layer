@@ -9,25 +9,82 @@
 		</title>
 		
 	    <script type="text/javascript" src="../lib/modernizr-1.1.min.js"></script>
-<!--		<link rel="stylesheet" type="text/css" href="../lib/html5-reset-1.4.css" />-->
+		<link rel="stylesheet" type="text/css" href="../lib/html5-reset-1.4.css" />
 		<link rel="stylesheet" type="text/css" href="../lib/jquery-ui-1.8rc1/themes/base/ui.all.css" />
 		<style type="text/css">
 			
+			li {
+				padding: .8em;
+				font-family: Arial, sans-serif;
+			}
+			li.header {
+				font-weight: bold;
+			}
+			blockquote {
+				font-family: Georgia, 'Times New Roman', Times, serif;
+				background-color: lightgrey;
+				padding: .5em;
+			}
+			p.meta {
+				font-style: italic;
+				font-size: .9em;
+				padding: .2em 0 0 .2em;
+			}
+			p.source {
+				font-family: monospace;
+				float: right;
+			}
 			
 		</style>
 	</head>
 	
 	<body>
-		this is visible
-		<!--dataview
-			this is not visible
-			<!-members
-				nested
-			->
-			more not visible
-		-->
-		<script type="text/javascript" src="http://ajax.googleapis.com/ajax/libs/jquery/1.4.1/jquery.js"></script>
+		<button id="small">Basic</button>
+		<button id="big">Extended</button>
+		<button id="clear">Clear</button>
+		<ul>
+			<li class="header">These are Tim's tweets...</li>
+			<!--small
+				<li><%= text %> (<%= created_at %>)</li>
+			-->
+			<!--big
+				<li>
+					<blockquote><%= text %></blockquote>
+					<div>
+						<p class="source">posted from <%= source %></p>
+						<p class="meta">
+							<%= created_at %>
+							<% if (in_reply_to_status_id !== null) { %>
+								in reply to <a href="http://twitter.com/<%= in_reply_to_screen_name %>/status/<%= in_reply_to_status_id %>"><%= in_reply_to_screen_name %></a>
+							<% } %>
+						</p>
+					</div>
+				</li>
+			-->
+		</ul>
+		<script type="text/javascript" src="http://ajax.googleapis.com/ajax/libs/jquery/1.4.2/jquery.js"></script>
+		<script type="text/javascript" src="http://ajax.googleapis.com/ajax/libs/jqueryui/1.8.0/jquery-ui.js"></script>
+		<script type="text/javascript" src="../src/jquery.al.util.js"></script>
+		<script type="text/javascript" src="../src/jquery.al.data.js"></script>
 		<script type="text/javascript" src="../src/jquery.al.flirt.js"></script>
+		<script type="text/javascript">
+			
+			jQuery(function($) {
+				
+				$('button').click(function() {
+					$('ul').flirt('clear');
+					if (this.id !== 'clear') {
+						var t = this.id;
+						$.getJSON('http://twitter.com/statuses/user_timeline/timmolendijk.json?count=10&callback=?', function(data) {
+							$('ul').flirt(data, t);
+						});
+					}
+					return false;
+				});
+				
+			});
+			
+		</script>
 	</body>
 
 </html>
