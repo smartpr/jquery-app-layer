@@ -99,19 +99,19 @@ $.fn.dataview = function(action, templateName, data) {
 	switch (action) {
 	
 		case 'set':
-			// create recordset
+			// var rs = new $.RecordSet();
 			this.
 				flirt('clear').
 				flirt(data, templateName, function(data) {
 					// transform data to record via recordset (keep an eye on memory!)
-					$(this).store('dataview', 'data', data);
+					$(this).store('dataview', 'data', data);	// rs.get(data)
 				});
 			break;
 			
 		case 'get':
 			return this.parentsUntil('html').andSelf().filter(function() {
 				return !!$(this).fetch('dataview', 'data');
-			}).eq(-1).fetch('dataview', 'data');
+			}).eq(-1).fetch('dataview', 'data');	// .get()
 			break;
 		
 		// TODO: invalidation	
