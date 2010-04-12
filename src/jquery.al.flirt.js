@@ -73,7 +73,7 @@ var Flirt = function(template, which) {
 		while (true) {
 			reduced = template.replace(regexps.nestingLeaf, function(match, field, part) {
 				compiled[++t] = compile(part);
-				return settings.interpolateStart + 'this.flirt.parse(' + field + ',' + t + ',this.cb)' + settings.interpolateEnd;
+				return settings.interpolateStart + 'this.flirt.parse(' + field + ',' + t + ',this.callback)' + settings.interpolateEnd;
 			});
 			if (reduced === template) {
 				break;
@@ -101,7 +101,7 @@ var Flirt = function(template, which) {
 		var $part,
 			$all = $('<div />');
 		for (var i = 0, l = data.length; i < l; i++) {
-			$part = template[t].call({flirt: this, cb: cb, nodes: nodes}, data[i]);
+			$part = template[t].call({flirt: this, callback: cb, nodes: nodes}, data[i]);
 			// TODO: invalidation
 //			$part.store('flirt', 'source', new Flirt(template, t));
 			if ($.isFunction(cb)) {

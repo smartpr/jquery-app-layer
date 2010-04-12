@@ -99,7 +99,6 @@ $.fn.dataview = function(action, templateName, data) {
 	switch (action) {
 	
 		case 'set':
-			
 			// create recordset
 			this.
 				flirt('clear').
@@ -110,8 +109,9 @@ $.fn.dataview = function(action, templateName, data) {
 			break;
 			
 		case 'get':
-			
-			return getClosestViewOf(this[0]).fetch('dataview', 'data');
+			return this.parentsUntil('html').andSelf().filter(function() {
+				return !!$(this).fetch('dataview', 'data');
+			}).eq(-1).fetch('dataview', 'data');
 			break;
 		
 		// TODO: invalidation	

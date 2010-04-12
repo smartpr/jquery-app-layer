@@ -1,40 +1,31 @@
 jQuery(function($) {
 
 var $dataview,
-	$template;
-
-module('dataview', {
-	setup: function() {
-		$dataview = $('#dataview');
-		$template = $($dataview.contents()[3]);
-	}
-});
-
-test("Set", 1, function() {
-/*	
-	$template.dataview('set', [
-		{
-			group: "A",
-			members: [
-				{
-					id: 1,
-					name: "Art",
-					fonts: [{name: "Arial"}, {name: "Verdana"}]
-				},
-				{
-					id: 2,
-					name: "Amsterdam",
-					fonts: [{name: "Arial"}, {name: "Verdana"}]
-				}
-			]
-		},
+	member = {
+		id: 1,
+		name: "Art",
+		fonts: ["Arial", "Verdana"]
+	};
+	group = {
+		group: "A",
+		members: [
+			member,
+			{
+				id: 2,
+				name: "Amsterdam",
+				fonts: ["Arial", "Verdana"]
+			}
+		]
+	};
+var data = [
+		group,
 		{
 			group: "B",
 			members: [
 				{
 					id: 3,
 					name: "Business",
-					fonts: [{name: "Arial"}, {name: "Verdana"}]
+					fonts: ["Arial", "Verdana"]
 				}
 			]
 		},
@@ -44,18 +35,33 @@ test("Set", 1, function() {
 				{
 					id: 4,
 					name: "Computers",
-					fonts: [{name: "does-not-exist"}, {name: "'Times New Roman'"}]
+					fonts: ["does-not-exist", "'Times New Roman'"]
 				},
 				{
 					id: 5,
 					name: "Cool",
-					fonts: [{name: "Courier New"}, {name: "Courier"}]
+					fonts: ["'Courier New'", "Courier"]
 				}
 			]
 		}
-	]);
-	*/
+	];
+
+module('dataview', {
+	setup: function() {
+		$dataview = $('#flirt');
+	}
+});
+
+test("Set and get data", 2, function() {
+	
+	$dataview.dataview('set', 'namedtemplate', data);
 	equals($dataview.children('li').length, 7, "Setting data results in a correspondingly created view");
+	
+	equals($dataview.children('li').eq(1).dataview('get'), group, "Getting data on an element that stores data returns that data");
+//	equals($dataview.find('li:first a:first').dataview('get'), member, "Getting data on an element that does not store data returns the data stored by the closest parent");
+	
+//	equals($dataview.children('li:first').dataview('get'), undefined, "No data to be found fails gracefully");
+//	equals($dataview.children('li').slice(2, 3).dataview('get'), group, "Getting data on several elements equals getting data on first element");
 	
 });
 

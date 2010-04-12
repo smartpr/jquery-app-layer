@@ -51,6 +51,7 @@ test('$.fn.store', function() {
 	this.$div.store('key', 'level2', undefined);
 	this.$ul.del('key', 'level2');
 	same(this.$div.data(), this.$ul.data(), "Storing undefined equals delete");
+	
 });
 
 test('$.fn.del', function() {
