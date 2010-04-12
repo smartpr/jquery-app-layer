@@ -106,7 +106,7 @@ $.widget('al.listview', {
 	invalidate: function() {
 		var self = this;
 		
-		self.element.flirt(self._displayData());
+		self.element.dataview('set', self._displayData());
 	},
 	
 	threshold: function(threshold) {

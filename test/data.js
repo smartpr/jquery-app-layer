@@ -5,11 +5,12 @@ module('data', {
 		this.$div = $('#main > div:first');
 		this.$ul = $('#main > ul:first');
 		this.$both = $([this.$div.get(0), this.$ul.get(0)]);
+		this.$empty = $();
 	}
 });
 
 test('$.fn.fetch', function() {
-	expect(6);
+	expect(7);
 	
 	same(this.$div.fetch(), undefined, "No arguments and no data returns undefined");
 	
@@ -19,10 +20,12 @@ test('$.fn.fetch', function() {
 	same(this.$div.fetch('does-not-exist'), undefined, "Non-existent key one level deep returns undefined");
 	same(this.$div.fetch('key', 'does-not-exist'), undefined, "Non-existent key two levels deep returns undefined");
 	same(this.$div.fetch('does-not-exist', 'does-not-exist'), undefined, "Non-existent keys two levels deep returns undefined");
+	
+	equals(this.$empty.fetch('whatever'), undefined, "Fetching data on empty collections fails silently");
 });
 
 test('$.fn.store', function() {
-	expect(10);
+	expect(12);
 	
 	equals(this.$div.store({key: 'value'}), this.$div, "Returns jQuery object");
 	
@@ -52,6 +55,10 @@ test('$.fn.store', function() {
 	this.$ul.del('key', 'level2');
 	same(this.$div.data(), this.$ul.data(), "Storing undefined equals delete");
 	
+	this.$div.contents().eq(0).store('key', 'value');
+	same(this.$div.contents().eq(0).data(), {key: 'value'}, "Storing data on text nodes is possible");
+	
+	equals(this.$empty.store('whatever', 'blub'), this.$empty, "Storing data on empty collections fails silently");
 });
 
 test('$.fn.del', function() {

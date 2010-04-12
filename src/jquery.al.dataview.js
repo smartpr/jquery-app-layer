@@ -43,61 +43,14 @@ comment element -> template functie -> aanroepen met data -> html -> invoegen in
 
 (function($) {
 
-var settings = {
-		start: '<%',
-		end: '%>',
-		interpolate: /<%=(.+?)%>/g
-	},
-	compile = function(str) {
-		return new Function('obj',
-			'var self=this;' +
-			'self.obj=obj;' +
-			'self.p=[];' +
-			'self.print=function(){self.p.push.apply(self.p,arguments);};' +
-			'self.parse=function(id,data){' +
-				'var r="";' +
-				'for(var i=0,l=data.length;i<l;i++){r+=self.templates[id].call({templates:self.templates}, data[i]);}' +
-				'return r;' +
-			'};' +
-			'with(self.obj){this.p.push(\'' +
-			str.replace(/[\r\t\n]/g, " ").
-				replace(new RegExp("'(?=[^" + settings.end[0] + "]*" + settings.end + ")","g"),"\t").
-				split("'").join("\\'").
-				split("\t").join("'").
-				replace(settings.interpolate, "',$1,'").
-				split(settings.start).join("');").
-				split(settings.end).join("this.p.push('") +
-			"');}return self.p.join('');"
-		);
-	};
-
-$.fn.dataview_outdated = function(action, data) {
-	var template = '<!-' + this[0].data + '->',
-		compiled = [],
-		t = 0;
-	
-	while (template.indexOf('<!-') !== -1) {
-		template = template.replace(/<!-(\w*)\s((?:[\S\s](?!<!-))+?)->/, function(match, field, nested) {
-			compiled[t] = compile(nested);
-			console.log(compiled[t]);
-			var value = "<%= this.parse(" + t + ", " + (field || 'this.obj') + ") %>";
-			t++;
-			return value;
-		});
-	}
-	template = compile(template)
-	return template.call({templates: compiled}, data);
-};
-
-var getClosestViewOf = function(element) {
-	// TODO: we could ditch reverse and use filter(':data(dataview.data):last')
-	return $(element).parentsUntil('html').andSelf().reverse().filter(':data(dataview.data):first');
-};
-
 $.fn.dataview = function(action, templateName, data) {
+	if (typeof templateName !== 'string') {
+		data = templateName;
+		templateName = undefined;
+	}
 	
 	switch (action) {
-	
+		
 		case 'set':
 			// var rs = new $.RecordSet();
 			this.
@@ -107,9 +60,9 @@ $.fn.dataview = function(action, templateName, data) {
 					$(this).store('dataview', 'data', data);	// rs.get(data)
 				});
 			break;
-			
+		
 		case 'get':
-			return this.parentsUntil('html').andSelf().filter(function() {
+			return this.eq(0).parentsUntil('html').andSelf().filter(function() {
 				return !!$(this).fetch('dataview', 'data');
 			}).eq(-1).fetch('dataview', 'data');	// .get()
 			break;
@@ -129,7 +82,6 @@ $.fn.dataview = function(action, templateName, data) {
 	return this;
 	
 };
-
 
 }(jQuery));
 

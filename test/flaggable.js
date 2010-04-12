@@ -164,13 +164,14 @@ test("Link to DOM; elements are flagged", 2, function() {
 	
 });
 
-test("Link to DOM; data that is retrieved from elements are flagged", 2, function() {
+test("Link to DOM; data that is retrieved from elements are flagged", 4, function() {
 
-	var $items = $flaggable.find('a'),
-		count = 0;
+	var items = 'a',
+		$items = $flaggable.find(items),
+		count1 = 0, count2 = 0;
 	
 	$flaggable.flaggable({
-		elements: 'a',
+		elements: items,
 		handle: function(e) {
 			e.preventDefault();
 		},
@@ -178,16 +179,25 @@ test("Link to DOM; data that is retrieved from elements are flagged", 2, functio
 			return parseInt($(this).attr('href'));
 		},
 		flag: function(e, data) {
-			if (count === 0) {
+			if (count1++ === 0) {
 				same(data.items, [1], "Clicked element's data is passed to flag handler");
 			}
-			count++;
+		},
+		invalidateFlagged: function(e, data) {
+			if (count2++ === 0) {
+				same(data.elements, [$items[0]], "Clicked element is passed to invalidateFlagged handler");
+			}
+		},
+		invalidateUnflagged: function(e, data) {
+			same(data.elements, [$items[0]], "Clicked element is passed to invalidateUnflagged handler");
 		}
 	});
 	
 	$items.eq(0).simulate('click');
 	$items.eq(2).simulate('click');
 	same($flaggable.flaggable('flagged'), [1, 3], "Clicked elements' data are flagged items");
+	
+	$items.eq(0).simulate('click');
 	
 });
 

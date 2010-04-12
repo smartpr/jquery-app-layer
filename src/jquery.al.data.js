@@ -4,6 +4,7 @@ WISHLIST
 - move to ui widget utility like such:
 	$(elem).tree('get', ns, 'field') , $(elem).tree('set', ns, 'field', 'value')
 	!! PERFORMANCE ???
+- Make it work on text nodes in IE.
 */
 (function($) {
 
@@ -36,6 +37,10 @@ var update = function(data, path, value) {
 };
 
 $.fn.fetch = function() {
+	if (this.length === 0) {
+		return undefined;
+	}
+	
 	var $this = this,
 		path = arguments,
 		data = $this.data();
@@ -54,9 +59,9 @@ $.fn.store = function() {
 		path = Array.prototype.slice.call(arguments, 0, -1),
 		value = arguments[path.length];
 	
-	if (path.length === 0) {
-		return $.isPlainObject(value) ? $this.data(value) : $this;
-	}
+	// if (path.length === 0) {
+	// 	return $.isPlainObject(value) ? $this.data(value) : $this;
+	// }
 	return $this.each(function() {
 		var $this = $(this),
 			data = update($this.data(), path, value);
