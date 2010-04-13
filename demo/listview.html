@@ -13,28 +13,63 @@
 		<link rel="stylesheet" type="text/css" href="../lib/jquery-ui-1.8rc1/themes/base/ui.all.css" />
 		<style type="text/css">
 			
+			#header {
+				text-align: center;
+			}
+			#tweets {
+				overflow: hidden;
+			}
+			#date {
+				width: 40%;
+				float: left;
+			}
+			#text {
+				width: 40%;
+				float: right;
+			}
+			ol > li {
+				border-top: 1px solid lightgrey;
+			}
+			ol > li.checked {
+				background-color: yellow;
+			}
+			#footer {
+				text-align: center;
+			}
 			
 		</style>
 	</head>
 	
 	<body>
-		<div id="summary">
-			<!--flirt
-				<%= display %>/<%= total %> item(s)
-			-->
+		<div id="header">
+			<div id="summary">
+				<!--flirt
+					<%= display %>/<%= total %> item(s)
+				-->
+			</div>
+			<input type="search" />
 		</div>
-		<input type="search" />
-		<ol id="listview">
-			<!--
-				<li><%= text %> (<%= created_at %>)</li>
-			-->
-		</ol>
-		<a href="" id="more">More</a>
+		<div id="tweets">
+			<ol id="date">
+				<!--
+					<li><%= text %> (<%= created_at %>)</li>
+				-->
+			</ol>
+			<ol id="text">
+				<!--
+					<li><%= text %> (<%= created_at %>)</li>
+				-->
+			</ol>
+		</div>
+		<div id="footer">
+			<a href="" id="more">More</a>
+		</div>
 
 		<script type="text/javascript" src="http://ajax.googleapis.com/ajax/libs/jquery/1.4.2/jquery.js"></script>
 		<script type="text/javascript" src="http://ajax.googleapis.com/ajax/libs/jqueryui/1.8.0/jquery-ui.js"></script>
 		<script type="text/javascript" src="../lib/underscore.js"></script>
 		<script type="text/javascript" src="../src/jquery.al.util.js"></script>
+		<script type="text/javascript" src="../src/jquery.al.record.js"></script>
 		<script type="text/javascript" src="../src/jquery.al.flexicallback.js"></script>
 		<script type="text/javascript" src="../src/jquery.al.data.js"></script>
 		<script type="text/javascript" src="../src/jquery.al.flirt.js"></script>
@@ -45,47 +80,79 @@
 			
 			jQuery(function($) {
 				
-				var $listview = $('#listview'),
+				var $date = $('#date'),
+					$text = $('#text'),
+					$both = $('#date, #text'),
 					$more = $('#more'),
 					$search = $('input[type=search]');
 				
-				$listview.
-					listview({
-						data: function(cb, after) {
-							var url = 'http://twitter.com/statuses/user_timeline/timmolendijk.json?count=10&callback=?';
-							if (after !== undefined) {
-								url += '&max_id=' + after.id;
+				var fetched = {},
+					pending = [],
+					fetch = function(cb, after) {
+						if (fetched[after] !== undefined) {
+							cb(fetched[after]);
+							return;
+						}
+						pending.push(cb);
+						if (pending.length > 1) {
+							return;
+						}
+						var url = 'http://twitter.com/statuses/user_timeline/timmolendijk.json?count=10&callback=?';
+						if (after !== undefined) {
+							url += '&max_id=' + after.id;
+						}
+						$.getJSON(url, function(data) {
+							fetched[after] = data;
+							for (var i = 0, l = pending.length; i < l; i++) {
+								fetch(pending[i], after);
 							}
-							$.getJSON(url, function(data) {
-								cb(data);
-							});
-						},
-						key: 'id',
-						grep: function(item) {
-							var query = $.trim($search.val());
-							return query ? item.text.indexOf(query) !== -1 : true;
-						}
-					}).
-					flaggable({
-						elements: 'li',
-						data: true,
-						flag: function(e, data) {
-							console.log(data.items);
-						},
-						unflag: function(e, data) {
-							console.log(data.items);
-						}
-					});
+							pending = [];
+						});
+					};
+				
+				$date.listview({
+					data: fetch,
+					key: 'id',
+					grep: function(item) {
+						var query = $.trim($search.val());
+						return query ? item.text.indexOf(query) !== -1 : true;
+					}
+				});
+				$text.listview({
+					data: fetch,
+					key: 'id',
+					grep: function(item) {
+						var query = $.trim($search.val());
+						return query ? item.text.indexOf(query) !== -1 : true;
+					},
+					sort: function(a, b) {
+						a = a.text;
+						b = b.text;
+						return a < b ? -1 : a > b ? 1 : 0;
+					}
+				});
+				
+				$('#tweets').flaggable({
+					elements: 'li',
+					data: true,
+					invalidateFlagged: function(e, data) {
+						$(data.elements).addClass('checked');
+					},
+					invalidateUnflagged: function(e, data) {
+						$(data.elements).removeClass('checked');
+					}
+				});
 				
 				$search.keydown(function() {
 					setTimeout(function() {
-						$listview.listview('invalidate');
+						$both.listview('invalidate');
 					}, 300);
 				});
 				
 				$more.click(function(e) {
 					e.preventDefault();
-					$listview.listview('load');
+					$date.listview('load');
+					$text.listview('load');
 				});
 				
 			});

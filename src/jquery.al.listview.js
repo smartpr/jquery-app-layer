@@ -40,6 +40,8 @@ $.widget('al.listview', {
 	// returns true, regardless of the result.
 	// TODO: Introduce a 'replace' argument, whose default corresponds with
 	// options.key being null or not.
+	// TODO: Get rid of return value, as it makes calling on multiple instances
+	// simultaneously impossible.
 	load: function(data, cb) {
 		var self = this;
 		if ($.isFunction(data)) {

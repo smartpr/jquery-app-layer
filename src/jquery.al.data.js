@@ -8,6 +8,58 @@ WISHLIST
 */
 (function($) {
 
+var textNodeSupport = true,
+	nodes = [],
+	datas = [];
+
+try {
+	$('<div>text</div>').contents().data();
+} catch (error) {
+	textNodeSupport = false;
+}
+
+if (!textNodeSupport) {
+	var nativeCleanData = $.cleanData;
+	$.cleanData = function(elems) {
+		for (var i = 0, l = elems.length; i < l; i++) {
+			removeNodeData(elems[i]);
+		}
+		return nativeCleanData.apply(this, arguments);
+	};
+}
+
+var nodeData = function(node, data) {
+	if (textNodeSupport || node.nodeType !== 3) {
+		return $.data(node, data);
+	}
+	
+	var n = $.inArray(node, nodes);
+	if (n !== -1) {
+		if (data !== undefined) {
+			datas[n] = data;
+		}
+		return datas[n];
+	}
+	
+	if (data !== undefined) {
+		nodes.push(node);
+		datas.push(data);
+		return data;
+	}
+	return {};
+};
+var removeNodeData = function(node) {
+	if (textNodeSupport || node.nodeType !== 3) {
+		$.removeData(node);
+	}
+	
+	var n = $.inArray(node, nodes);
+	if (n !== -1) {
+		nodes.splice(n, 1);
+		nodeData.splice(n, 1);
+	}
+};
+
 var update = function(data, path, value) {
 	// Allow calling this function with an empty path.
 	if (path.length === 0) {
@@ -41,9 +93,8 @@ $.fn.fetch = function() {
 		return undefined;
 	}
 	
-	var $this = this,
-		path = arguments,
-		data = $this.data();
+	var path = arguments,
+		data = nodeData(this[0]);
 	
 	if ($.isEmptyObject(data)) {
 		data = undefined;
@@ -63,12 +114,11 @@ $.fn.store = function() {
 	// 	return $.isPlainObject(value) ? $this.data(value) : $this;
 	// }
 	return $this.each(function() {
-		var $this = $(this),
-			data = update($this.data(), path, value);
+		var data = update(nodeData(this), path, value);
 		if (data === undefined) {
-			$this.removeData();
+			removeNodeData(this);
 		} else {
-			$this.data(data);
+			nodeData(this, data);
 		}
 	});
 };

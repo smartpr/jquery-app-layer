@@ -142,11 +142,12 @@ test("Flag and unflag", 27, function() {
 
 test("Link to DOM; elements are flagged", 2, function() {
 	
-	var $items = $flaggable.find('a'),
+	var items = 'a',
+		$items = $flaggable.find(items),
 		count = 0;
 	
 	$flaggable.flaggable({
-		elements: 'a',
+		elements: items,
 		handle: function(e) {
 			e.preventDefault();
 		},
@@ -158,13 +159,13 @@ test("Link to DOM; elements are flagged", 2, function() {
 		}
 	});
 	
-	$items.eq(0).simulate('click');
-	$items.eq(2).simulate('click');
+	$items.eq(0).click();
+	$items.eq(2).click();
 	same($flaggable.flaggable('flagged'), [$items[0], $items[2]], "Clicked elements are flagged items");
 	
 });
 
-test("Link to DOM; data that is retrieved from elements are flagged", 4, function() {
+test("Link to DOM; data that is retrieved from elements are flagged", 5, function() {
 
 	var items = 'a',
 		$items = $flaggable.find(items),
@@ -184,20 +185,25 @@ test("Link to DOM; data that is retrieved from elements are flagged", 4, functio
 			}
 		},
 		invalidateFlagged: function(e, data) {
-			if (count2++ === 0) {
-				same(data.elements, [$items[0]], "Clicked element is passed to invalidateFlagged handler");
+			if (count2 === 1) {
+				same(data.elements, [$items[1], $items[4], $items[7]], "Elements corresponding to data from flagged element are passed to invalidateFlagged handler");
 			}
+			if (count2 === 3) {
+				same(data.elements, $items.get(), "All elements are passed to invalidateFlagged handler when all data is flagged");
+			}
+			count2++;
 		},
 		invalidateUnflagged: function(e, data) {
-			same(data.elements, [$items[0]], "Clicked element is passed to invalidateUnflagged handler");
+			same(data.elements, [$items[0]], "Element corresponding to data from unflagged element is passed to invalidateUnflagged handler");
 		}
 	});
 	
-	$items.eq(0).simulate('click');
-	$items.eq(2).simulate('click');
-	same($flaggable.flaggable('flagged'), [1, 3], "Clicked elements' data are flagged items");
+	$items.eq(0).click();
+	$items.eq(1).click();
+	same($flaggable.flaggable('flagged'), [1, 2], "Clicked elements' data are flagged items");
 	
-	$items.eq(0).simulate('click');
+	$items.eq(0).click();
+	$flaggable.flaggable('flag', null);
 	
 });
 

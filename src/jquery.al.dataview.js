@@ -43,6 +43,16 @@ comment element -> template functie -> aanroepen met data -> html -> invoegen in
 
 (function($) {
 
+var Record = function(data) {
+	if (!(this instanceof Record)) {
+		return new Record(data);
+	}
+	
+	this.get = function() {
+		return data;
+	};
+};
+
 $.fn.dataview = function(action, templateName, data) {
 	if (typeof templateName !== 'string') {
 		data = templateName;
@@ -57,14 +67,16 @@ $.fn.dataview = function(action, templateName, data) {
 				flirt('clear').
 				flirt(data, templateName, function(data) {
 					// transform data to record via recordset (keep an eye on memory!)
-					$(this).store('dataview', 'data', data);	// rs.get(data)
+					$(this).store('dataview', 'data', new Record(data));	// rs.get(data)
 				});
 			break;
 		
 		case 'get':
-			return this.eq(0).parentsUntil('html').andSelf().filter(function() {
+			// TODO: This implementation is inefficient and ugly
+			var record = this.eq(0).parentsUntil('html').andSelf().filter(function() {
 				return !!$(this).fetch('dataview', 'data');
 			}).eq(-1).fetch('dataview', 'data');	// .get()
+			return record instanceof Record ? record.get() : undefined;
 			break;
 		
 		// TODO: invalidation	

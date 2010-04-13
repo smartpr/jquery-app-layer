@@ -56,7 +56,7 @@ test('$.fn.store', function() {
 	same(this.$div.data(), this.$ul.data(), "Storing undefined equals delete");
 	
 	this.$div.contents().eq(0).store('key', 'value');
-	same(this.$div.contents().eq(0).data(), {key: 'value'}, "Storing data on text nodes is possible");
+	same(this.$div.contents().eq(0).fetch(), {key: 'value'}, "Storing data on text nodes is possible");
 	
 	equals(this.$empty.store('whatever', 'blub'), this.$empty, "Storing data on empty collections fails silently");
 });

@@ -46,26 +46,64 @@ $.widget('al.flaggable', {
 		data: false,
 		bind: 'click',
 		handle: $.noop,
-		id: null
+		id: null,
+		flag: $.noop,
+		unflag: $.noop
 	},
 	
 	_create: function() {
-		var self = this;
+		var self = this,
+			flag = self.options.flag,
+			unflag = self.options.unflag;
 		
 		if (self.options.data === true) {
 			self.options.data = dataview;
 		}
+		$.extend(self.options, {
+			flag: function(e, data) {
+				self._trigger('invalidateFlagged', undefined, {elements: self._elementsWithData(data.items)});
+				return flag.apply(this, arguments);
+			},
+			unflag: function(e, data) {
+				self._trigger('invalidateUnflagged', undefined, {elements: self._elementsWithData(data.items)});
+				return unflag.apply(this, arguments);
+			}
+		});
+		
 		self._flagged = [];	// $.RecordSet(self.options.id);
 		self._inverted = false;
 		
+		// If no DOM elements are involved, we are done setting up.
 		if (self.options.elements === null) {
 			return;
 		}
 		
-		$(self.options.elements, self.element[0]).live(self.options.bind, function(e) {
+		self.element.delegate(self.options.elements, self.options.bind, function(e) {
 			self.toggle($.isFunction(self.options.data) ? self.options.data.call(this) : this);
 			return self.options.handle.call(this, e);
 		});
+	},
+	
+	_elementsWithData: function(data) {
+		var self = this,
+			elements = [],
+			$elements = self.element.find(self.options.elements);
+		
+		if (data === null) {
+			return $elements.get();
+		}
+		if (!$.isFunction(self.options.data)) {
+			return data;
+		}
+		
+		$elements.each(function() {
+			if ($.inArray(self.options.data.call(this), data) === -1) {
+				return true;
+			}
+			elements.push(this);
+		});
+		
+		return elements;
 	},
 	
 	flag: function(items, invert) {
@@ -101,7 +139,7 @@ $.widget('al.flaggable', {
 		// }
 		var impacted = [];
 		for (var i = 0, l = self._flagged.length, p; i < l; i++) {
-			p = self._flagged.indexOf(items[i]);
+			p = $.inArray(items[i], self._flagged);
 			if (p !== -1) {
 				$.merge(impacted, self._flagged.splice(p, 1));
 			}
