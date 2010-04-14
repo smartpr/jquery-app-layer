@@ -89,6 +89,8 @@ $.widget('al.flaggable', {
 			elements = [],
 			$elements = self.element.find(self.options.elements);
 		
+		// TODO: Shouldn't we leave out the elements that hold data that is
+		// already flagged/unflagged?
 		if (data === null) {
 			return $elements.get();
 		}
