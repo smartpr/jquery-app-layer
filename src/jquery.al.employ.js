@@ -15,6 +15,7 @@ $.state.map(
 $block.employ(['start',] *mode);
 $block.employ('stop');
 
+// alternative naming: activate/deactivate
 $block.bind('construct', function(e, fcb, *mode) {});
 $block.bind('deconstruct', function(e, fcb, *mode) {});
 $block.bind('employstart', function(e, fcb, *mode) {});

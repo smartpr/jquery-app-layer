@@ -310,7 +310,6 @@ var ns = 'state',
 $[ns] = function() {
 	// TODO: Exit if states are yet defined, perhaps switch to alternate
 	//       behavior (getter?)
-	
 	var states = Array.prototype.slice.call(arguments);
 	
 	// Create condensed state definitions based on supplied arguments.
