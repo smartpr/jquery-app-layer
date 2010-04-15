@@ -4,6 +4,7 @@ $.widget('al.listview', {
 	
 	options: {
 		data: null,
+		template: null,
 		sort: null,
 		grep: null,
 		threshold: null,
@@ -108,7 +109,7 @@ $.widget('al.listview', {
 	invalidate: function() {
 		var self = this;
 		
-		self.element.dataview('set', self._displayData());
+		self.element.dataview('set', self.options.template, self._displayData());
 	},
 	
 	threshold: function(threshold) {

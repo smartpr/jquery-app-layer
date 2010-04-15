@@ -58,7 +58,7 @@
 				<!-- <li>wrong template</li> -->
 				<!--namedtemplate
 					<li>
-						<%= group %>:
+						<%= this.safe(group) %>:
 						<!-members
 							[<strong><a href="<%= id %>" style="font-family:<%= fonts.join(',') %>;"><%= name %></a></strong> <!-fonts
 								<%= data %>,
@@ -75,8 +75,11 @@
 				-->
 				<!-- this is a regular comment -->
 			</ul>
+			<ul id="dataview">
+				<!-- <li>whatever</li> -->
+			</ul>
 			<ul id="listview">
-				<!--flirt
+				<!--
 					<li><%= name %> (<%= age %>)</li>
 				-->
 			</ul>

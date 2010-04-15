@@ -23,13 +23,14 @@ compileRegexps();
 var compile = function(template) {
 	return new Function('data',
 		'var p=this.p=[];' +
-		'this.print=function(){p.push.apply(p,arguments);};' +
+		'var esc=this.esc;' +
+		'this.print=function(){p.push.apply(p,esc(arguments));};' +
 		'with(data){this.p.push(\'' +
 		template.replace(/[\r\t\n]/g, " ").
 			replace(regexps.singleQuoteHack, "\t").
 			split("'").join("\\'").
 			split("\t").join("'").
-			replace(regexps.interpolation, "',$1,'").
+			replace(regexps.interpolation, "',this.esc($1),'").
 			split(settings.executeStart).join("');").
 			split(settings.executeEnd).join("this.p.push('") +
 		"');}" +
@@ -59,6 +60,46 @@ var nodes = function(parts) {
 		$nodes.find('#' + settings.safeId + nodePart[0]).replaceWith(nodePart[1]);
 	}
 	return $nodes.contents();
+};
+
+var Safemarked = function(value) {
+	if (!(this instanceof Safemarked)) {
+		return new Safemarked(value);
+	}
+	
+	this.value = function() {
+		return value;
+	};
+};
+var safemark = function() {
+	var marked = [];
+	for (var i = 0, l = arguments.length; i < l; i++) {
+		marked.push(Safemarked(arguments[i]));
+	}
+	return marked.length === 0 ? undefined :
+		marked.length === 1 ? marked[0] :
+		marked;
+};
+
+var $escaper = $('<div />');
+var escapeHtml = function() {
+	var token,
+		safe,
+		escaped = [];
+	for (var i = 0, l = arguments.length; i < l; i++) {
+		token = arguments[i];
+		safe = token instanceof Safemarked;
+		if (safe) {
+			token = token.value();
+		}
+		if (typeof token !== 'object') {
+			token = safe ? ('' + token) : $escaper.text(token).html();
+		}
+		escaped.push(token);
+	}
+	return escaped.length === 0 ? undefined :
+		escaped.length === 1 ? escaped[0] :
+		escaped;
 };
 
 var Flirt = function(template, which) {
@@ -101,7 +142,13 @@ var Flirt = function(template, which) {
 		var $part,
 			$all = $('<div />');
 		for (var i = 0, l = data.length; i < l; i++) {
-			$part = template[t].call({flirt: this, callback: cb, nodes: nodes}, data[i]);
+			$part = template[t].call({
+				flirt: this,
+				callback: cb,
+				safe: safemark,
+				esc: escapeHtml,
+				nodes: nodes
+			}, data[i]);
 			// TODO: invalidation
 //			$part.store('flirt', 'source', new Flirt(template, t));
 			if ($.isFunction(cb)) {
@@ -163,7 +210,10 @@ $.fn.flirt = function(action, data, templateName, cb) {
 	}
 	
 	switch (action) {
-	
+		
+		// TODO: Perhaps we should use 'append' or 'add' here, and use 'set' for
+		// the combination of the two. This design would be consistent with
+		// dataview's.
 		case 'set':
 			var templateFilter = new RegExp('^' + (templateName ? templateName + '\\s' : ''));
 			

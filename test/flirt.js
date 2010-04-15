@@ -24,7 +24,7 @@ var $flirt,
 			member,
 			{
 				id: 2,
-				name: "Amsterdam",
+				name: "<b>Amsterdam</b>",
 				fonts: ["Arial", "Verdana"]
 			}
 		]
@@ -42,11 +42,11 @@ var $flirt,
 			]
 		},
 		{
-			group: "C",
+			group: "<span class=\"safe\">C</span>",
 			members: [
 				{
 					id: 4,
-					name: "Computers",
+					name: "Co<mpute>rs",
 					fonts: ["does-not-exist", "'Times New Roman'"]
 				},
 				{
@@ -76,7 +76,7 @@ test('$.flirt as a settings accessor', 4, function() {
 	
 });
 
-test('$.flirt as a template parser', 4, function() {
+test('$.flirt as a template parser', 5, function() {
 	
 	var count = 0;
 	
@@ -100,7 +100,8 @@ test('$.flirt as a template parser', 4, function() {
 //			equals($parsed.find('strong').length, 2, "Callback at group level: parsed data and template contains correct amount of 'strong' elements");
 		}
 	}));
-	equals(flatten($parsed.text()), 'a:[artarial,verdana,][amsterdamarial,verdana,](2)thosewereids1,2,...b:[businessarial,verdana,](1)thosewereids3,...c:[computersdoes-not-exist,\'timesnewroman\',][cool\'couriernew\',courier,](2)thosewereids4,5,...', "Compile and parse template: parsed data and template matches textwise");
+	equals(flatten($parsed.text()), 'a:[artarial,verdana,][<b>amsterdam</b>arial,verdana,](2)thosewereids1,2,...b:[businessarial,verdana,](1)thosewereids3,...c:[co<mpute>rsdoes-not-exist,\'timesnewroman\',][cool\'couriernew\',courier,](2)thosewereids4,5,...', "Compile and parse template: parsed data and template matches textwise, HTML is escaped");
+	equals($parsed.children('li').eq(4).find('span.safe').length, 1, "Data that has been marked as safe is not escaped");
 	equals($parsed.children('li').length, 6, "Compile and parse template: correct amount of 'li' elements");
 	
 });

@@ -2,6 +2,7 @@
 <html lang="en" class="no-js">
 
 	<head>
+		<meta http-equiv="X-UA-Compatible" content="IE=Edge">
 		<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
 		
 		<title>
@@ -37,6 +38,28 @@
 				text-align: center;
 			}
 			
+			li {
+				padding: .8em;
+				font-family: Arial, sans-serif;
+			}
+			li.header {
+				font-weight: bold;
+			}
+			blockquote {
+				font-family: Georgia, 'Times New Roman', Times, serif;
+				background-color: lightgrey;
+				padding: .5em;
+			}
+			p.meta {
+				font-style: italic;
+				font-size: .9em;
+				padding: .2em 0 0 .2em;
+			}
+			p.source {
+				font-family: monospace;
+				float: right;
+			}
+			
 		</style>
 	</head>
 	
@@ -51,13 +74,41 @@
 		</div>
 		<div id="tweets">
 			<ol id="date">
-				<!--
+				<!--small
 					<li><%= text %> (<%= created_at %>)</li>
+				-->
+				<!--big
+					<li>
+						<blockquote><%= text %></blockquote>
+						<div>
+							<p class="source">posted from <%= source %></p>
+							<p class="meta">
+								<%= created_at %>
+								<% if (in_reply_to_status_id !== null) { %>
+									in reply to <a href="http://twitter.com/<%= in_reply_to_screen_name %>/status/<%= in_reply_to_status_id %>"><%= in_reply_to_screen_name %></a>
+								<% } %>
+							</p>
+						</div>
+					</li>
 				-->
 			</ol>
 			<ol id="text">
-				<!--
+				<!--small
 					<li><%= text %> (<%= created_at %>)</li>
+				-->
+				<!--big
+					<li>
+						<blockquote><%= text %></blockquote>
+						<div>
+							<p class="source">posted from <%= source %></p>
+							<p class="meta">
+								<%= created_at %>
+								<% if (in_reply_to_status_id !== null) { %>
+									in reply to <a href="http://twitter.com/<%= in_reply_to_screen_name %>/status/<%= in_reply_to_status_id %>"><%= in_reply_to_screen_name %></a>
+								<% } %>
+							</p>
+						</div>
+					</li>
 				-->
 			</ol>
 		</div>
@@ -112,6 +163,7 @@
 				
 				$date.listview({
 					data: fetch,
+					template: 'big',
 					key: 'id',
 					grep: function(item) {
 						var query = $.trim($search.val());
@@ -120,6 +172,7 @@
 				});
 				$text.listview({
 					data: fetch,
+					template: 'small',
 					key: 'id',
 					grep: function(item) {
 						var query = $.trim($search.val());

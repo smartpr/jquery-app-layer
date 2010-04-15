@@ -54,7 +54,7 @@ var Record = function(data) {
 };
 
 $.fn.dataview = function(action, templateName, data) {
-	if (typeof templateName !== 'string') {
+	if (data === undefined && typeof templateName !== 'string') {
 		data = templateName;
 		templateName = undefined;
 	}
@@ -62,13 +62,22 @@ $.fn.dataview = function(action, templateName, data) {
 	switch (action) {
 		
 		case 'set':
-			// var rs = new $.RecordSet();
-			this.
-				flirt('clear').
-				flirt(data, templateName, function(data) {
-					// transform data to record via recordset (keep an eye on memory!)
-					$(this).store('dataview', 'data', new Record(data));	// rs.get(data)
-				});
+			this.each(function() {
+				var $this = $(this);
+				if ($.isFunction(data)) {
+					data.call(this, function(data) {
+						$this.dataview(action, templateName, data);
+					});
+					return true;
+				}
+				// var rs = new $.RecordSet();
+				$this.
+					flirt('clear').
+					flirt(data, templateName, function(data) {
+						// transform data to record via recordset (keep an eye on memory!)
+						$(this).store('dataview', 'data', new Record(data));	// rs.get(data)
+					});
+			});
 			break;
 		
 		case 'get':
