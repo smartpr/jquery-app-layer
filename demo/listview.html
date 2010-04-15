@@ -75,13 +75,13 @@
 		<div id="tweets">
 			<ol id="date">
 				<!--small
-					<li><%= text %> (<%= created_at %>)</li>
+					<li><%= this.safe(text) %> (<%= created_at %>)</li>
 				-->
 				<!--big
 					<li>
-						<blockquote><%= text %></blockquote>
+						<blockquote><%= this.safe(text) %></blockquote>
 						<div>
-							<p class="source">posted from <%= source %></p>
+							<p class="source">posted from <%= this.safe(source) %></p>
 							<p class="meta">
 								<%= created_at %>
 								<% if (in_reply_to_status_id !== null) { %>
@@ -94,13 +94,13 @@
 			</ol>
 			<ol id="text">
 				<!--small
-					<li><%= text %> (<%= created_at %>)</li>
+					<li><%= this.safe(text) %> (<%= created_at %>)</li>
 				-->
 				<!--big
 					<li>
-						<blockquote><%= text %></blockquote>
+						<blockquote><%= this.safe(text) %></blockquote>
 						<div>
-							<p class="source">posted from <%= source %></p>
+							<p class="source">posted from <%= this.safe(source) %></p>
 							<p class="meta">
 								<%= created_at %>
 								<% if (in_reply_to_status_id !== null) { %>

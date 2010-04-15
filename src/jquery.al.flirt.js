@@ -21,6 +21,8 @@ var compileRegexps = function() {
 compileRegexps();
 
 var compile = function(template) {
+	// TODO: Do not allow this function to execute if ('this' in data). Throw
+	// exception in that case?
 	return new Function('data',
 		"this.p=[];" +
 		"with(this){" +
@@ -197,7 +199,7 @@ $.fn.flirt = function(action, data, templateName, cb) {
 	switch (action) {
 		
 		// TODO: Perhaps we should use 'append' or 'add' here, and use 'set' for
-		// the combination of the two. This design would be consistent with
+		// its combination with 'clear'. This design would be consistent with
 		// dataview's.
 		case 'set':
 			var templateFilter = new RegExp('^' + (templateName ? templateName + '\\s' : ''));
