@@ -57,7 +57,7 @@
 						<!-members
 							<span class="tag" style="color: #<%= color %>;"><%= name %></span>
 						->
-						<em style="font-family: monospace;"><%= this.safe(em) %></em> (<%= parens %>)
+						<em style="font-family: monospace;"><%= this.safe(em) %></em> (<% this.print(parens, 'x'); %>)
 					</dd>
 				-->
 			</dl>

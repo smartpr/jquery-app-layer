@@ -58,7 +58,7 @@
 				<!-- <li>wrong template</li> -->
 				<!--namedtemplate
 					<li>
-						<%= this.safe(group) %>:
+						<% this.print(safe(group), ':'); %>
 						<!-members
 							[<strong><a href="<%= id %>" style="font-family:<%= fonts.join(',') %>;"><%= name %></a></strong> <!-fonts
 								<%= data %>,
@@ -69,7 +69,7 @@
 					<li>
 						those were ids
 						<!-members
-							<%= id %>,
+							<% print(id); %>,
 						->...
 					</li>
 				-->

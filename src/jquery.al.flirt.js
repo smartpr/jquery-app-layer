@@ -22,19 +22,22 @@ compileRegexps();
 
 var compile = function(template) {
 	return new Function('data',
-		'var p=this.p=[];' +
-		'var esc=this.esc;' +
-		'this.print=function(){p.push.apply(p,esc(arguments));};' +
-		'with(data){this.p.push(\'' +
-		template.replace(/[\r\t\n]/g, " ").
-			replace(regexps.singleQuoteHack, "\t").
-			split("'").join("\\'").
-			split("\t").join("'").
-			replace(regexps.interpolation, "',this.esc($1),'").
-			split(settings.executeStart).join("');").
-			split(settings.executeEnd).join("this.p.push('") +
-		"');}" +
-		"return this.nodes(p);"
+		"this.p=[];" +
+		"with(this){" +
+			"this.print=function(){p.push.apply(p,$.map(arguments,esc));};" +
+			"with(data){" +
+				"this.p.push('" +
+				template.replace(/[\r\t\n]/g, " ").
+					replace(regexps.singleQuoteHack, "\t").
+					split("'").join("\\'").
+					split("\t").join("'").
+					replace(regexps.interpolation, "',this.esc($1),'").
+					split(settings.executeStart).join("');").
+					split(settings.executeEnd).join("this.p.push('") +
+				"');" +
+			"}" +
+			"return this.nodes(p);" +
+		"}"
 	);
 };
 var nodes = function(parts) {
@@ -71,35 +74,17 @@ var Safemarked = function(value) {
 		return value;
 	};
 };
-var safemark = function() {
-	var marked = [];
-	for (var i = 0, l = arguments.length; i < l; i++) {
-		marked.push(Safemarked(arguments[i]));
-	}
-	return marked.length === 0 ? undefined :
-		marked.length === 1 ? marked[0] :
-		marked;
-};
 
 var $escaper = $('<div />');
-var escapeHtml = function() {
-	var token,
-		safe,
-		escaped = [];
-	for (var i = 0, l = arguments.length; i < l; i++) {
-		token = arguments[i];
-		safe = token instanceof Safemarked;
-		if (safe) {
-			token = token.value();
-		}
-		if (typeof token !== 'object') {
-			token = safe ? ('' + token) : $escaper.text(token).html();
-		}
-		escaped.push(token);
+var escapeHtml = function(token) {
+	var safe = token instanceof Safemarked;
+	if (safe) {
+		token = token.value();
 	}
-	return escaped.length === 0 ? undefined :
-		escaped.length === 1 ? escaped[0] :
-		escaped;
+	if (typeof token !== 'object') {
+		token = safe ? ('' + token) : $escaper.text(token).html();
+	}
+	return token;
 };
 
 var Flirt = function(template, which) {
@@ -145,7 +130,7 @@ var Flirt = function(template, which) {
 			$part = template[t].call({
 				flirt: this,
 				callback: cb,
-				safe: safemark,
+				safe: Safemarked,
 				esc: escapeHtml,
 				nodes: nodes
 			}, data[i]);
