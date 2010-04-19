@@ -17,9 +17,18 @@ test("Initial state", 2, function() {
 	
 });
 
-test("Flag and unflag", 27, function() {
+test("Flag and unflag", 28, function() {
 	
-	$flaggable.flaggable();
+	var count = 0;
+	$flaggable.flaggable({
+		flagFirst: function(e) {
+			count++;
+		},
+		unflagLast: function(e) {
+			count++;
+		}
+	});
+	equals(count, 10, "flagFirst and unflagLast callbacks are being called correctly");
 	
 	$flaggable.bind({
 		flaggableflag: function(e, data) {

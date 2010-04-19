@@ -59,6 +59,7 @@ $.widget('al.flaggable', {
 		if (self.options.data === true) {
 			self.options.data = dataview;
 		}
+		// TODO: trigger flagFirst and unflagLast
 		$.extend(self.options, {
 			flag: function(e, data) {
 				self._trigger('invalidateFlagged', undefined, {elements: self._elementsWithData(data.items)});
