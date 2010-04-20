@@ -43,6 +43,15 @@ comment element -> template functie -> aanroepen met data -> html -> invoegen in
 
 (function($) {
 
+$.event.special.invalidate = {
+	
+	add: function(obj) {
+		console.log(this);
+		console.log(obj);
+	}
+	
+};
+
 var Record = function(data) {
 	if (!(this instanceof Record)) {
 		return new Record(data);
@@ -81,7 +90,7 @@ $.fn.dataview = function(action, templateName, data) {
 			break;
 		
 		case 'get':
-			// TODO: This implementation is inefficient and ugly
+			// TODO: This implementation is inefficient and ugly; use $.fn.closest(':data(dataview.data)')
 			var record = this.eq(0).parentsUntil('html').andSelf().filter(function() {
 				return !!$(this).fetch('dataview', 'data');
 			}).eq(-1).fetch('dataview', 'data');	// .get()

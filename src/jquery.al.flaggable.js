@@ -59,14 +59,14 @@ $.widget('al.flaggable', {
 		if (self.options.data === true) {
 			self.options.data = dataview;
 		}
-		// TODO: trigger flagFirst and unflagLast
+		
 		$.extend(self.options, {
 			flag: function(e, data) {
-				self._trigger('invalidateFlagged', undefined, {elements: self._elementsWithData(data.items)});
+				self._trigger('invalidateFlagged', e, {elements: self._elementsWithData(data.items)});
 				return flag.apply(this, arguments);
 			},
 			unflag: function(e, data) {
-				self._trigger('invalidateUnflagged', undefined, {elements: self._elementsWithData(data.items)});
+				self._trigger('invalidateUnflagged', e, {elements: self._elementsWithData(data.items)});
 				return unflag.apply(this, arguments);
 			}
 		});
@@ -112,7 +112,9 @@ $.widget('al.flaggable', {
 	flag: function(items, invert) {
 		invert = !!invert;
 		var self = this,
-			trigger = invert ? 'unflag' : 'flag';
+			current = self._flagged.length,
+			trigger = invert ? 'unflag' : 'flag',
+			modeTrigger = invert ? 'unflagLast' : 'flagFirst';
 		
 		if (items === null) {
 			if (self._inverted !== invert) {
@@ -120,6 +122,9 @@ $.widget('al.flaggable', {
 			}
 			self._flagged = [];	// self._flagged.clear();
 			self._inverted = !invert;
+			if (current === 0) {
+				self._trigger(modeTrigger);
+			}
 			self._trigger(trigger, undefined, {items: null});
 			return;
 		}
@@ -128,8 +133,15 @@ $.widget('al.flaggable', {
 			return self.flag([items], invert);
 		}
 		
+		if (items.length === 0) {
+			return;
+		}
+		
 		if (self._inverted === invert) {
 			$.merge(self._flagged, items);	// self._flagged.add(items)
+			if (current === 0) {
+				self._trigger(modeTrigger);
+			}
 			self._trigger(trigger, undefined, {items: items});
 			return;
 		}
@@ -148,6 +160,9 @@ $.widget('al.flaggable', {
 			}
 		}
 		if (impacted.length > 0) {
+			if (current === impacted.length) {
+				self._trigger(modeTrigger);
+			}
 			self._trigger(trigger, undefined, {items: impacted});
 		}
 	},

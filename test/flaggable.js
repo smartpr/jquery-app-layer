@@ -28,7 +28,6 @@ test("Flag and unflag", 28, function() {
 			count++;
 		}
 	});
-	equals(count, 10, "flagFirst and unflagLast callbacks are being called correctly");
 	
 	$flaggable.bind({
 		flaggableflag: function(e, data) {
@@ -147,6 +146,8 @@ test("Flag and unflag", 28, function() {
 	equals($flaggable.flaggable('unflagged'), null, "But it does not have an effect on unflagged items");
 	$flaggable.unbind();
 	
+	$flaggable.flaggable('toggle', 4);
+	equals(count, 4, "flagFirst and unflagLast callbacks are being called correctly");
 });
 
 test("Link to DOM; elements are flagged", 2, function() {
@@ -197,7 +198,7 @@ test("Link to DOM; data that is retrieved from elements are flagged", 5, functio
 			if (count2 === 1) {
 				same(data.elements, [$items[1], $items[4], $items[7]], "Elements corresponding to data from flagged element are passed to invalidateFlagged handler");
 			}
-			if (count2 === 3) {
+			if (count2 === 2) {
 				same(data.elements, $items.get(), "All elements are passed to invalidateFlagged handler when all data is flagged");
 			}
 			count2++;

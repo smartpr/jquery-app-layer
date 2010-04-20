@@ -1,3 +1,84 @@
+INVALIDATION
+
+ideally we would have a concept of invalidation that is at the center of any
+behavior that deals with updating the ui based on the state of the application.
+
+any such behavior in other components should be piggybacking on this invalidate
+implementation. take f.e. flaggable, in the use case of selecting a set of tags.
+the raison d'etre of flaggable is being able to manage and persist a set of
+flagged data items. for convenience the module allows to define event bindings
+as glue between the dom and the flaggable api. now another convenience that is
+included into flaggable is a way of easily updating the ui of these same dom
+elements. in the essence this is the responsibility of invalidation though.
+imagine that this ui updating convenience is not included into flaggable. there
+would be no invalidateFlagged or invalidateUnflagged callbacks. you would use
+the toggle callback to find all dom elements that represent the tags that were
+affected (whose flag-state has been toggled). then you would trigger invalidate
+on them. then you would have an invalidate handler on all tag-dom-elements that
+would implement all the invalidation behavior. part (or all) of this behavior
+would be to reflect the current flag-state of that particular tag. as soon as
+you have this, you realize that this construction does not care if these dom
+elements are the same as the ones that are used to initiate flag-state-change.
+you could decide that you want them to be others, or include elements that are
+outside the scope of flaggable altogether (f.e. tags that are displayed inside
+contact list items). now obviously in most scenarios the elements that inflict
+flag-state-change are the exact same elements as the ones whose ui needs to be
+updated as a result of a change in the selected set. this is why it is not a bad
+idea to add convenient invalidation helpers to the flaggable component. but
+these would ideally be implemented using the approach as just described. so that
+would mean finding from the dom elements that are used to incur
+flag-state-change those who correspond with the data item that was added or
+removed from the set of flagged items. then triggering invalidate on them. then
+having an invalidate handler bound to all tag-dom-elements, in which we check if
+the element on which the event is handled is currently flagged or unflagged,
+then calling the invalidateFlagged or invalidateUnflagged callback accordingly.
+
+some remarks with this setup:
+
+we trigger invalidate on elements that are not actually invalidated (their
+flag-state merely changed, but that is not the same thing(?)). right now i cannot
+think of a reason why this would be a problem or a bad thing, but it's a risk.
+along the same lines; i'm not sure if it is a good idea to have other components
+than dataview trigger invalidate. as dataview is in charge of building a dom
+view of data, it is in essence the only one that should need to trigger
+invalidate. and strictly speaking flaggable does not *need* to trigger
+invalidate, as it is not invalidating anything. but yet the same should then be
+true for the client code (outside the flaggable module). why *does* this code
+need to trigger invalidate then?
+let's do some definitions:
+. handling the invalidate event = tell me when something happened that means the
+ui needs to be updated.
+. calling an invalidate method (on dataview f.e.) = do something that will
+result in invalidate events being triggered.
+. triggering the invalidate event = i did something that entails that the ui needs
+to be updated.
+when looking at these definitions i tend to conclude that it *is* ok to trigger
+invalidate inside flaggable (or client code), as it did something that entails
+that the ui needs to be updated. it is actually invalidating something, namely
+changing the flag-state of a data item that we know is attached to the dom
+element that inflicted the flag-state-change!
+
+the invalidateFlagged and invalidateUnflagged callbacks will have a different
+api as a result of this setup. currently they are being called once for every
+change in the set of flagged items, and all affected items are passed to it as
+a parameter. in the new approach they are really extensions of the invalidate
+handler, which means that they will behave like invalidate handlers, which is
+taking one element at the time (in its context variable -- this). then again;
+this doesn't feel right either. invalidateFlagged & (...) are widget-callbacks;
+which means that their context is always the widget. which makes sense because
+they claim to talk about the widget and nothing but the widget. they are at the
+same time events that are being triggered on the widget, which would logically
+result in their handlers' context being the widget. and not a tag. in addition;
+we already have an event that we can handle on the tag level; it's called
+invalidate. we can easily check the tag's flag-state by asking flaggable.
+
+
+
+
+
+
+
+
 (function($) {
 
 	$.fn.chain = function(func) {
