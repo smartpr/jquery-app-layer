@@ -8,6 +8,7 @@ WISHLIST
 */
 (function($) {
 
+// TODO: Implement textNodeSupport as a Modernizr extension (via addTest).
 var textNodeSupport = true,
 	nodes = [],
 	datas = [];

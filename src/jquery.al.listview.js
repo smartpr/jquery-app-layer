@@ -58,7 +58,7 @@ $.widget('al.listview', {
 		}
 		
 		if ($.isFunction(data)) {
-		
+			
 			data.call(self.element[0], function(data, expectCount) {
 			
 				// Prevent a scenario in which the raw data store is flooded
@@ -92,7 +92,7 @@ $.widget('al.listview', {
 	_append: function(data) {
 		var self = this;
 		
-		if (!$.isArray(data) || data.length === 0) {
+		if (!$.isArray(data)) {
 			return;
 		}
 		

@@ -1,5 +1,7 @@
 (function($) {
 
+// TODO: send data in traditional way (id=1&id=2)
+
 $.Rest = function(url, dataType) {
 	if (!(this instanceof $.Rest)) {
 		return new $.Rest(url, dataType);
@@ -12,7 +14,22 @@ $.Rest = function(url, dataType) {
 				url: url + handler,
 				dataType: dataType,
 				data: data,
-				success: success
+				// traditional: true,
+				success: function(data, textStatus, xhr) {
+					// console.log('$.ajax success:');
+					// console.log(data);
+					// console.log(textStatus);
+					success.apply(this, arguments);
+				},
+				error: function(xhr, textStatus, error) {
+					// console.log('$.ajax error:');
+					// console.log(textStatus);
+					// console.log(error);
+				},
+				complete: function(xhr, textStatus) {
+					// console.log('$.ajax complete:');
+					// console.log(textStatus);
+				}
 			});
 		}, 0);
 	};
