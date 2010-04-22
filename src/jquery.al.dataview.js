@@ -102,6 +102,10 @@ $.fn.dataview = function(action, templateName, data) {
 //			
 //			this.each(function() {
 //				var $view = getClosestViewOf(this);
+// 				TODO: if there is no closest view upwards, resort to reflirting
+//				all closest downward views (... perhaps this should be the meaning
+//				of getClosestViewOf anyway? ... but then wouldn't 'get' have to
+//				behave in a similar fashion?)
 //				$view.flirt($view.fetch('dataview', 'data'), function(data) {
 //					$(this).store('dataview', 'data', data);
 //				});

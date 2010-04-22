@@ -21,7 +21,11 @@ $block.bind('deconstruct', function(e, fcb, *mode) {});
 $block.bind('employstart', function(e, fcb, *mode) {});
 $block.bind('employstop', function(e, fcb, *mode) {});
 
-
+// latest requirements:
+// 3 callback/event levels:
+// 1. for setting up stuff that may be required by other blocks (with given params/mode?); f.e. 'employdeclare'
+// 2. for constructing the block's content and behavior with given params/mode; f.e. 'employdefine'
+// 3. for stuff when block is ready and visible (= display & visibility) (with given params/mode?); f.e. 'employstart'
 
 
 

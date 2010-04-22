@@ -189,6 +189,8 @@ var $findTemplates = function(filter, max) {
 };
 
 $.fn.flirt = function(action, data, templateName, cb) {
+	// TODO: Remove support for this shortcut interface, as it's not worth the
+	// inconsistency.
 	if (typeof action !== 'string') {
 		cb = templateName;
 		templateName = data;

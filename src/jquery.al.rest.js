@@ -20,6 +20,10 @@ $.Rest = function(url, dataType) {
 
 $.Rest.prototype = {
 	
+	// TODO: if cb is not provided, return curried function
+	// I think this is only useful if it accepts a 'lazy data object', with
+	// functions in the fields, that are only evaluated when the actual request
+	// is done.
 	get: function(handler, data, success) {
 		this.request('GET', handler, data, success);
 	},
