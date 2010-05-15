@@ -15,44 +15,88 @@
 		<style type="text/css">
 			
 			#header {
-				text-align: center;
 				position: absolute;
-				top: .5em;
-				right: 1em;
-				left: 1em;
-				height: 4em;
+				top: 0;
+				right: 0;
+				left: 0;
+				height: 2em;
+				padding: 1em;
+				background: -webkit-gradient(linear, 0 0, 0 100%, from(gray), to(black)); 
 			}
 			#date {
 				position: absolute;
-				top: 5em;
-				bottom: 5em;
-				left: 1em;
-				width: 40%;
+				top: 4em;
+				bottom: 3em;
+				left: 0;
+				width: 50%;
 				overflow-y: auto;
 			}
 			#text {
 				position: absolute;
-				top: 5em;
-				bottom: 5em;
-				right: 1em;
-				width: 40%;
+				top: 4em;
+				bottom: 3em;
+				right: 0;
+				width: 50%;
 				overflow-y: auto;
+			}
+			ol {
+				margin: 0;
+				padding: 0;
 			}
 			ol > li {
 				border-top: 1px solid lightgrey;
 			}
 			ol > li.checked {
-				background-color: yellow;
+				background-color: #DCE6FF;
 			}
 			#footer {
-				text-align: center;
+				text-align: right;
 				position: absolute;
-				bottom: .5em;
-				right: 1em;
-				left: 1em;
-				height: 4em;
+				bottom: 0;
+				right: 0;
+				left: 0;
+				height: 2em;
+				padding: .5em;
+				background: -webkit-gradient(linear, 0 0, 0 80%, from(#ddd), to(#888)); 
+				border-top: 1px solid #888;
 			}
-			
+			button {
+				display: inline-block;
+				outline: none;
+				cursor: pointer;
+				text-align: center;
+				text-decoration: none;
+				font: 14px/100% Arial, Helvetica, sans-serif;
+				padding: .5em 2em .55em;
+				text-shadow: 0 1px 1px rgba(0,0,0,.3);
+				-webkit-border-radius: 2em;
+				-moz-border-radius: 2em;
+				border-radius: 2em;
+				-webkit-box-shadow: 0 1px 2px rgba(0,0,0,.2);
+				-moz-box-shadow: 0 1px 2px rgba(0,0,0,.2);
+				box-shadow: 0 1px 2px rgba(0,0,0,.2);
+				color: #fef4e9;
+				border: solid 1px #da7c0c;
+				background: #f78d1d;
+				background: -webkit-gradient(linear, left top, left bottom, from(#faa51a), to(#f47a20));
+				background: -moz-linear-gradient(top,  #faa51a,  #f47a20);
+				filter:  progid:DXImageTransform.Microsoft.gradient(startColorstr='#faa51a', endColorstr='#f47a20');
+			}
+			button:hover {
+				text-decoration: none;
+				background: #f47c20;
+				background: -webkit-gradient(linear, left top, left bottom, from(#f88e11), to(#f06015));
+				background: -moz-linear-gradient(top,  #f88e11,  #f06015);
+				filter:  progid:DXImageTransform.Microsoft.gradient(startColorstr='#f88e11', endColorstr='#f06015');
+			}
+			button:active {
+				position: relative;
+				top: 1px;
+				color: #fcd3a5;
+				background: -webkit-gradient(linear, left top, left bottom, from(#f47a20), to(#faa51a));
+				background: -moz-linear-gradient(top,  #f47a20,  #faa51a);
+				filter:  progid:DXImageTransform.Microsoft.gradient(startColorstr='#f47a20', endColorstr='#faa51a');
+			}			
 			li {
 				padding: .8em;
 				font-family: Arial, sans-serif;
@@ -77,17 +121,21 @@
 			}
 			
 			#feedback {
-				background-color: yellow;
+				-webkit-box-shadow: 0 1px 2px rgba(0,0,0,.2);
+				-moz-box-shadow: 0 1px 2px rgba(0,0,0,.2);
+				box-shadow: 0 1px 2px rgba(0,0,0,.2);
+				color: black;
+				border: solid 1px #ffff30;
+				background: #ffff8f;
+				font: 14px/100% Arial, Helvetica, sans-serif;
 				position: absolute;
-				top: 0;
-				right: 0;
+				text-align: center;
+				top: 1em;
+				right: 1em;
 				width: 20em;
-				padding: .2em;
+				padding: .5em;
 				border-radius: .5em;
 				-moz-border-radius: .5em;
-				box-shadow: .2em .2em .2em gray;
-				-webkit-box-shadow: .2em .2em .2em gray;
-				-moz-box-shadow: .2em .2em .2em gray;
 				opacity: 0;
 				-webkit-transition: opacity 1s linear;
 				-moz-transition: opacity 1s linear;
@@ -108,7 +156,7 @@
 					<%= display %>/<%= total %> item(s)
 				-->
 			</div>
-			<input type="search" />
+			<input type="search" placeholder="Search&hellip;" />
 			<div id="feedback">
 			</div>
 		</div>
@@ -153,7 +201,7 @@
 			</ol>
 		</div>
 		<div id="footer">
-			<a href="" id="more">More</a>
+			<button id="more">Load More</button>
 		</div>
 
 		<script type="text/javascript" src="http://ajax.googleapis.com/ajax/libs/jquery/1.4.2/jquery.js"></script>
@@ -211,7 +259,7 @@
 					},
 					ajaxComplete: function() {
 						var $this = $(this);
-						$this.text("Geladen");
+						$this.text("Loaded");
 						setTimeout(function() {
 							$this.removeClass('active');
 						}, 1000);

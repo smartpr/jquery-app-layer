@@ -42,6 +42,8 @@ var compile = function(template) {
 		"}"
 	);
 };
+// TODO: Extend part data type support (currently string and node, anything else
+// is casted to string) with function (evaluate) and undefined (empty string).
 var nodes = function(parts) {
 	if (!$.isArray(parts)) {
 		parts = [parts];
@@ -78,6 +80,8 @@ var Safemarked = function(value) {
 };
 
 var $escaper = $('<div />');
+// TODO: rename to simply 'esc': consistent with naming inside Flirt, therefore
+// easier to comprehend.
 var escapeHtml = function(token) {
 	var safe = token instanceof Safemarked;
 	if (safe) {
@@ -116,6 +120,11 @@ var Flirt = function(template, which) {
 	}
 	
 	this.parse = function(data, t, cb) {
+		// TODO: Write test for this scenario (parser enters nested level for
+		// non-existent data field).
+		if (data === undefined) {
+			return $();
+		}
 		if (!$.isArray(data)) {
 			data = [data];
 		}

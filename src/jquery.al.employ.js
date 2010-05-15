@@ -12,7 +12,7 @@ $.state.map(
 });
 
 
-$block.employ(['start',] *mode);
+$block.employ('start', *mode);
 $block.employ('stop');
 
 // alternative naming: activate/deactivate
@@ -27,7 +27,7 @@ $block.bind('employstop', function(e, fcb, *mode) {});
 // 2. for constructing the block's content and behavior with given params/mode; f.e. 'employdefine'
 // 3. for stuff when block is ready and visible (= display & visibility) (with given params/mode?); f.e. 'employstart'
 
-
+// revised design: merge 1 and 2 by making sure employconstructs are called synchronously.
 
 $block.activate(*params)
 
