@@ -57,7 +57,7 @@ $.widget('al.flaggable', {
 			unflag = self.options.unflag;
 		
 		if (self.options.data === true) {
-			self.options.data = dataview;
+			self.options.data = dataview;	// TODO: Inline function?
 		}
 		
 		$.extend(self.options, {

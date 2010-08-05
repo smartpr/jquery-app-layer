@@ -422,7 +422,7 @@ $[ns] = function() {
 		// TODO: set element.current somewhere (in a stateenter handler, or right after triggering stateleave?)
 		$matches.
 			filter(function() {
-				// TODO: Write comparator. Can't we use the :data selector?
+				// TODO: Write comparator. Can't we use the :data selector? < like how??
 				return !_.isEqual($(this).fetch(ns, 'current'), matches);
 			}).
 				flexiqueue(ns, [function() {

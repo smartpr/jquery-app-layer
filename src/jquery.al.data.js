@@ -130,10 +130,12 @@ $.fn.del = function() {
 
 // TODO: Design and implement semantics of ":data(family.name)" (without '='). Options:
 // - validates if data field exists (could be useful to quickly select elements that have a certain data setting)
-// - validates if data field evaluates to true (this is consistent with: fetch('family', 'name') ? true : false)
+// - validates if data field evaluates to true (this is consistent with: fetch('family', 'name') ? true : false
+//		... and (i guess) with: !!fetch('family', 'name')
 $.expr[':'].data = function(elem, index, meta, stack) {
 	var param = meta[3].split('='),
 		$elem = $(elem),
+		// TODO: Why are we using apply here (instead of just $elem.fetch)?
 		value = $.fn.fetch.apply($elem, $.trim(param[0]).split('.'));
 	
 	if (value === undefined) {
