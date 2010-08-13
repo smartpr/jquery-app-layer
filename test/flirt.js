@@ -27,7 +27,8 @@ var $flirt,
 				name: "<b>Amsterdam</b>",
 				fonts: ["Arial", "Verdana"]
 			}
-		]
+		],
+		data: "not a data object"
 	},
 	data = [
 		group,
@@ -56,8 +57,20 @@ var $flirt,
 				}
 			]
 		}
+	],
+	messy = [
+		{
+			group: 5,
+			members: [
+				{
+					id: undefined,
+					name: "Ch>r>cters that should b& <scap<d and Unicode: áœØ™‹¢ÅÛ—±≥÷√∂",
+					fonts: [undefined, "arial", null, true, 0]
+				}
+			]
+		}
 	];
-testdata = data;
+
 module('flirt', {
 	setup: function() {
 		$flirt = $('#flirt');
@@ -76,10 +89,43 @@ test('$.flirt as a settings accessor', 4, function() {
 	
 });
 
-test('$.flirt as a template parser', 5, function() {
+test("$.flirt as template parser: environment", 7, function() {
+	
+	var parsed = $('<div />').append($.flirt("\
+		<%= this.data.id %>,\
+		<%= data %>,\
+		<%= 'flirt' in this %>,\
+		<%= 'callback' in this %>,\
+		<%= 'safe' in this %>,\
+		<%= 'esc' in this %>,\
+		<%= 'nodes' in this %>\
+	", [{id: 1, data: 'data'}])).text().split(',');
+	
+	equals($.trim(parsed[0]), "1", "this.data is the full data object");
+	equals($.trim(parsed[1]), "data", "data is the value of the data field, if it exists");
+	equals($.trim(parsed[2]), "true", "this.flirt");
+	equals($.trim(parsed[3]), "true", "this.callback");
+	equals($.trim(parsed[4]), "true", "this.safe");
+	equals($.trim(parsed[5]), "true", "this.esc");
+	equals($.trim(parsed[6]), "true", "this.nodes");
+	
+});
+
+test("$.flirt as template parser: errors", 1, function() {
+	
+	try {
+		$.flirt("<%= doesnotexist %>", [1]);
+	} catch (err) {
+		ok(err, "Error is thrown if non-existent data field is referenced");
+	}
+	
+});
+
+test('$.flirt as template parser', 5, function() {
 	
 	var count = 0;
 	
+	// TODO: $parsed global var(??)
 	$parsed = $('<div />').append($.flirt(template, data, function(d) {
 		if (d === member && count++ === 0) {
 			ok(true, "Callback at member level");
@@ -100,9 +146,19 @@ test('$.flirt as a template parser', 5, function() {
 //			equals($parsed.find('strong').length, 2, "Callback at group level: parsed data and template contains correct amount of 'strong' elements");
 		}
 	}));
+	
 	equals(flatten($parsed.text()), 'a:[artarial,verdana,][<b>amsterdam</b>arial,verdana,](2)thosewereids1,2,...b:[businessarial,verdana,](1)thosewereids3,...c:[co<mpute>rsdoes-not-exist,\'timesnewroman\',][cool\'couriernew\',courier,](2)thosewereids4,5,...', "Compile and parse template: parsed data and template matches textwise, HTML is escaped");
 	equals($parsed.children('li').eq(4).find('span.safe').length, 1, "Data that has been marked as safe is not escaped");
 	equals($parsed.children('li').length, 6, "Compile and parse template: correct amount of 'li' elements");
+	
+});
+
+test("$.flirt as template parser: messy data", 2, function() {
+	
+	var result = $('<div />').append($.flirt(template, messy)).text();
+	
+	ok(result.indexOf(messy[0].members[0].name) !== -1, "Strings containing characters that should be encoded are represented correctly");
+	ok(flatten(result).indexOf(messy[0].members[0].fonts.join(',')) !== -1, "Values are serialized to string according to Array.prototype.join's behavior");
 	
 });
 

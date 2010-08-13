@@ -62,7 +62,9 @@ var Record = function(data) {
 	};
 };
 
+// TODO: Add 'clear' action
 $.fn.dataview = function(action, templateName, data) {
+	// TODO: What if the data we want to store is a string? This code won't cut it.
 	if (data === undefined && typeof templateName !== 'string') {
 		data = templateName;
 		templateName = undefined;
@@ -84,7 +86,7 @@ $.fn.dataview = function(action, templateName, data) {
 					flirt('clear').
 					flirt(data, templateName, function(data) {
 						// transform data to record via recordset (keep an eye on memory!)
-						$(this).store('dataview', 'data', new Record(data));	// rs.get(data)
+						this.store('dataview', 'data', new Record(data));	// rs.get(data)
 					});
 			});
 			break;
@@ -94,6 +96,8 @@ $.fn.dataview = function(action, templateName, data) {
 			var record = this.eq(0).parentsUntil('html').andSelf().filter(function() {
 				return !!$(this).fetch('dataview', 'data');
 			}).eq(-1).fetch('dataview', 'data');	// .get()
+			// TODO: If no data found upwards, look downwards in order to support
+			// $('#mydiv').dataview('set', {...1 item...}) and then $('#mydiv').dataview('get')
 			return record instanceof Record ? record.get() : undefined;
 			break;
 		

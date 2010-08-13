@@ -183,4 +183,9 @@ asyncTest('Employ unemployed element that was employed before with different sta
 	
 });
 
+// TODO: Test what happens if you employ twice with the same state.
+// TODO: Check that state parameter is ignored when status parameter is false.
+// TODO: Add callback to employ which always calls (even if employ doesn't do anything).
+// TODO: Test synchronicity
+
 }(jQuery));

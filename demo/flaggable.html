@@ -13,7 +13,7 @@
 		<link rel="stylesheet" type="text/css" href="../lib/jquery-ui-1.8rc1/themes/base/ui.all.css" />
 		<style type="text/css">
 			
-			a.checked {
+			li.checked {
 				background-color: yellow;
 			}
 			
@@ -22,28 +22,16 @@
 	
 	<body>
 		<ul>
-			<li>
-				<a href="1">item 1</a>
-				<a href="2">item 2</a>
-			</li>
-			<li>
-				<a href="3">item 3</a>
-				<a href="4">item 4</a>
-				<a href="2">item 2</a>
-				<a href="5">item 5</a>
-			</li>
-				<li>
-					<ul>
-						<li>
-							<a href="6">item 6</a>
-							<a href="2">item 2</a>
-						</li>
-					</ul>
-				</li>
+			<li><input type="checkbox" /> <a href="1">item 1</a></li>
+			<li><input type="checkbox" /> <a href="2">item 2</a></li>
+			<li><input type="checkbox" /> <a href="3">item 3</a></li>
+			<li><input type="checkbox" /> <a href="2">item 2</a></li>
+			<li><input type="checkbox" /> <a href="4">item 4</a></li>
+			<li><input type="checkbox" /> <a href="2">item 2</a></li>
 		</ul>
 
 		<script type="text/javascript" src="http://ajax.googleapis.com/ajax/libs/jquery/1.4.2/jquery.js"></script>
-		<script type="text/javascript" src="http://ajax.googleapis.com/ajax/libs/jqueryui/1.8.0/jquery-ui.js"></script>
+		<script type="text/javascript" src="http://ajax.googleapis.com/ajax/libs/jqueryui/1.8.2/jquery-ui.js"></script>
 		<script type="text/javascript" src="../lib/underscore.js"></script>
 		<script type="text/javascript" src="../src/jquery.al.util.js"></script>
 		<script type="text/javascript" src="../src/jquery.al.flexicallback.js"></script>
@@ -56,35 +44,52 @@
 			jQuery(function($) {
 				
 				var $flaggable = $('ul:first'),
-					items = 'a';
+					items = 'li';
 				
-				$flaggable.flaggable({
-					elements: items,
-					handle: function(e) {
+				$flaggable.
+					flaggable({
+						elements: items,
+						data: function() {
+							return parseInt($(this).find('a').attr('href'), 10);
+						},
+						flag: function(e, data) {
+							console.log('flag: ' + data.items + ' - ' + data.unaffected);
+							if (data.items === null) {
+								$flaggable.find(items).
+									addClass('checked').
+									find(':checkbox').attr('checked', true);
+								return;
+							}
+							for (var i = 0; i < data.items.length; i++) {
+								$flaggable.find(items + ' a[href=' + data.items[i] + ']').closest('li').
+									addClass('checked').
+									find(':checkbox').attr('checked', true);
+							}
+						},
+						unflag: function(e, data) {
+							if (data.items === null) {
+								$flaggable.find(items).
+									removeClass('checked').
+									find(':checkbox').attr('checked', false);
+								return;
+							}
+							for (var i = 0; i < data.items.length; i++) {
+								$flaggable.find(items + ' a[href=' + data.items[i] + ']').closest('li').
+									removeClass('checked').
+									find(':checkbox').attr('checked', false);
+							}
+						}
+					}).
+					bind('flaggablechange', function(e, data) {
+						console.log(data.flagged + ' - ' + data.unflagged);
+					}).
+					delegate(items + ' :checkbox', 'change', function(e) {
+						$flaggable.flaggable('flag', parseInt($(this).closest(items).find('a').attr('href'), 10), !$(this).attr('checked'));
+					}).
+					delegate(items + ' a', 'click', function(e) {
 						e.preventDefault();
-					},
-					data: function() {
-						return parseInt($(this).attr('href'));
-					},
-					flag: function(e, data) {
-						if (data.items === null) {
-							$flaggable.find(items).addClass('checked');
-							return;
-						}
-						for (var i = 0; i < data.items.length; i++) {
-							$flaggable.find(items + '[href=' + data.items[i] + ']').addClass('checked');
-						}
-					},
-					unflag: function(e, data) {
-						if (data.items === null) {
-							$flaggable.find(items).removeClass('checked');
-							return;
-						}
-						for (var i = 0; i < data.items.length; i++) {
-							$flaggable.find(items + '[href=' + data.items[i] + ']').removeClass('checked');
-						}
-					}
-				});
+						$flaggable.flaggable('change', parseInt($(this).attr('href'), 10));
+					});
 				
 			});
 			

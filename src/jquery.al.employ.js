@@ -81,7 +81,7 @@ $.fn.manipulate = function(manipulate, done) {
 			var $this = $(this);
 			
 			if ($this.is(':hidden')) {
-				$.error("DOM elements cannot be displayed; parent element(s) keep them invisible");
+				$.error("DOM elements cannot be displayed; parent element(s) keep them hidden");
 			} else {
 				fcb.call();
 			}
@@ -99,6 +99,8 @@ $.fn.manipulate = function(manipulate, done) {
 // TODO: Rename sleep, ready => hidden, visible (??)
 // TODO: employ(false) may be confusing, as it sounds like: "do not employ" ...
 // which is not the same as "unemploy"
+// TODO: Implement status getter: $('...').employ() ...? or revise all
+// interfaces to sth like: .employ('change', true|false), .employ('status')
 $.fn.employ = function(status) {
 	var $this = this,
 		state = status === true ? $.makeArray(arguments).slice(1) : undefined;

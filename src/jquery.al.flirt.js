@@ -24,10 +24,10 @@ var compile = function(template) {
 	// TODO: Do not allow this function to execute if ('this' in data). Throw
 	// exception in that case?
 	return new Function('data',
-		"this.p=[];" +
+		"this.data=data;this.p=[];" +
 		"with(this){" +
 			"this.print=function(){p.push.apply(p,$.map(arguments,esc));};" +
-			"with(data){" +
+			"with((data===undefined||data===null)?this:data){" +
 				"this.p.push('" +
 				template.replace(/[\r\t\n]/g, " ").
 					replace(regexps.singleQuoteHack, "\t").
@@ -83,13 +83,17 @@ var $escaper = $('<div />');
 // TODO: rename to simply 'esc': consistent with naming inside Flirt, therefore
 // easier to comprehend.
 var escapeHtml = function(token) {
-	var safe = token instanceof Safemarked;
-	if (safe) {
-		token = token.value();
+	// Safemarked tokens should not be touched.
+	if (token instanceof Safemarked) {
+		return token.value();
 	}
-	if (typeof token !== 'object') {
-		token = safe ? ('' + token) : $escaper.text(token).html();
+	// Escaping only applies to string tokens, as a number or a boolean cannot
+	// contain dangerous characters.
+	if (typeof token === 'string') {
+		token = $escaper.text(token).html();
 	}
+	// This function is not in charge of serializing to string values, as we
+	// want to leave that to nodes(), which delegates to Array.prototype.join.
 	return token;
 };
 

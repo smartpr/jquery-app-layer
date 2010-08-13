@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html lang="en" class="no-js">
+
+	<head>
+		<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+		
+		<title>
+			Recipients
+		</title>
+		
+	    <script type="text/javascript" src="../lib/modernizr-1.5.min.js"></script>
+		<style type="text/css">
+			
+			body > div {
+				display: none;
+			}
+			
+			#sources {
+				position: absolute;
+				top: 0;
+				bottom: 0;
+				left: 0;
+				width: 15%;
+				background-color: grey;
+			}
+			
+			#sources > ul {
+				position: absolute;
+				top: 0;
+				right: 0;
+				bottom: 0;
+				left: 0;
+				overflow-x: hidden;
+				overflow-y: auto;
+			}
+			
+			#sources > ul li.selected {
+				font-weight: bold;
+			}
+			
+			#contacts {
+				position: absolute;
+				top: 0;
+				right: 30%;
+				bottom: 0;
+				left: 15%;
+			}
+			
+			#contacts > ul {
+				position: absolute;
+				top: 2em;
+				right: 0;
+				bottom: 0;
+				left: 0;
+				overflow-x: hidden;
+				overflow-y: auto;
+			}
+			
+			#contacts li.email.checked {
+				background-color: lightgreen;
+			}
+			
+			#contacts li.more {
+				list-style-type: none;
+				color: green;
+			}
+			
+			#contacts > .control {
+				position: absolute;
+				top: 0;
+				right: 0;
+				left: 0;
+				height: 1.4em;
+				background-color: lightgrey;
+				padding: .3em;
+			}
+			
+			#recipients {
+				position: absolute;
+				top: 0;
+				right: 0;
+				bottom: 0;
+				width: 30%;
+				background-color: lightblue;
+			}
+			
+			#recipients > ul {
+				position: absolute;
+				top: 0;
+				right: 0;
+				bottom: 0;
+				left: 0;
+				overflow-x: hidden;
+				overflow-y: auto;
+			}
+			
+		</style>
+	</head>
+	
+	<body>
+		<div id="sources">
+			<ul>
+				<li>All</li>
+				<!--
+					<li class="tag"><%= name %> [<%= count %>]</li>
+				-->
+			</ul>
+		</div>
+		
+		<div id="contacts">
+			<div class="control">
+				<input type="search" />
+				<select>
+					<option value="firstname">First name</option>
+					<option value="lastname">Last name</option>
+					<option value="company">Medium</option>
+				</select>
+				<!--
+					Displaying <%= display %> out of <%= total %>
+				-->
+			</div>
+			<ul>
+				<!--
+					<li class="contact">
+						<div><%= $.trim([first_name, last_name].join(' ')) || '{' + id + '}' %></div>
+						<ul>
+							<!-emails
+								<li class="email"><%= data %></li>
+							->
+						</ul>
+					</li>
+				-->
+				<li class="more"><a href="">load more&hellip;</a></li>
+			</ul>
+		</div>
+		
+		<div id="recipients">
+			<ul>
+				<!--
+					<li class="recipient"><%= name %> &lt;<%= email %>&gt;</li>
+				-->
+			</ul>
+		</div>
+		
+		<script type="text/javascript" src="http://ajax.googleapis.com/ajax/libs/jquery/1.4.2/jquery.js"></script>
+		<script type="text/javascript" src="http://ajax.googleapis.com/ajax/libs/jqueryui/1.8.2/jquery-ui.js"></script>
+		<script type="text/javascript" src="../lib/underscore.js"></script>
+		<script type="text/javascript" src="../src/jquery.al.util.js"></script>
+		<script type="text/javascript" src="../src/jquery.al.data.js"></script>
+		<script type="text/javascript" src="../src/jquery.al.flexicallback.js"></script>
+		<script type="text/javascript" src="../src/jquery.al.rest.js"></script>
+		<script type="text/javascript" src="../src/jquery.al.employ.js"></script>
+		<script type="text/javascript" src="../src/jquery.al.flirt.js"></script>
+		<script type="text/javascript" src="../src/jquery.al.dataview.js"></script>
+		<script type="text/javascript" src="../src/jquery.al.listview.js"></script>
+		<script type="text/javascript" src="../src/jquery.al.flaggable.js"></script>
+		<script type="text/javascript" src="http://assets.smartpr.dev/jquery.smartpr/src/jquery.smartpr.js"></script>
+		<script type="text/javascript">
+			
+			jQuery(function($) {
+				
+				$('#sources').
+					bind('employconstruct', function(e, fcb) {
+						fcb.expect();
+						
+						$.smartpr.tags.get(function(data) {
+							$('#sources ul').dataview('set', data);
+							fcb.call();
+						});
+						
+						$(this).find('ul').
+							flaggable({
+								elements: 'li',
+								// data: true
+								flag: function(e, data) {
+									var $element = $(data.items[0]);
+									$('#sources li').removeClass('selected');
+									$element.addClass('selected');
+									$('#contacts ul').listview('reload');
+								}
+							}).
+							flaggable('change', $(this).find('li')[0]).
+							delegate('li', 'click', function() {
+								$('#sources ul').flaggable('change', this);
+							});
+						
+					});
+				
+				$('#contacts').
+					bind('employconstruct', function(e, fcb) {
+						fcb.expect();
+						
+						$(this).
+							find('ul').
+								listview({
+									data: function(cb, after) {
+										var tag = $($('#sources ul').flaggable('flagged')[0]).dataview('get'),
+											search = $('#contacts .control input[type=search]').val();
+										$.smartpr.contacts.get(function(data, total) {
+											cb(data, total);
+											$('#contacts > .control').dataview('set', {
+												total: $('#contacts ul').listview('totalCount'),
+												display: $('#contacts ul').listview('displayCount')
+											});
+										}, $('#contacts > .control select').val(), $.trim([search, tag ? "tag:" + tag.id : ''].join(' ')), 0);
+										fcb.call();
+									},
+									id: 'id'
+								}).
+								flaggable({
+									elements: 'li.email',
+									change: function(e, data) {
+										$('#contacts li.email').removeClass('checked');
+										for (var i = 0; i < data.flagged.length; i++) {
+											$('#contacts li.email').each(function() {
+												if ($(this).dataview('get') === data.flagged[i].email) {
+													$(this).addClass('checked');
+												}
+											});
+										}
+										$('#recipients ul').listview('reload');
+									},
+									id: 'email'
+								}).
+								delegate('li.email', 'click', function() {
+									$('#contacts ul').flaggable('toggle', {
+										email: $(this).dataview('get'),
+										name: [$(this).closest('li.contact').dataview('get').first_name, $(this).closest('li.contact').dataview('get').last_name].join(' ')
+									});
+								}).
+								find('li.more').bind('click', function(e) {
+									e.preventDefault();
+									$(this).closest('ul').listview('load');
+								}).end().
+								end().
+							find('.control').
+								find('select').bind('change', function() {
+									$('#contacts > ul').listview('reload');
+								}).end().
+								find('input[type=search]').bind('keydown', function() {
+									setTimeout(function() {
+										$('#contacts > ul').listview('reload');
+									}, 300);
+								}).end().
+								end();
+					});
+				
+				$('#recipients').
+					bind('employconstruct', function(e, fcb) {
+						fcb.expect();
+						
+						$(this).find('ul').
+							listview({
+								data: function(cb) {
+									cb($('#contacts ul').flaggable('flagged'));
+									fcb.call();
+								}
+							});
+					});
+				
+				// TODO: Move to one call
+				$('#sources').employ(true);
+				$('#contacts').employ(true);
+				$('#recipients').employ(true);
+				
+			});
+			
+		</script>
+	</body>
+
+</html>

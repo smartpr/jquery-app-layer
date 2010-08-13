@@ -33,56 +33,56 @@ $('ul').flaggable('invalidate')
 
 */
 
-(function($) {
 
-var dataview = function() {
-	return $(this).dataview('get');
-};
+
+
+// TODO: add invalidate method to force/manually signal invalidation
+(function($) {
 
 $.widget('al.flaggable', {
 	
 	options: {
 		elements: null,
 		data: false,
-		bind: 'click',
-		handle: $.noop,
-		id: null,
-		flag: $.noop,
-		unflag: $.noop
+		// bind: 'click',
+		// handle: $.noop,
+		id: null
 	},
 	
 	_create: function() {
 		var self = this,
-			flag = self.options.flag,
-			unflag = self.options.unflag;
+			flag = self.options.flag || $.noop,
+			unflag = self.options.unflag || $.noop;
 		
 		if (self.options.data === true) {
-			self.options.data = dataview;	// TODO: Inline function?
+			self.options.data = function() {
+				return $(this).dataview('get');
+			};
 		}
 		
-		$.extend(self.options, {
-			flag: function(e, data) {
-				self._trigger('invalidateFlagged', e, {elements: self._elementsWithData(data.items)});
-				return flag.apply(this, arguments);
-			},
-			unflag: function(e, data) {
-				self._trigger('invalidateUnflagged', e, {elements: self._elementsWithData(data.items)});
-				return unflag.apply(this, arguments);
-			}
-		});
+		// $.extend(self.options, {
+		// 	flag: function(e, data) {
+		// 		self._trigger('invalidateFlagged', e, {elements: self._elementsWithData(data.items)});
+		// 		return flag.apply(this, arguments);
+		// 	},
+		// 	unflag: function(e, data) {
+		// 		self._trigger('invalidateUnflagged', e, {elements: self._elementsWithData(data.items)});
+		// 		return unflag.apply(this, arguments);
+		// 	}
+		// });
 		
 		self._flagged = [];	// $.RecordSet(self.options.id);
 		self._inverted = false;
 		
-		// If no DOM elements are involved, we are done setting up.
-		if (self.options.elements === null) {
-			return;
-		}
-		
-		self.element.delegate(self.options.elements, self.options.bind, function(e) {
-			self.toggle($.isFunction(self.options.data) ? self.options.data.call(this) : this);
-			return self.options.handle.call(this, e);
-		});
+		// // If no DOM elements are involved, we are done setting up.
+		// if (self.options.elements === null) {
+		// 	return;
+		// }
+		// 
+		// self.element.delegate(self.options.elements, self.options.bind, function(e) {
+		// 	self.toggle($.isFunction(self.options.data) ? self.options.data.call(this) : this);
+		// 	return self.options.handle.call(this, e);
+		// });
 	},
 	
 	_elementsWithData: function(data) {
@@ -109,69 +109,159 @@ $.widget('al.flaggable', {
 		return elements;
 	},
 	
-	flag: function(items, invert) {
-		invert = !!invert;
+	change: function(flagged, unflagged) {
 		var self = this,
-			current = self._flagged.length,
-			trigger = invert ? 'unflag' : 'flag',
-			modeTrigger = invert ? 'unflagLast' : 'flagFirst';
+			items = flagged,
+			invert = false;
+		if (flagged === null) {
+			items = unflagged;
+			invert = true;
+		}
+		return self._change(items, invert);
+	},
+	
+	// TODO: support both (items, invert) and (flagged, unflagged) interfaces:
+	// former in _change, latter in change.
+	// TODO: deal with items=null (and invert!=unflagged)
+	_change: function(items, invert) {
+		var self = this;
+		invert = !!invert;
 		
 		if (items === null) {
-			if (self._inverted !== invert) {
-				return self.flag(self._flagged, invert);
-			}
-			self._flagged = [];	// self._flagged.clear();
-			self._inverted = !invert;
-			if (current === 0) {
-				self._trigger(modeTrigger);
-			}
-			self._trigger(trigger, undefined, {items: null});
-			return;
+			items = [];
+			invert = !invert;
 		}
-		
-		if (!$.isArray(items)) {
-			return self.flag([items], invert);
-		}
-		
-		if (items.length === 0) {
-			return;
-		}
+		items = $.makeArray(items);
 		
 		if (self._inverted === invert) {
-			$.merge(self._flagged, items);	// self._flagged.add(items)
-			if (current === 0) {
-				self._trigger(modeTrigger);
+			if (_.isEqual(self._flagged, items) /*self._flagged.equals(items)*/) {
+				return;
 			}
-			self._trigger(trigger, undefined, {items: items});
-			return;
+			// var one = self._flagged.remove(items, true),
+			// 	two = self._flagged.add(items, true),
+			var one = $.merge([], items),
+				two = $.merge([], self._flagged);
+			one.unshift(self._flagged);
+			two.unshift(items);
+			one = _.without.apply(undefined, one);
+			two = _.without.apply(undefined, two);
+			var unflag = [invert ? two : one, null],
+				flag = [invert ? one : two, null];
+		} else {
+			// var one = self._flagged.intersection(items, true),
+			// 	two = self._flagged.union(items, true);
+			var one = _.intersect(self._flagged, items),
+				two = _.uniq($.merge($.merge([], self._flagged), items));
+			var unflag = invert ? [one, null] : [null, two],
+				flag = invert ? [null, two] : [one, null];
+		}
+		var lastFlagged = self._flagged,
+			lastInverted = self._inverted;
+		// self._flagged.set(items);
+		self._flagged = items;
+		self._inverted = invert;
+		if (!$.isArray(unflag[0]) || unflag[0].length > 0) {
+			self._trigger('unflag', undefined, {items: unflag[0], unaffected: unflag[1]});
+		}
+		if (self._inverted === false && self._flagged.length === 0) {
+			self._trigger('unflaglast');
+		}
+		if (!$.isArray(flag[0]) || flag[0].length > 0) {
+			self._trigger('flag', undefined, {items: flag[0], unaffected: flag[1]});
+		}
+		if (lastInverted === false && lastFlagged.length === 0) {
+			self._trigger('flagfirst');
+		}
+		self._trigger('change', undefined, {flagged: invert ? null : self._flagged, unflagged: invert ? self._flagged : null});
+	},
+	
+	flag: function(items, invert) {
+		var self = this;
+		invert = !!invert;
+		
+		if (items === null) {
+			return self._change(items, invert);
 		}
 		
-		// var removed = self._flagged.remove(items);
-		// if (removed.length > 0) {
-		//		self._trigger(trigger, undefined, [$.map(removed, function(record) {
-		//			return record.get();
-		//		})]);
-		// }
-		var impacted = [];
-		for (var i = 0, l = self._flagged.length, p; i < l; i++) {
-			p = $.inArray(items[i], self._flagged);
-			if (p !== -1) {
-				$.merge(impacted, self._flagged.splice(p, 1));
-			}
+		items = $.makeArray(items);
+		
+		if (self._inverted === invert) {
+			return self._change(_.uniq($.merge($.merge([], self._flagged), items)), invert);
 		}
-		if (impacted.length > 0) {
-			if (current === impacted.length) {
-				self._trigger(modeTrigger);
-			}
-			self._trigger(trigger, undefined, {items: impacted});
-		}
+		var without = $.merge([], items);
+		without.unshift(self._flagged);
+		without = _.without.apply(undefined, without);
+		return self._change(without, self._inverted);
 	},
 	
 	unflag: function(items) {
 		var self = this;
-		
-		self.flag(items, true);
+		return self.flag(items, true);
 	},
+	
+	// flag: function(items, invert) {
+	// 	invert = !!invert;
+	// 	var self = this,
+	// 		current = self._flagged.length,
+	// 		trigger = invert ? 'unflag' : 'flag',
+	// 		modeTrigger = invert ? 'unflagLast' : 'flagFirst';
+	// 	
+	// 	if (items === null) {
+	// 		if (self._inverted !== invert) {
+	// 			return self.flag(self._flagged, invert);
+	// 		}
+	// 		self._flagged = [];	// self._flagged.clear();
+	// 		self._inverted = !invert;
+	// 		if (current === 0) {
+	// 			self._trigger(modeTrigger);
+	// 		}
+	// 		self._trigger(trigger, undefined, {items: null});
+	// 		return;
+	// 	}
+	// 	
+	// 	if (!$.isArray(items)) {
+	// 		return self.flag([items], invert);
+	// 	}
+	// 	
+	// 	if (items.length === 0) {
+	// 		return;
+	// 	}
+	// 	
+	// 	if (self._inverted === invert) {
+	// 		$.merge(self._flagged, items);	// self._flagged.add(items)
+	// 		if (current === 0) {
+	// 			self._trigger(modeTrigger);
+	// 		}
+	// 		self._trigger(trigger, undefined, {items: items});
+	// 		return;
+	// 	}
+	// 	
+	// 	// var removed = self._flagged.remove(items);
+	// 	// if (removed.length > 0) {
+	// 	//		self._trigger(trigger, undefined, [$.map(removed, function(record) {
+	// 	//			return record.get();
+	// 	//		})]);
+	// 	// }
+	// 	var impacted = [];
+	// 	for (var i = 0, l = self._flagged.length, p; i < l; i++) {
+	// 		p = $.inArray(items[i], self._flagged);
+	// 		if (p !== -1) {
+	// 			$.merge(impacted, self._flagged.splice(p, 1));
+	// 		}
+	// 	}
+	// 	if (impacted.length > 0) {
+	// 		if (current === impacted.length) {
+	// 			self._trigger(modeTrigger);
+	// 		}
+	// 		self._trigger(trigger, undefined, {items: impacted});
+	// 	}
+	// },
+	// 
+	// unflag: function(items) {
+	// 	var self = this;
+	// 	
+	// 	self.flag(items, true);
+	// },
 	
 	toggle: function(items) {
 		var self = this,

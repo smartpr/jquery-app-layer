@@ -6,7 +6,7 @@ var $dataview,
 		id: 1,
 		name: "Art",
 		fonts: ["Arial", "Verdana"]
-	};
+	},
 	group = {
 		group: "A",
 		members: [
@@ -17,8 +17,8 @@ var $dataview,
 				fonts: ["Arial", "Verdana"]
 			}
 		]
-	};
-var data = [
+	},
+	data = [
 		group,
 		{
 			group: "B",

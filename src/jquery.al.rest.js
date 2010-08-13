@@ -6,9 +6,13 @@
 // of jsonp requested and html retrieved -- not sure about behavior in other
 // scenarios).
 
-$.Rest = function(url, dataType) {
+$.Rest = function(url, dataType, error) {
 	if (!(this instanceof $.Rest)) {
-		return new $.Rest(url, dataType);
+		return new $.Rest(url, dataType, error);
+	}
+	
+	if (!$.isFunction(error)) {
+		error = $.noop;
 	}
 	
 	this.request = function(verb, handler, data, success) {
@@ -18,6 +22,7 @@ $.Rest = function(url, dataType) {
 				url: url + handler,
 				dataType: dataType,
 				data: data,
+				// contentType: 'application/json',
 				// traditional: true,
 				complete: function(xhr, textStatus) {
 					// console.log('$.ajax complete:');
@@ -30,15 +35,15 @@ $.Rest = function(url, dataType) {
 					return data;
 				},
 				success: function(data, textStatus, xhr) {
-					// console.log('$.ajax success:');
 					// console.log(data);
 					// console.log(textStatus);
-					success.apply(this, arguments);
+					success.call(this, data);
 				},
-				error: function(xhr, textStatus, error) {
-					console.log('$.ajax error:');
-					console.log(textStatus);
-					console.log(error);
+				error: function(xhr, textStatus, errorThrown) {
+					// console.log('$.ajax error:');
+					// console.log(textStatus);
+					// console.log(error);
+					error.call(this, $.httpData(xhr));
 				}
 			});
 		}, 0);
@@ -56,6 +61,9 @@ $.Rest.prototype = {
 	},
 	post: function(handler, data, success) {
 		this.request('POST', handler + '?callback=?', data, success);
+	},
+	put: function(handler, data, success) {
+		this.request('PUT', handler + '?callback=?',  data, success);
 	}
 	
 };

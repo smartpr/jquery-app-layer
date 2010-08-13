@@ -1,46 +1,71 @@
 (function($) {
 
-var $flaggable;
+var $f, $flaggable;
 
 module('flaggable', {
 	setup: function() {
-		$flaggable = $('#flaggable');
+		$f = $flaggable = $('#flaggable');
 	}
 });
 
-test("Initial state", 2, function() {
+test("flagged & unflagged", 2, function() {
 	
 	$flaggable.flaggable();
 	
 	same($flaggable.flaggable('flagged'), [], "Flagged items is an empty array");
 	equals($flaggable.flaggable('unflagged'), null, "Unflagged items is null, denoting all but flagged");
 	
+	// TODO: flaggable('flagged', <full data list>);
+	
 });
 
-test("Flag and unflag", 28, function() {
+test("change", 8, function() {
 	
-	var count = 0;
-	$flaggable.flaggable({
-		flagFirst: function(e) {
-			count++;
-		},
-		unflagLast: function(e) {
-			count++;
-		}
+	$f.flaggable();
+	
+	$f.one('flaggablechange', function(e, data) {
+		equals(data.flagged, $f.flaggable('flagged'), "Correct set of flagged items is supplied to change handler");
+		equals(data.unflagged, $f.flaggable('unflagged'), "Correct set of unflagged items is supplied to change handler");
 	});
 	
-	$flaggable.bind({
-		flaggableflag: function(e, data) {
-			equals(data.items, null, "flag event triggered with correct items");
-		},
-		flaggableunflag: function(e, data) {
+	$f.flaggable('change', 1);
+	same($f.flaggable('flagged'), [1], "Set of flagged items is always a list");
+	equals($f.flaggable('unflagged'), null, "Set of unflagged items is null");
+	
+	$f.flaggable('change', [2, 3]);
+	same($f.flaggable('flagged'), [2, 3], "Set of flagged items is changed entirely");
+	
+	$f.
+		one('flaggableflag', function(e) {
+			ok(true, "flag event is triggered upon change");
+		}).
+		one('flaggableunflag', function(e, data) {
 			ok(false, "This point should not be reached, as no unflag event must be triggered (with items: " + data.items + ")");
-		}
-	});
+		});
+	
+	$f.flaggable('change', null, [1]);
+	equals($f.flaggable('flagged'), null, "Set of flagged items is null");
+	same($f.flaggable('unflagged'), [1], "Set of unflagged items is a list");
+	
+});
+
+test("flag & unflag", 28, function() {
+	
+	$flaggable.
+		one('flaggableflag', function(e, data) {
+			equals(data.items, null, "flag event triggered with correct items");
+		}).
+		one('flaggableunflag', function(e, data) {
+			ok(false, "This point should not be reached, as no unflag event must be triggered (with items: " + data.items + ")");
+		}).
+		one('flaggablechange', function(e, data) {
+			ok(true, "One change event is triggered for every atomic change");
+		}).
+		flaggable();
+	
 	$flaggable.flaggable('flag', null);
 	equals($flaggable.flaggable('flagged'), null, "Flagging all items after all items were implicitly non-flagged does impact flagged items");
 	same($flaggable.flaggable('unflagged'), [], "And it also has an effect on unflagged items");
-	$flaggable.unbind();
 	
 	$flaggable.bind({
 		flaggableflag: function(e, data) {
@@ -128,7 +153,7 @@ test("Flag and unflag", 28, function() {
 			same(data.items, [1, 3], "unflag event triggered with correct items");
 		}
 	});
-	$flaggable.flaggable('toggle', [1, 3, 4]);
+	$flaggable.flaggable('change', [2, 4]);		// TODO: Use flag/unflag here.
 	same($flaggable.flaggable('flagged'), [2, 4], "Unflagging explicitly flagged items or implicitly non-flagged items does impact flagged items");
 	equals($flaggable.flaggable('unflagged'), null, "But it does not have an effect on unflagged items");
 	$flaggable.unbind();
@@ -138,82 +163,106 @@ test("Flag and unflag", 28, function() {
 			ok(false, "This point should not be reached, as no flag event must be triggered (with items: " + data.items + ")");
 		},
 		flaggableunflag: function(e, data) {
-			same(data.items, [2], "unflag event triggered with correct items");
+			same(data.items, [2, 4], "unflag event triggered with correct items");
 		}
 	});
 	$flaggable.flaggable('unflag', null);
-	same($flaggable.flaggable('flagged'), [4], "Unflagging all items after some items were explicitly flagged does impact flagged items");
+	same($flaggable.flaggable('flagged'), [], "Unflagging all items after some items were explicitly flagged does impact flagged items");
 	equals($flaggable.flaggable('unflagged'), null, "But it does not have an effect on unflagged items");
 	$flaggable.unbind();
 	
-	$flaggable.flaggable('toggle', 4);
-	equals(count, 4, "flagFirst and unflagLast callbacks are being called correctly");
 });
 
-test("Link to DOM; elements are flagged", 2, function() {
+test("toggle", 2, function() {
 	
-	var items = 'a',
-		$items = $flaggable.find(items),
-		count = 0;
+	$f.flaggable();
 	
-	$flaggable.flaggable({
-		elements: items,
-		handle: function(e) {
+	$f.flaggable('flag', 1);
+	$f.flaggable('toggle', [1, 2, 3]);
+	same($f.flaggable('flagged'), [2, 3], "Toggle explicitly flagged items");
+	
+	$f.flaggable('change', null, [1, 2]);
+	$f.flaggable('toggle', [2, 3]);
+	same($f.flaggable('unflagged'), [1, 3], "Toggle implicitly flagged items");
+	
+});
+
+// TODO: Test taking in DOM elements that map to data automagically
+// (change, flag, unflag, toggle)
+
+test("flagfirst & unflaglast", 2, function() {
+	
+	$f.
+		bind('flaggableflagfirst flaggableunflaglast', function(e) {
+			ok(true, e.type + " event triggered");
+		}).
+		flaggable();
+	
+	$f.flaggable('flag', 4);
+	$f.flaggable('unflag', null);
+	
+});
+
+test("Link to DOM; elements are flaggable items", 2, function() {
+	
+	var $items = $f.find('a');
+	
+	$f.
+		one('flaggableflag', function(e, data) {
+			same(data.items, [$items[0]], "Clicked element is passed to flag handler");
+		}).
+		flaggable({
+			elements: 'a'
+		}).
+		delegate('a', 'click', function(e) {
 			e.preventDefault();
-		},
-		flag: function(e, data) {
-			if (count === 0) {
-				same(data.items, [$items[0]], "Clicked element is passed to flag handler");
-			}
-			count++;
-		}
-	});
+			$f.flaggable('toggle', this);
+		});
 	
 	$items.eq(0).click();
 	$items.eq(2).click();
-	same($flaggable.flaggable('flagged'), [$items[0], $items[2]], "Clicked elements are flagged items");
+	same($f.flaggable('flagged'), [$items[0], $items[2]], "Clicked elements are flagged items");
 	
 });
 
-test("Link to DOM; data that is retrieved from elements are flagged", 5, function() {
-
-	var items = 'a',
-		$items = $flaggable.find(items),
-		count1 = 0, count2 = 0;
+test("Link to DOM; data that are retrieved from elements are flaggable items", 5, function() {
 	
-	$flaggable.flaggable({
-		elements: items,
-		handle: function(e) {
+	var $items = $f.find('a'),
+		count = 0;
+	
+	$f.
+		one('flaggableflag', function(e, data) {
+			same(data.items, [1], "Clicked element's data are passed to flag handler");
+		}).
+		flaggable({
+			elements: 'a',
+			data: function() {
+				return parseInt($(this).attr('href'), 10);
+			},
+			invalidateFlagged: function(e, data) {
+				if (count === 1) {
+					same(data.elements, [$items[1], $items[4], $items[7]], "Elements corresponding to data from flagged element are passed to invalidateFlagged handler");
+				}
+				if (count === 2) {
+					same(data.elements, $items.get(), "All elements are passed to invalidateFlagged handler when all data is flagged");
+				}
+				count++;
+			},
+			invalidateUnflagged: function(e, data) {
+				same(data.elements, [$items[0]], "Element corresponding to data from unflagged element is passed to invalidateUnflagged handler");
+			}
+		}).
+		delegate('a', 'click', function(e) {
 			e.preventDefault();
-		},
-		data: function() {
-			return parseInt($(this).attr('href'));
-		},
-		flag: function(e, data) {
-			if (count1++ === 0) {
-				same(data.items, [1], "Clicked element's data is passed to flag handler");
-			}
-		},
-		invalidateFlagged: function(e, data) {
-			if (count2 === 1) {
-				same(data.elements, [$items[1], $items[4], $items[7]], "Elements corresponding to data from flagged element are passed to invalidateFlagged handler");
-			}
-			if (count2 === 2) {
-				same(data.elements, $items.get(), "All elements are passed to invalidateFlagged handler when all data is flagged");
-			}
-			count2++;
-		},
-		invalidateUnflagged: function(e, data) {
-			same(data.elements, [$items[0]], "Element corresponding to data from unflagged element is passed to invalidateUnflagged handler");
-		}
-	});
-	
+			$f.flaggable('flag', this);
+		});
+
 	$items.eq(0).click();
 	$items.eq(1).click();
-	same($flaggable.flaggable('flagged'), [1, 2], "Clicked elements' data are flagged items");
+	same($f.flaggable('flagged'), [1, 2], "Clicked elements' data are flagged items");
 	
 	$items.eq(0).click();
-	$flaggable.flaggable('flag', null);
+	$f.flaggable('flag', null);
 	
 });
 

@@ -1,6 +1,6 @@
 /*
 WISHLIST
-- Include metadata in fetch.
+- Include metadata plugin in fetch.
 - move to ui widget utility like such:
 	$(elem).tree('get', ns, 'field') , $(elem).tree('set', ns, 'field', 'value')
 	!! PERFORMANCE ???

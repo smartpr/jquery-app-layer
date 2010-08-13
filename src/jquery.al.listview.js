@@ -1,5 +1,6 @@
 (function($) {
 
+// TODO: rename 'threshold' option to 'display' ?
 $.widget('al.listview', {
 	
 	options: {
@@ -92,6 +93,8 @@ $.widget('al.listview', {
 	_append: function(data) {
 		var self = this;
 		
+		// TODO: Why not accept data instances (as opposed to just arrays of
+		// data instances)?
 		if (!$.isArray(data)) {
 			return;
 		}

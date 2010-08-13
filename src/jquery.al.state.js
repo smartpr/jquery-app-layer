@@ -1,3 +1,78 @@
+(function($) {
+
+var base = {
+	// Unnamed routes are non-final routes.
+	name: null,
+	// A pattern that matches nothing effectively disables a route.
+	pattern: /$./,
+	employ: []
+};
+
+$.state = function() {
+	var routes = $.makeArray(arguments);
+	
+	// Create route definitions based on supplied arguments.
+	for (var i = 0, l = routes.length, route; i < l; i++) {
+		route = routes[i] = $.extend({}, base, routes[i]);
+		if (typeof route.pattern === 'string') {
+			route.pattern = new RegExp(route.pattern);
+		}
+		route.employ = $(route.employ).get();
+	}
+	
+	$(window).bind('hashchange', function() {
+		var $this = $(this),
+			uri = location.hash,
+			oldState = $this.fetch('state', 'current'),	// TODO: Use $.fetch
+			newState;
+		
+		if (uri.length > 0 && uri[0] === '#') {
+			uri = uri.substr(1);
+		}
+		
+		// Construct new state definition from matching route definitions.
+		for (var i = 0, l = routes.length, route, match, matches = []; i < l; i++) {
+			route = routes[i];
+			match = route.pattern.exec(uri);
+			if (match === null) {
+				continue;
+			}
+			matches.push({
+				route: route,
+				params: match.slice(1)
+			});
+			if (typeof route.name === 'string') {
+				// Final route found; state definition complete.
+				newState = matches;
+				break;
+			}
+		}
+		
+		if (oldState) {
+			for (i = 0, l = oldState.length; i < l; i++) {
+				$(oldState[i].route.employ).employ(false);
+			}
+			$this.del('state', 'current');
+		}
+		
+		if (newState) {
+			$this.store('state', 'current', newState);
+			for (i = 0, l = newState.length; i < l; i++) {
+				$(newState[i].route.employ).employ(true);
+			}
+		}
+		
+	});
+	
+};
+
+}(jQuery));
+
+
+
+
+
+
 /* APPLICABILITY:
 	basic rule of thumb: if you want a state to be part of browser history, model
 	it using this plugin. (and then it's automatically permalinkable.)
@@ -284,7 +359,7 @@ $(window).bind('hashchange', function(e) {
 
 (function($) {
 
-var ns = 'state',
+var ns = 'state_old',
 	definition = {
 		// Unnamed states are non-final states.
 		name: null,
@@ -408,7 +483,7 @@ $[ns] = function() {
 		$current.filter(function() {
 			return $matches.index(this) === -1;
 		}).hide();
-		
+				
 		// for elem in elements-in(matches):
 		//		if matches-that-contain(matches, elem) != elem.current:
 		//			elem.queue:

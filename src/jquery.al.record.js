@@ -17,14 +17,27 @@ rs.clear()
 
 [r1, r2, r3, r4] = rs.get()
 
+?? [r1] = rs.set(o1)
+
+?? [r2, r3, r4] = rs.set([o2, o3, o4])
+
 [r4] = rs.remove(o4)
 
-[r1, r2] = rs.remove([o1, o2, o2])
+[r2] = rs.remove([o1, o2, o2])
 
 [] = rs.remove([o1, o5])
 
 [r3] = rs.get()
 
+true = rs.equals(o3)
+
+true = rs.equals([o3, o3])
+
+rs2 = rs.clone()
+
+---
+
+rs.*(items, dry-run)
 
 Record
 ------
