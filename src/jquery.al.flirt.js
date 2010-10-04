@@ -1,3 +1,10 @@
+// TODO: Add a function to the flirt run-time environment which can tell us if
+// we are at the first or last item of a list. Use case: allow for easy
+// generation of comma-separated lists.
+
+// TODO: Find out why it does not work on <title />, and if we can change
+// this situation.
+
 (function($) {
 
 var settings = {
@@ -245,6 +252,9 @@ $.fn.flirt = function(action, data, templateName, cb) {
 					});
 				}
 				
+				// TODO: Think about progressive DOM insertion -- questionable
+				// when this is worth complicating stuff for... what exactly
+				// would we expect to achieve by progressive DOM insertion?
 				$template.before(flirt.parse(data, cb).store('flirt', 'clearable', true));
 			});
 			

@@ -17,12 +17,18 @@ $.Rest = function(url, dataType, error) {
 	
 	this.request = function(verb, handler, data, success) {
 		setTimeout(function() {
+			var contentType = (verb === 'POST' || verb === 'PUT') ?
+				'application/json' :
+				'application/x-www-form-urlencoded';
+			
 			$.ajax({
 				type: verb,
 				url: url + handler,
 				dataType: dataType,
-				data: data,
-				// contentType: 'application/json',
+				contentType: contentType,
+				processData: contentType === 'application/x-www-form-urlencoded',
+				data: contentType === 'application/json' ? JSON.stringify(data) : data,
+				// TODO: smartpr api expects traditional (I think?)
 				// traditional: true,
 				complete: function(xhr, textStatus) {
 					// console.log('$.ajax complete:');
@@ -60,10 +66,11 @@ $.Rest.prototype = {
 		this.request('GET', handler, data, success);
 	},
 	post: function(handler, data, success) {
-		this.request('POST', handler + '?callback=?', data, success);
+					// TODO: add callback to handler in case of jsonp?
+		this.request('POST', handler, data, success);
 	},
 	put: function(handler, data, success) {
-		this.request('PUT', handler + '?callback=?',  data, success);
+		this.request('PUT', handler, data, success);
 	}
 	
 };

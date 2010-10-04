@@ -1,6 +1,8 @@
 (function($) {
 
 // TODO: rename 'threshold' option to 'display' ?
+// TODO: add option to cancel autoload (upon create)
+
 $.widget('al.listview', {
 	
 	options: {
@@ -32,6 +34,11 @@ $.widget('al.listview', {
 	reload: function(cb) {
 		var self = this;
 		
+		// FIXME: Data should not be deleted until right before new data is to
+		// be appended, inside the data callback. Else we can have the
+		// scenario in which another reload call is done while the request is
+		// still out there, resulting in the data from the second reload being
+		// appended to the data from the first.
 		delete self._data;
 		self._expectCount = null;
 		self.load(cb);
@@ -44,6 +51,8 @@ $.widget('al.listview', {
 	// options.key being null or not.
 	// TODO: Get rid of return value, as it makes calling on multiple instances
 	// simultaneously impossible.
+	// TODO: There should be a way to load data so that it is prepended to the
+	// existing data set.
 	load: function(data, cb) {
 		var self = this;
 		if ($.isFunction(data)) {

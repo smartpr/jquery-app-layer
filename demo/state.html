@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html lang="en" class="no-js">
+
+	<head>
+		<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+		
+		<title>
+			State
+		</title>
+		
+	    <script type="text/javascript" src="../lib/modernizr-1.5.min.js"></script>
+		<style type="text/css">
+			
+			body, body > * {
+				position: absolute;
+				overflow-x: hidden;
+				overflow-y: hidden;
+			}
+			
+			body {
+				top: 0;
+				right: 0;
+				bottom: 0;
+				left: 0;
+				margin: 0;
+				font-family: Helvetica;
+				font-size: 80%;
+			}
+			
+			.stateful {
+				display: none;
+			}
+			
+			#nav {
+				top: 0;
+				bottom: 0;
+				left: 0;
+				width: 200px;
+				background-color: #eee;
+				margin: 0;
+				list-style-type: none;
+			}
+			#nav > li {
+				position: absolute;
+				right: 0;
+				left: 0;
+			}
+			#nav > li > a {
+				position: absolute;
+				top: 0;
+				right: 0;
+				left: 0;
+				height: 15px;
+				padding: 4px;
+				font-weight: bold;
+				color: #222;
+				text-decoration: none;
+				border-top: 1px solid #fff;
+				border-bottom: 1px solid #ccc;
+			}
+			#nav.campaigns > li.campaigns > a,
+			#nav.contacts > li.contacts > a,
+			#nav.notes > li.notes > a {
+				border-style: none;
+				padding: 5px 4px;
+				background: -webkit-gradient(linear, left top, left bottom, from(#fff), to(#ccc));
+			}
+			
+			#nav > li.campaigns {
+				top: 0;
+			}
+			
+			#nav.campaigns > li.campaigns {
+				bottom: 4em;
+			}
+			#nav.campaigns > li.contacts {
+				bottom: 2em;
+				height: 2em;
+			}
+			#nav.campaigns > li.notes {
+				bottom: 0;
+				height: 2em;
+			}
+			
+			#nav.contacts > li.campaigns {
+				height: 2em;
+			}
+			#nav.contacts > li.contacts {
+				top: 2em;
+				bottom: 2em;
+			}
+			#nav.contacts > li.notes {
+				bottom: 0;
+				height: 2em;
+			}
+			
+			#nav.notes > li.campaigns {
+				height: 2em;
+			}
+			#nav.notes > li.contacts {
+				top: 2em;
+				height: 2em;
+			}
+			#nav.notes > li.notes {
+				top: 4em;
+				bottom: 0;
+			}
+			
+			#tag-list {
+				visibility: hidden;
+				position: absolute;
+				top: 2em;
+				right: 0;
+				bottom: 0;
+				left: 0;
+				overflow-x: hidden;
+				overflow-y: auto;
+				margin: 0;
+				padding: 0;
+				background-color: #fafafa;
+				list-style-type: none;
+			}
+			#tag-list.ready {
+				visibility: visible;
+			}
+			#tag-list li {
+				cursor: default;
+				padding: .3em .8em .3em 1em;
+			}
+			#tag-list li.group {
+				padding: .5em .8em .5em .8em;
+				font-weight: bold;
+				color: #222;
+				text-decoration: none;
+			}
+			#tag-list li.tag {
+				padding-left: 2em;
+				font-size: .85em;
+				font-style: italic;
+			}
+			#tag-list li.checked {
+				color: white;
+				background: -webkit-gradient(linear, left top, left bottom, from(#aaf), to(#00f));
+			}
+			
+		</style>
+	</head>
+	
+	<body>
+		<div id="header" class="stateful">
+			Demo
+		</div>
+		
+		<ul id="nav" class="stateful">
+			<li class="campaigns">
+				<a href="#/campaigns">Campaigns</a>
+			</li>
+			<li class="contacts">
+				<a href="#/contacts">Contacts</a>
+				<ul id="tag-list" class="stateful">
+					<li class="group">My contacts</li>
+					<!--
+						<li class="tag"><%= name %> (<%= count %>)</li>
+					-->
+				</ul>
+			</li>
+			<li class="notes">
+				<a href="#/notes">Notes</a>
+			</li>
+		</ul>
+		
+		<script type="text/javascript" src="http://ajax.googleapis.com/ajax/libs/jquery/1.4.2/jquery.js"></script>
+		<script type="text/javascript" src="http://ajax.googleapis.com/ajax/libs/jqueryui/1.8.2/jquery-ui.js"></script>
+		<script type="text/javascript" src="../lib/underscore.js"></script>
+		<script type="text/javascript" src="../src/jquery.al.util.js"></script>
+		<script type="text/javascript" src="../src/jquery.al.data.js"></script>
+		<script type="text/javascript" src="../src/jquery.al.rest.js"></script>
+		<script type="text/javascript" src="../src/jquery.al.state.js"></script>
+		<script type="text/javascript" src="../src/jquery.al.route.js"></script>
+		<script type="text/javascript" src="../src/jquery.al.flirt.js"></script>
+		<script type="text/javascript" src="../src/jquery.al.dataview.js"></script>
+		<script type="text/javascript" src="../src/jquery.al.listview.js"></script>
+		<script type="text/javascript" src="../src/jquery.al.flaggable.js"></script>
+		<script type="text/javascript" src="http://assets.smartpr.dev/jquery.smartpr/src/jquery.smartpr.js"></script>
+		<script type="text/javascript">
+			
+			jQuery(function($) {
+				
+				$.route({
+					name: 'campaigns',
+					pattern: /^\/campaigns$/
+				}, {
+					name: 'contacts',
+					pattern: /^\/contacts$/
+				}, {
+					name: 'notes',
+					pattern: /^\/notes$/
+				});
+				
+				$('#nav').state({
+					
+					observe: {
+						routechange: window
+					},
+					
+					value: function() {
+						return {
+							name: $.route('get') ? $.route('get').route.name : undefined
+						};
+					},
+					
+					isActive: function(value) {
+						return !!$.route('get');
+					},
+					
+					init: function(e, data) {
+						$(this).addClass(data.value.name);
+					},
+					
+					change: function(e, data) {
+						$(this).
+							removeClass().addClass('stateful').	// FIXME
+							addClass(data.value.name);
+					}
+					
+				});
+				
+				$('#tag-list').state({
+					
+					observe: {
+						'statechange stateinit': '#nav'
+					},
+					
+					isActive: function() {
+						var nav = $('#nav').state('value');
+						
+						return nav !== null && nav.name === 'contacts';
+					},
+					
+					init: function() {
+						var $this = $(this);
+						
+						$this.
+							listview({
+								key: 'id',
+								data: function(cb) {
+									$.smartpr.tags.get(function(data) {
+										cb(data);
+										$this.addClass('ready');
+									});
+								}
+							}).
+							bind('flaggableinvalidateflagged flaggableinvalidateunflagged', function(e, data) {
+								$(data.elements)[(e.type === 'flaggableinvalidateflagged' ? 'add' : 'remove') + 'Class']('checked');
+							}).
+							flaggable({
+								id: 'id',
+								elements: 'li',
+								data: function() {
+									var data = $(this).dataview('get');
+									return data === undefined ? 'all' : data;
+								}
+							}).
+							flaggable('change', 'all').
+							delegate('li', 'click', function() {
+								$this.flaggable('change', $(this).dataview('get') === undefined ? 'all' : $(this).dataview('get'));	// FIXME
+							});
+					}
+					
+				});
+				
+			});
+			
+		</script>
+	</body>
+
+</html>

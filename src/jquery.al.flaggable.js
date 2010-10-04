@@ -51,8 +51,8 @@ $.widget('al.flaggable', {
 	
 	_create: function() {
 		var self = this,
-			flag = self.options.flag || $.noop,
-			unflag = self.options.unflag || $.noop;
+			flag = $.isFunction(self.options.flag) ? self.options.flag : $.noop,
+			unflag = $.isFunction(self.options.unflag) ? self.options.unflag : $.noop;
 		
 		if (self.options.data === true) {
 			self.options.data = function() {
@@ -60,16 +60,17 @@ $.widget('al.flaggable', {
 			};
 		}
 		
-		// $.extend(self.options, {
-		// 	flag: function(e, data) {
-		// 		self._trigger('invalidateFlagged', e, {elements: self._elementsWithData(data.items)});
-		// 		return flag.apply(this, arguments);
-		// 	},
-		// 	unflag: function(e, data) {
-		// 		self._trigger('invalidateUnflagged', e, {elements: self._elementsWithData(data.items)});
-		// 		return unflag.apply(this, arguments);
-		// 	}
-		// });
+		// TODO: Introduce invalidatechanged event(?)
+		$.extend(self.options, {
+			flag: function(e, data) {
+				self._trigger('invalidateflagged', e, {elements: self._elementsWithData(data.items)});
+				return flag.apply(this, arguments);
+			},
+			unflag: function(e, data) {
+				self._trigger('invalidateunflagged', e, {elements: self._elementsWithData(data.items)});
+				return unflag.apply(this, arguments);
+			}
+		});
 		
 		self._flagged = [];	// $.RecordSet(self.options.id);
 		self._inverted = false;

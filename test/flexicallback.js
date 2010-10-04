@@ -39,4 +39,18 @@ asyncTest('$.fn.flexiqueue', 7, function() {
 	
 });
 
+test('$.fn.flexiqueue: interface', 1, function() {
+	
+	var queue = [$.noop, $.noop];
+	
+	$(window).flexiqueue('test', queue);
+	
+	same(queue, [$.noop, $.noop], "Queue argument is not modified");
+	
+});
+
+// TODO: Think about if supplied queue (functions) to flexiqueue should be
+// modified or not (now the supplied data structures are modified). Make a
+// test to verify whatever is decided.
+
 });

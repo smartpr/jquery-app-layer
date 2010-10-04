@@ -1,3 +1,47 @@
+(function($) {
+
+// TODO: Bring back employready
+
+$.fn.employ = function(status) {
+	var state = status === true ? $.makeArray(arguments).slice(1) : undefined;
+	
+	return this.each(function() {
+		var $this = $(this),
+			oldState = $this.fetch('employ', 'state'),
+			oldStatus = oldState !== undefined && $this.is(':visible'),
+			stateChange = !_.isEqual(state, oldState);
+		
+		if (status === oldStatus && !stateChange) {
+			return true;
+		}
+		if (status === false) {
+			$this.
+				hide().
+				trigger('employsleep');
+		}
+		if (status === true) {
+			$this.show();
+			// console.log(state);
+			if (stateChange) {
+				if (oldState !== undefined) {
+					$this.trigger('employdeconstruct', oldState);
+				}
+				$this.
+					store('employ', 'state', state).
+					trigger('employconstruct', state);
+			}
+			$this.trigger('employready');
+		}
+		
+	});
+	
+};
+
+}(jQuery));
+
+
+
+
 /*
 (function($) {
 
@@ -101,7 +145,7 @@ $.fn.manipulate = function(manipulate, done) {
 // which is not the same as "unemploy"
 // TODO: Implement status getter: $('...').employ() ...? or revise all
 // interfaces to sth like: .employ('change', true|false), .employ('status')
-$.fn.employ = function(status) {
+$.fn.employ_old = function(status) {
 	var $this = this,
 		state = status === true ? $.makeArray(arguments).slice(1) : undefined;
 	
@@ -162,10 +206,11 @@ $.fn.employ = function(status) {
 							$(this).trigger('employdeconstruct', $.merge([fcb], currentState));
 						}
 					}, function(fcb) {
-						// console.log('construct');
+						console.log('construct');
 						$(this).store('employ', 'state', state);
 						$(this).trigger('employconstruct', $.merge([fcb], state));
 					}, function(fcb) {
+						console.log('after construct');
 						mfcb.call();
 					}]).
 					dequeue('employ');
@@ -176,6 +221,95 @@ $.fn.employ = function(status) {
 		
 	// });
 	return $this;
+};
+
+var getStatus = function() {
+	var $this = $(this);
+	
+	return $this.fetch('employ', 'state') !== undefined && $this.is(':visible');
+};
+
+var undisplay = function() {
+	$(this).hide();
+};
+var display = function() {
+	var $this = $(this);
+	
+	$this.store('manipulate', 'visibility', this.style.visibility);
+	this.style.visibility = 'hidden';
+	$this.show();
+};
+var restoreVisibility = function() {
+	var $this = $(this);
+	
+	this.style.visibility = $this.fetch('manipulate', 'visibility');
+	$this.del('manipulate', 'visibility');
+};
+var sleep = function(fcb) {
+	$(this).trigger('employsleep', [fcb]);
+};
+var ready = function(fcb) {
+	$(this).trigger('employready', [fcb]);
+};
+
+$.fn.employ_overlycomplicated = function(status, cb) {
+	var $this = this,
+		state = status === true ? $.makeArray(arguments).slice(2) : undefined;
+	cb = $.isFunction(cb) ? cb : $.noop;
+	if (typeof status !== 'boolean') {
+		cb();
+		return $this.chain(getStatus);
+	}
+	
+	// TODO: Rename to employOuter.
+	$().
+		flexiqueue('employ.outer', function(fcbOuter) {
+			fcbOuter.expect($this.length);
+		
+			$this.each(function() {
+				var $this = $(this),
+					oldState = $this.fetch('employ', 'state'),
+					oldStatus = $this.chain(getStatus),
+					queue = [];
+			
+				if (status === false) {
+					queue.push(undisplay, sleep);
+				} else {
+					queue.push(display);
+					if (!_.isEqual(state, oldState)) {
+						if (oldState !== undefined) {
+							queue.push(function(fcbInner) {
+								$(this).trigger('employdeconstruct', $.merge([fcbInner], oldState));
+							}, function() {
+								// TODO: We might just remove this function,
+								// as the state value will be updated in the
+								// upcoming employconstruct function. But; if
+								// we want to support unemploy with forced
+								// deconstruct, we will be needing it.
+								$(this).del('employ', 'state');
+							});
+						}
+						queue.push(function(fcbInner) {
+							$(this).
+								store('employ', 'state', state).
+								trigger('employconstruct', $.merge([fcbInner], state));
+						});
+					}
+					queue.push(restoreVisibility, ready);
+				}
+				
+				queue.push(function() {
+					fcbOuter.call();
+				});
+				
+				$this.flexiqueue('employ.inner', queue).dequeue('employ.inner');
+			
+			});
+		
+		}).flexiqueue('employ.outer', function() {
+			cb();
+		}).dequeue('employ.outer');
+	
 };
 
 }(jQuery));

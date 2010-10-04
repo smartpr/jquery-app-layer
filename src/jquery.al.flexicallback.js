@@ -3,6 +3,9 @@ TODO:
 - always use "new Flexicallback" as it's more efficient
 - don't use $.extend(this, {}) inside Flexicallback as it adds to the noise
 - put Flexicallback in a var declaration of its own to reduce indentation
+- we cannot do fcb.call.call(anything) because fcb.call expects itself as the
+	context... can't we make this more robust?
+- make a $.flexiqueue for general (non-element-based) queues(??)
 */
 
 (function($) {
@@ -41,19 +44,20 @@ var Flexicallback = function(callback) {
 		};
 	};
 
-$.fn.flexiqueue = function() {
-	var args = $.makeArray(arguments),
-		d = typeof args[0] === 'string' ? 1 : 0,
-		data = args[d];
-	
-	if ($.isFunction(data)) {
-		args[d] = flexify(data);
-	} else if ($.isArray(data)) {
-		for (var i = 0, l = data.length; i < l; i++) {
-			data[i] = flexify(data[i]);
-		}
+$.fn.flexiqueue = function(name, queue) {
+	var args = [];
+	if (typeof name !== 'string') {
+		queue = name;
+	} else {
+		args.push(name);
 	}
-	
+	if ($.isFunction(queue)) {
+		args.push(flexify(queue));
+	} else if ($.isArray(queue)) {
+		args.push($.map(queue, function(item) {
+			return flexify(item);
+		}));
+	}
 	return $.fn.queue.apply(this, args);
 };
 

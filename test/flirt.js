@@ -182,4 +182,11 @@ test('$.fn.flirt', 5, function() {
 	
 });
 
+// TODO: Test what happens with a template's name if it is not referenced in the
+// flirt call. I ran into the situation in which I used dataview without template
+// name in order to use the first template. The result was that the name of the
+// template remained in place...
+
+// TODO: Using text with newlines parses incorrectly in IE.
+
 });
