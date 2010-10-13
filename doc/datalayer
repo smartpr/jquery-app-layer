@@ -1,0 +1,82 @@
+DATA LAYER - use cases / requirements / context
+===============================================
+
+Feedback messages at least upon every response that is the result of any
+non-GET request.
+
+Upon newly created contact, listed contacts should be either:
+- updated with the new contact and invalidated, or;
+- reloaded.
+New contact should be selected. Contact total should be updated.
+
+Upon newly created note, listed notes should be either:
+- updated with the new note and invalidated, or;
+- reloaded.
+
+Upon archive note, listed notes should be either:
+- updated with the new note (with archived flag) and invalidated (requiring a
+  grep in the listview), or;
+- reloaded.
+
+Contact view's dataview should be capable of taking in a set of contacts, and
+finding out when this set needs to be invalidated autonomously.
+
+The previous requirement applies to contact edit's dataview as well.
+
+A save of edited contact has the following connotations:
+- the edit form should reflect the updated contact (which is not necessarily
+  the same as the data that was just submitted, I guess);
+- if we choose to move to contact view upon successful save, we should make
+  sure the view reflects the updated contact;
+- we can either get the updated contact from the response of the save request,
+  or we can reload based on contact list selection;
+- the edit form should reflect problems in case the save failed;
+- listed contacts should be updated;
+- if contact view and edit are built using data from the list, invalidation
+  might be sufficient;
+- in this case the list should be capable of detecting a change of data;
+- if contact view and edit are built using data from the API, list should be
+  explicitly updated, either by overriding with the updated contact record or
+  by reloading the entire list.
+
+Notes list should be capable of detecting when selected contact (i.e. one of
+the data set's parameters) changes, and reload in that case.
+
+Multi view works with the length of the set of selected contacts. It would be
+nice (but not essential) if a change of this length value would be detected by
+dataview as well.
+
+Full list of tags is used in (at least) two components. They should be able to
+use the same data set, because:
+- it prevents multiple identical API requests;
+- changes to the data set automatically propagate to both components.
+
+Applied tags are conceptually a subset of the full set of tags. So we should
+be able to represent this in a similar fashion in the data layer.
+
+But, if we want to make use of the tags that are provided by the contacts API,
+we cannot rely on object identity, as we can have multiple objects
+representing the same object. On the other hand, this might be the exception
+that confirms that we *should* rely on object identity.
+
+Checking a tag in the tag list popup menu has the following implications:
+- the checked item should be 'flaggedinvalidated';
+- the tag that corresponds to the checked item should be added to the list of
+  applied tags in the view header;
+- the contact count inside the applied tag should be updated (via API or not?)
+  and invalidated (in the tag list on the left, but if desired also in the tag
+  list popup menu);
+- the listed contacts should be reloaded/invalidated if the applied tag is
+  selected.
+
+Deleting a set of contacts sets off a chain reaction:
+- contacts should be removed from contact list, if they are in there;
+- contacts totals should be updated;
+- selection is cleared, which results in no more contact views;
+- contact counts in all affected tags should be updated, and all their views
+  should be invalidated.
+(Note that both here and in the previous paragraph we have the situation in
+which contact counts are updated and a contact list is refreshed.)
+
+If contact summary (total and selected counts) can observe its own data, that
+would be convenient.

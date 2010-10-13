@@ -54,8 +54,9 @@
 			</ul>
 			<ul id="flirt">
 				<li>Header</li>
-				<!-- <li>wrong template</li> -->
-				<!--namedtemplate
+				<!--simple <li><%= data %></li> -->
+				<li>In between</li>
+				<!--complex
 					<li>
 						<% this.print(safe(group), ':'); %>
 						<!-members
@@ -72,7 +73,46 @@
 						->...
 					</li>
 				-->
-				<!-- this is a regular comment -->
+				<!--nestedtemplateflatdomtree
+					<li><%= name %></li>
+					<!-level2
+						<li><%= name %></li>
+						<!-level3
+							<li><%= name %></li>
+						->
+					->
+				-->
+				<li>Footer</li>
+			</ul>
+			<ul id="flirt-deep">
+				<li>
+					<h1>Some text</h1>
+					<ul>
+						<li>
+							<!-- a regular comment -->
+							Some strong elements:
+							<!--simple <strong><%= data %></strong> -->
+						</li>
+						<!--complex
+							<li>
+								<% this.print(safe(group), ':'); %>
+								<!-members
+									[<strong><a href="<%= id %>" style="font-family:<%= fonts.join(',') %>;"><%= name %></a></strong> <!-fonts
+										<%= data %>,
+									->]
+								->
+								(<%= members.length %>)
+							</li>
+							<li>
+								those were ids
+								<!-members
+									<% print(id); %>,
+								->...
+							</li>
+						-->
+					</ul>
+				</li>
+				<li>Another item</li>
 			</ul>
 			<ul id="dataview">
 				<!-- <li>whatever</li> -->

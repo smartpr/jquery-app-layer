@@ -9,9 +9,8 @@
 			JAL flirt
 		</title>
 		
-	    <script type="text/javascript" src="../lib/modernizr-1.1.min.js"></script>
+	    <script type="text/javascript" src="../lib/modernizr-1.5.min.js"></script>
 		<link rel="stylesheet" type="text/css" href="../lib/html5-reset-1.4.css" />
-		<link rel="stylesheet" type="text/css" href="http://ajax.googleapis.com/ajax/libs/jqueryui/1.8.0/themes/base/jquery-ui.css" />
 		<style type="text/css">
 			
 			#tags {
@@ -83,7 +82,7 @@
 					<li>
 						<div class="group"><%= group.toUpperCase() %></div>
 						<!-members
-							<span class="tag" style="color: #<%= color %>;"><%= name %></span>
+							<span class="tag" style="color: #<%= color %>;"><%= name %></span> +
 						->
 					</li>
 				-->
@@ -100,20 +99,26 @@
 			</dl>
 		</div>
 		<script type="text/javascript" src="http://ajax.googleapis.com/ajax/libs/jquery/1.4.2/jquery.js"></script>
-		<script type="text/javascript" src="http://ajax.googleapis.com/ajax/libs/jqueryui/1.8.0/jquery-ui.js"></script>
+		<script type="text/javascript" src="http://ajax.googleapis.com/ajax/libs/jqueryui/1.8.5/jquery-ui.js"></script>
 		<script type="text/javascript" src="../lib/underscore.js"></script>
+		<script type="text/javascript" src="../lib/jquery.ba-hashchange.js"></script>
+		<script type="text/javascript" src="../src/jquery.al.core.js"></script>
 		<script type="text/javascript" src="../src/jquery.al.util.js"></script>
-		<script type="text/javascript" src="../src/jquery.al.flexicallback.js"></script>
+		<script type="text/javascript" src="../src/jquery.al.rest.js"></script>
 		<script type="text/javascript" src="../src/jquery.al.data.js"></script>
 		<script type="text/javascript" src="../src/jquery.al.flirt.js"></script>
 		<script type="text/javascript" src="../src/jquery.al.dataview.js"></script>
+		<script type="text/javascript" src="../src/jquery.al.listview.js"></script>
+		<script type="text/javascript" src="../src/jquery.al.flaggable.js"></script>
+		<script type="text/javascript" src="../src/jquery.al.control.js"></script>
+		<script type="text/javascript" src="../src/jquery.al.route.js"></script>
 		<script type="text/javascript">
 			
 			jQuery(function($) {
 				
-				var tags = $.parseJSON('[{"group":"(","members":[{"color":"ffb400","id":379,"name":"(GEEN GAMES)","slug":"geen-games_"},{"color":"ffb400","id":363,"name":"(GEEN PERSBERICHTEN)","slug":"geen-persberichten_"}]},{"group":"1","members":[{"color":"8781bd","id":1244,"name":"1 Final Test X","slug":"1-final-test-x"},{"color":"ff0000","id":1246,"name":"1 <b>Final Test X</b> (2)","slug":"1-<b>final-test-x</b>_"}]},{"group":"a","members":[{"color":"1e7b00","id":1241,"name":"Alles","slug":"alles"}]},{"group":"b","members":[{"color":"fd0783","id":16,"name":"blaat","slug":"blaat"},{"color":"ff0000","id":385,"name":"Blad","slug":"blad_"},{"color":"a94800","id":364,"name":"Brabant","slug":"brabant_"},{"color":"ffb400","id":415,"name":"Brabant (2)","slug":"brabant"},{"color":"a94800","id":416,"name":"Brabant (3)","slug":"brabant__"}]},{"group":"d","members":[{"color":"0052b2","id":357,"name":"Dagblad","slug":"dagblad__"},{"color":"36df00","id":370,"name":"Drenthe","slug":"drenthe__"}]},{"group":"e","members":[{"color":"0052b2","id":373,"name":"Economisch","slug":"economisch_"}]},{"group":"f","members":[{"color":"36df00","id":386,"name":"Flevoland","slug":"flevoland___"},{"color":"1e7b00","id":359,"name":"Freelance","slug":"freelance__"},{"color":"36df00","id":378,"name":"Friesland","slug":"friesland__"}]},{"group":"g","members":[{"color":"fd0783","id":350,"name":"Games2009","slug":"games2009_"},{"color":"ffb400","id":371,"name":"Gelderland","slug":"gelderland__"}]},{"group":"i","members":[{"color":"ff0000","id":361,"name":"Interest","slug":"interest_"}]},{"group":"j","members":[{"color":"1e7b00","id":367,"name":"Jeugd","slug":"jeugd_"},{"color":"8781bd","id":368,"name":"Jongeren","slug":"jongeren_"}]},{"group":"l","members":[{"color":"a94800","id":356,"name":"Landelijk","slug":"landelijk___"},{"color":"1e7b00","id":351,"name":"Lifestyle","slug":"lifestyle__"},{"color":"1e7b00","id":383,"name":"Limburg","slug":"limburg__"}]},{"group":"m","members":[{"color":"0052b2","id":1199,"name":"martijn","slug":"martijn"}]},{"group":"n","members":[{"color":"fd0783","id":382,"name":"Noord-Holland","slug":"noord-holland__"}]},{"group":"r","members":[{"color":"ffb400","id":355,"name":"Radio","slug":"radio___"},{"color":"a94800","id":380,"name":"Regionaal","slug":"regionaal___"},{"color":"ff0000","id":377,"name":"RTV","slug":"rtv_"}]},{"group":"s","members":[{"color":"8781bd","id":360,"name":"Special","slug":"special_"},{"color":"0052b2","id":381,"name":"studenten","slug":"studenten_"},{"color":"36df00","id":1248,"name":"System Group: Coworkers","slug":"system-group-coworkers"},{"color":"fd0783","id":1203,"name":"System Group: My Contacts","slug":"system-group-my-contacts"}]},{"group":"t","members":[{"color":"36df00","id":362,"name":"TV","slug":"tv_"}]},{"group":"u","members":[{"color":"fd0783","id":374,"name":"Universiteit","slug":"universiteit_"},{"color":"1e7b00","id":375,"name":"Utrecht","slug":"utrecht__"}]},{"group":"v","members":[{"color":"0052b2","id":365,"name":"Vakblad","slug":"vakblad___"},{"color":"8781bd","id":352,"name":"Vrouwen","slug":"vrouwen__"}]},{"group":"w","members":[{"color":"36df00","id":354,"name":"Website","slug":"website__"}]},{"group":"z","members":[{"color":"8781bd","id":384,"name":"Zeeland","slug":"zeeland__"},{"color":"fd0783","id":358,"name":"Zuid-Holland","slug":"zuid-holland__"}]}]');
+				TAGS = $.parseJSON('[{"group":"(","members":[{"color":"ffb400","id":379,"name":"(GEEN GAMES)","slug":"geen-games_"},{"color":"ffb400","id":363,"name":"(GEEN PERSBERICHTEN)","slug":"geen-persberichten_"}]},{"group":"1","members":[{"color":"8781bd","id":1244,"name":"1 Final Test X","slug":"1-final-test-x"},{"color":"ff0000","id":1246,"name":"1 <b>Final Test X</b> (2)","slug":"1-<b>final-test-x</b>_"}]},{"group":"a","members":[{"color":"1e7b00","id":1241,"name":"Alles","slug":"alles"}]},{"group":"b","members":[{"color":"fd0783","id":16,"name":"blaat","slug":"blaat"},{"color":"ff0000","id":385,"name":"Blad","slug":"blad_"},{"color":"a94800","id":364,"name":"Brabant","slug":"brabant_"},{"color":"ffb400","id":415,"name":"Brabant (2)","slug":"brabant"},{"color":"a94800","id":416,"name":"Brabant (3)","slug":"brabant__"}]},{"group":"d","members":[{"color":"0052b2","id":357,"name":"Dagblad","slug":"dagblad__"},{"color":"36df00","id":370,"name":"Drenthe","slug":"drenthe__"}]},{"group":"e","members":[{"color":"0052b2","id":373,"name":"Economisch","slug":"economisch_"}]},{"group":"f","members":[{"color":"36df00","id":386,"name":"Flevoland","slug":"flevoland___"},{"color":"1e7b00","id":359,"name":"Freelance","slug":"freelance__"},{"color":"36df00","id":378,"name":"Friesland","slug":"friesland__"}]},{"group":"g","members":[{"color":"fd0783","id":350,"name":"Games2009","slug":"games2009_"},{"color":"ffb400","id":371,"name":"Gelderland","slug":"gelderland__"}]},{"group":"i","members":[{"color":"ff0000","id":361,"name":"Interest","slug":"interest_"}]},{"group":"j","members":[{"color":"1e7b00","id":367,"name":"Jeugd","slug":"jeugd_"},{"color":"8781bd","id":368,"name":"Jongeren","slug":"jongeren_"}]},{"group":"l","members":[{"color":"a94800","id":356,"name":"Landelijk","slug":"landelijk___"},{"color":"1e7b00","id":351,"name":"Lifestyle","slug":"lifestyle__"},{"color":"1e7b00","id":383,"name":"Limburg","slug":"limburg__"}]},{"group":"m","members":[{"color":"0052b2","id":1199,"name":"martijn","slug":"martijn"}]},{"group":"n","members":[{"color":"fd0783","id":382,"name":"Noord-Holland","slug":"noord-holland__"}]},{"group":"r","members":[{"color":"ffb400","id":355,"name":"Radio","slug":"radio___"},{"color":"a94800","id":380,"name":"Regionaal","slug":"regionaal___"},{"color":"ff0000","id":377,"name":"RTV","slug":"rtv_"}]},{"group":"s","members":[{"color":"8781bd","id":360,"name":"Special","slug":"special_"},{"color":"0052b2","id":381,"name":"studenten","slug":"studenten_"},{"color":"36df00","id":1248,"name":"System Group: Coworkers","slug":"system-group-coworkers"},{"color":"fd0783","id":1203,"name":"System Group: My Contacts","slug":"system-group-my-contacts"}]},{"group":"t","members":[{"color":"36df00","id":362,"name":"TV","slug":"tv_"}]},{"group":"u","members":[{"color":"fd0783","id":374,"name":"Universiteit","slug":"universiteit_"},{"color":"1e7b00","id":375,"name":"Utrecht","slug":"utrecht__"}]},{"group":"v","members":[{"color":"0052b2","id":365,"name":"Vakblad","slug":"vakblad___"},{"color":"8781bd","id":352,"name":"Vrouwen","slug":"vrouwen__"}]},{"group":"w","members":[{"color":"36df00","id":354,"name":"Website","slug":"website__"}]},{"group":"z","members":[{"color":"8781bd","id":384,"name":"Zeeland","slug":"zeeland__"},{"color":"fd0783","id":358,"name":"Zuid-Holland","slug":"zuid-holland__"}]}]');
 				
-				$('#tags > ul').dataview('set', 'basic', tags);
+				$('#tags > ul').dataview('set', 'basic', TAGS);
 				
 			});
 			

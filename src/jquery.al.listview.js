@@ -121,7 +121,11 @@ $.widget('al.listview', {
 	invalidate: function() {
 		var self = this;
 		
-		self.element.dataview('set', self.options.template, self._displayData());
+		// FIXME: Temporary hack.
+		// var d = $.map(self._displayData(), function(item) {
+		// 	return $.al.Field().val(item);
+		// });
+		self.element.dataview('set', self._displayData(), self.options.template);
 	},
 	
 	threshold: function(threshold) {

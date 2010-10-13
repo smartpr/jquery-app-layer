@@ -194,7 +194,10 @@ $.al.Field = $.al.MolendijkClass.extend(function(base, context) {
 	self.observe = function(observer, silent) {
 		$registry.bind('fieldchange' + (silent ? 'silent' : 'notify'), function(e, data) {
 			// TODO: Supply of data.from is not documented/tested.
-			observer.call(self.context(), data.to, data.from);
+			if (observer.call(self.context(), data.to, data.from) === false) {
+				// TODO: Using return value for this purpose should be tested.
+				$registry.unbind(e);
+			}
 		});
 		return self;
 	};
@@ -281,6 +284,10 @@ $.al.Field = $.al.MolendijkClass.extend(function(base, context) {
 		notify();
 		return self;
 	};
+	// FIXME: temporary
+	self.notifiesField = function() {
+		return notifies instanceof $.al.Field ? notifies : undefined;
+	};
 	
 	var sleep = false;
 	self.sleep = function(s) {
@@ -317,6 +324,7 @@ $.al.ConjunctionField = $.al.Field.extend(function() {
 	
 	delete self.bind;
 	
+	// TODO: use 'bind' instead of 'operand'.
 	self.operand = function() {
 		operands.push($.al.Field(false, self.context()).
 			observe(function(v) {
@@ -331,6 +339,28 @@ $.al.ConjunctionField = $.al.Field.extend(function() {
 	};
 	
 });
+
+$.al.List = $.al.Field.extend(function() {
+	var self = this;
+	
+	var fetcher;
+	self.fetcher = function(f) {
+		if (arguments.length < 1) {
+			return fetcher;
+		}
+		fetcher = f;
+		return self;
+	};
+	
+	self.fetch = function() {
+		if ($.isFunction(self.fetcher())) {
+			self.fetcher().call(self.context(), self.val);
+		}
+		return self;
+	};
+	
+});
+
 
 }(jQuery));
 
@@ -397,3 +427,23 @@ $.al.ConjunctionField = $.al.Field.extend(function() {
     return Class;
   };
 }).call(jQuery);
+
+
+
+// Idea for a state-less kind of $.Widget
+// 
+// $.al.plugin = function(methods) {
+// 	
+// }
+// 
+// $.fn.flirt = $.al.plugin({
+// 	
+// 	closest: function() {
+// 		
+// 	},
+// 	
+// 	template: function() {
+// 		
+// 	}
+// 	
+// });

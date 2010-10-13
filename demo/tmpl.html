@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="en" class="no-js">
+
+	<head>
+		<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+		
+		<title>
+			jquery-tmpl
+		</title>
+		
+	    <script type="text/javascript" src="../lib/modernizr-1.5.min.js"></script>
+		<style type="text/css">
+			
+			pre {
+				white-space: normal;
+			}
+			blockquote {
+				white-space: pre-wrap;
+			}
+			
+			li.checked {
+				background-color: yellow;
+			}
+			
+		</style>
+	</head>
+	
+	<body>
+		<span id="tmpl-test"></span><br />
+		<span id="flirt-test"></span>
+		
+		<ul id="tmpl-adv">
+		</ul>
+		
+		<ul id="flirt-adv">
+			<!--templatey
+				<li>
+					<% this.print(safe(val().group), ':'); %>
+					<!-val().members
+						[<strong><a href="<%= id %>" style="font-family:<%= fonts.join(',') %>;"><%= name %></a></strong> <!-fonts
+							<%= data %>,
+						->]
+					->
+					(<%= val().members.length %>)
+				</li>
+				<li>
+					those were ids
+					<!-val().members
+						<% print(id); %>,
+					->...
+				</li>
+			-->
+		</ul>
+		
+		<ul id="newlines">
+			<!--name
+				<li class="note">
+					<blockquote><%= body %></blockquote>
+				</li>
+			-->
+		</ul>
+		
+		<div></div>
+		
+		<script type="text/javascript" src="http://ajax.googleapis.com/ajax/libs/jquery/1.4.2/jquery.js"></script>
+		<script type="text/javascript" src="http://ajax.googleapis.com/ajax/libs/jqueryui/1.8.5/jquery-ui.js"></script>
+		<script type="text/javascript" src="../lib/jquery.tmpl.js"></script>
+		<script type="text/javascript" src="../lib/underscore.js"></script>
+		<script type="text/javascript" src="../src/jquery.al.util.js"></script>
+		<script type="text/javascript" src="../src/jquery.al.data.js"></script>
+		<script type="text/javascript" src="../src/jquery.al.core.js"></script>
+		<script type="text/javascript" src="../src/jquery.al.flirt.js"></script>
+		<script type="text/javascript" src="../src/jquery.al.dataview.js"></script>
+		<script type="text/javascript" src="../src/jquery.al.flaggable.js"></script>
+		<script type="text/javascript">
+			
+			DATA = [
+				{
+					id: 1,
+					name: "Tim Molendijk",
+					age: 28,
+					emails: ['tim@timmolendijk.nl', 'tim@smartpr.nl']
+				},
+				{
+					id: 2,
+					name: "Art Molendijk",
+					age: 26,
+					emails: ['art@pwned.nl']
+				},
+				{
+					id: 3,
+					name: "Manja Molendijk",
+					age: 23,
+					emails: []
+				}
+			];
+			
+			var callme = function() {
+				return this.data.group.toLowerCase();
+			};
+			
+				font = "Garamond",	// Should be a unique value for the purpose of these
+									// tests.
+				member = {
+					id: 1,
+					name: "Art",
+					fonts: [font, "Verdana"]
+				},
+				group = {
+					group: "A",
+					members: [
+						member,
+						{
+							id: 2,
+							name: "<b>Amsterdam</b>",
+							fonts: ["Arial", "Verdana"]
+						}
+					],
+					data: "not a data object"
+				},
+				data = [
+					group,
+					{
+						group: "B",
+						members: [
+							{
+								id: 3,
+								name: "Business",
+								fonts: ["Arial", "Verdana"]
+							}
+						]
+					},
+					{
+						group: "<span class=\"safe\">C</span>",
+						members: [
+							{
+								id: 4,
+								name: "Co<mpute>rs",
+								fonts: ["does-not-exist", "'Times New Roman'"]
+							},
+							{
+								id: 5,
+								name: "Cool",
+								fonts: ["'Courier New'", "Courier"]
+							}
+						]
+					}
+				],
+				messy = [
+					{
+						group: 5,
+						members: [
+							{
+								id: undefined,
+								name: "Ch>r>cters that should b& <scap<d and Unicode: áœØ™‹¢ÅÛ—±≥÷√∂",
+								fonts: [undefined, "arial", null, true, 0]
+							}
+						]
+					}
+				];
+			
+			// data = $.map(data, function(item) {return $.al.Field().val(item);});
+			
+			var F = function(val) {
+				this.val = val;
+				this.method = function(prefix) {
+					console.log(this);
+					return prefix + this.val;
+				};
+			};
+			
+			$.tmpl.tag["call"] = {
+				// Encoded expression evaluation. Abbreviated form is ${}.
+				_default: { $1: "$data" },
+				open: "if($notnull_1){_.push($.encode($1($2)));}"
+			};
+			
+			jQuery(function($) {
+				
+				// $.tmpl("Name: ${name}, ", DATA).appendTo('#tmpl-test');
+				// $('#flirt-test').append($.flirt("Name: <%= name %>, ", DATA));
+				// 
+				$("#tmpl-item").tmpl(data).appendTo('#tmpl-adv');
+				// var template = $('#flirt-adv').contents('[nodeType=8]')[0].data.substr('namedtemplate'.length + 1);
+				// $('#flirt-adv').flirt('add', data, 'templatey', function(d) {
+				// 	// console.log(this);
+				// 	// console.log(d);
+				// });
+				// 
+				// $.tmpl("test: {{call('hoi') method}}", [new F('tim'), new F('art')]).appendTo('div');
+				
+				var newlines = "line1\nline3\n\n\nline6";
+				$('#newlines').flirt('set', {body: newlines});
+				
+				// $('#flirt-adv').
+				// 	flaggable({
+				// 		elements: 'li',
+				// 		data: true,
+				// 		invalidateflagged: function(e, data) {
+				// 			$(data.elements).addClass('checked');
+				// 		},
+				// 		invalidateunflagged: function(e, data) {
+				// 			$(data.elements).removeClass('checked');
+				// 		}
+				// 	}).
+				// 	delegate('li', 'click', function() {
+				// 		$('#flirt-adv').flaggable('toggle', $(this).dataview('get'));
+				// 	}).
+				// 	dataview('set', data, 'templatey');
+				
+			});
+			
+		</script>
+		<script id="tmpl-item" type="text/x-jquery-tmpl">
+			<li>
+				{{html callme()}}
+				{{tmpl(members) "#tmpl-members"}}
+				(${members.length})
+			</li>
+			<li>
+				those were ids
+				{{tmpl(members) "#tmpl-memberids"}}...
+			</li>
+		</script>
+		<script id="tmpl-members" type="text/x-jquery-tmpl">
+			[<strong><a href="${id}" style="font-family:${fonts};">${name}</a></strong>]
+		</script>
+		<script id="tmpl-memberids" type="text/x-jquery-tmpl">
+			${id},
+		</script>
+	</body>
+
+</html>

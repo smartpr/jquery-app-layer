@@ -1,22 +1,23 @@
 jQuery(function($) {
 
-var $flirt,
-	templateNode,
-	template,
-	flatten = function(str, strip) {
-		if (typeof str !== 'string') {
-			str = str.appendTo('<div />').parent().html();
-		}
-		str = str.replace(/\s/g, '').toLowerCase();
-		if (strip !== undefined) {
-			str = str.replace(strip, '');
-		}
-		return str;
-	},
+// Note: should not be used with nodes that are part of the DOM tree, as they
+// will be removed from it as a result.
+var flatten = function(str, strip) {
+	// Convert to text-only, because IE messes with the order of attributes
+	// on HTML elements, which makes string comparison impossible.
+	str = $('<div />').append(str).text().replace(/\s/g, '').toLowerCase();
+	if (typeof strip === 'string') {
+		str = str.replace(strip, '');
+	}
+	return str;
+};
+
+var font = "Garamond",	// Should be a unique value for the purpose of these
+						// tests.
 	member = {
 		id: 1,
 		name: "Art",
-		fonts: ["Arial", "Verdana"]
+		fonts: [font, "Verdana"]
 	},
 	group = {
 		group: "A",
@@ -71,15 +72,9 @@ var $flirt,
 		}
 	];
 
-module('flirt', {
-	setup: function() {
-		$flirt = $('#flirt');
-		templateNode = $flirt.contents('[nodeType=8]')[1];
-		template = templateNode.data.substr('namedtemplate'.length + 1);
-	}
-});
+module('flirt');
 
-test('$.flirt as a settings accessor', 4, function() {
+test("$.flirt: configuration", 4, function() {
 	
 	equals($.flirt().nestStart, '<!-', "Without arguments returns settings objects");
 	equals($.flirt({nestStart: 'changed'}).nestStart, 'changed', "Changing settings returns changed settings object");
@@ -89,9 +84,9 @@ test('$.flirt as a settings accessor', 4, function() {
 	
 });
 
-test("$.flirt as template parser: environment", 7, function() {
+test("$.flirt: render environment", 7, function() {
 	
-	var parsed = $('<div />').append($.flirt("\
+	var rendered = $.map($('<div />').append($.flirt("\
 		<%= this.data.id %>,\
 		<%= data %>,\
 		<%= 'flirt' in this %>,\
@@ -99,94 +94,236 @@ test("$.flirt as template parser: environment", 7, function() {
 		<%= 'safe' in this %>,\
 		<%= 'esc' in this %>,\
 		<%= 'nodes' in this %>\
-	", [{id: 1, data: 'data'}])).text().split(',');
+	", [{id: 1, data: 'data'}])).text().split(','), $.trim);
 	
-	equals($.trim(parsed[0]), "1", "this.data is the full data object");
-	equals($.trim(parsed[1]), "data", "data is the value of the data field, if it exists");
-	equals($.trim(parsed[2]), "true", "this.flirt");
-	equals($.trim(parsed[3]), "true", "this.callback");
-	equals($.trim(parsed[4]), "true", "this.safe");
-	equals($.trim(parsed[5]), "true", "this.esc");
-	equals($.trim(parsed[6]), "true", "this.nodes");
+	equals(rendered[0], "1", "this.data is the full data object");
+	equals(rendered[1], "data", "data is the value of the data field, if it exists");
+	equals(rendered[2], "true", "this.flirt");
+	equals(rendered[3], "true", "this.callback");
+	equals(rendered[4], "true", "this.safe");
+	equals(rendered[5], "true", "this.esc");
+	equals(rendered[6], "true", "this.nodes");
 	
 });
 
-test("$.flirt as template parser: errors", 1, function() {
+test("$.flirt: render errors", 1, function() {
 	
 	try {
-		$.flirt("<%= doesnotexist %>", [1]);
+		$.flirt("<%= doesnotexist %>", [{doesexist: 'tim'}]);
 	} catch (err) {
 		ok(err, "Error is thrown if non-existent data field is referenced");
 	}
 	
 });
 
-test('$.flirt as template parser', 5, function() {
+test("$.flirt: render callback", 8, function() {
+	var template = $('#flirt').contents('[nodeType=8]')[1].data.substr('complex'.length + 1),
+		count = 0;
 	
-	var count = 0;
-	
-	// TODO: $parsed global var(??)
-	$parsed = $('<div />').append($.flirt(template, data, function(d) {
-		if (d === member && count++ === 0) {
+	$.flirt(template, data, function(d, t) {
+		
+		if (d === font) {
+			ok(true, "Callback at font level");
+			equals(flatten(this), flatten(font + ","), "Callback's context is the DOM nodes that were rendered using the font data");
+			// TODO: Move to checking both data and template as soon we
+			// provide the template appropriately.
+			// equals(flatten(this), flatten(t(font)), "Callback's context is the DOM nodes that resulted from rendering given data with given template");
+		}
+		
+		// Our template uses member twice, so this runs twice as well.
+		if (d === member) {
 			ok(true, "Callback at member level");
-			// TODO: invalidation
-//			$parsed = $('<div />').append(flirt.parse(d));
-//			equals($('<div />').append(this).html(), $parsed.html(), "Callback at member level: parsed data and template represents same node tree as supplied elements");
-//			equals(flatten($parsed.text()), '[artarial,verdana,]', "Callback at member level: parsed data and template matches textwise");
-//			equals($parsed.find('strong').length, 1, "Callback at member level: parsed data and template contains 'strong' element");
-//			equals(flatten($parsed.find('a[href=1]').attr('style'), ';'), flatten("font-family:Arial,Verdana"), "Callback at member level: parsed data and template contains correct 'a' element");
+			if (count++ === 0) {
+				equals(flatten(this), flatten('[<strong><a href="1" style="font-family:Garamond,Verdana;">Art</a></strong>        Garamond,              Verdana,       ]'), "Callback's context is the DOM nodes that were rendered using the member data");
+			} else {
+				equals(flatten(this), flatten('1,'), "Callback's context is the DOM nodes that were rendered using the member data");
+			}
+			// TODO: Make sure font names after strong close still hold the
+			// right data and template (and not d and t).
 		}
-		if (d === group && count++ === 2) {
+		
+		if (d === group) {
 			ok(true, "Callback at group level");
-			// TODO: invalidation
-//			$parsed = $('<div />').append(flirt.parse(d));
-//			equals($('<div />').append(this).html(), $parsed.html(), "Callback at group level: parsed data and template represents same node tree as supplied elements");
-//			equals(flatten($parsed.text()), 'a:[artarial,verdana,][amsterdamarial,verdana,](2)thosewereids1,2,...', "Callback at group level: parsed data and template matches textwise");
-//			equals($parsed.children('li').length, 2, "Callback at group level: parsed data and template contains correct amount of 'li' elements");
-//			equals($parsed.find('strong').length, 2, "Callback at group level: parsed data and template contains correct amount of 'strong' elements");
+			equals(flatten(this), flatten('<li>      A:            [<strong><a href="1" style="font-family:Garamond,Verdana;">Art</a></strong>        Garamond,              Verdana,       ]            [<strong><a href="2" style="font-family:Arial,Verdana;">&lt;b&gt;Amsterdam&lt;/b&gt;</a></strong>        Arial,              Verdana,       ]            (2)     </li>     <li>      those were ids            1,            2,      ...     </li>'), "Callback's context is the DOM nodes that were rendered using the group data");
 		}
-	}));
-	
-	equals(flatten($parsed.text()), 'a:[artarial,verdana,][<b>amsterdam</b>arial,verdana,](2)thosewereids1,2,...b:[businessarial,verdana,](1)thosewereids3,...c:[co<mpute>rsdoes-not-exist,\'timesnewroman\',][cool\'couriernew\',courier,](2)thosewereids4,5,...', "Compile and parse template: parsed data and template matches textwise, HTML is escaped");
-	equals($parsed.children('li').eq(4).find('span.safe').length, 1, "Data that has been marked as safe is not escaped");
-	equals($parsed.children('li').length, 6, "Compile and parse template: correct amount of 'li' elements");
+		
+	});
 	
 });
 
-test("$.flirt as template parser: messy data", 2, function() {
+test("$.flirt: render result", 2, function() {
+	var template = $('#flirt').contents('[nodeType=8]')[1].data.substr('complex'.length + 1);
 	
-	var result = $('<div />').append($.flirt(template, messy)).text();
-	
-	ok(result.indexOf(messy[0].members[0].name) !== -1, "Strings containing characters that should be encoded are represented correctly");
-	ok(flatten(result).indexOf(messy[0].members[0].fonts.join(',')) !== -1, "Values are serialized to string according to Array.prototype.join's behavior");
+	equals(flatten($.flirt(template, data)), flatten('<li>      A:            [<strong><a href="1" style="font-family:Garamond,Verdana;">Art</a></strong>        Garamond,              Verdana,       ]            [<strong><a href="2" style="font-family:Arial,Verdana;">&lt;b&gt;Amsterdam&lt;/b&gt;</a></strong>        Arial,              Verdana,       ]            (2)     </li>     <li>      those were ids            1,            2,      ...     </li>    <li>      B:            [<strong><a href="3" style="font-family:Arial,Verdana;">Business</a></strong>        Arial,              Verdana,       ]            (1)     </li>     <li>      those were ids            3,      ...     </li>    <li>      <span class="safe">C</span>:            [<strong><a href="4" style="font-family:does-not-exist,\'Times New Roman\';">Co&lt;mpute&gt;rs</a></strong>        does-not-exist,              \'Times New Roman\',       ]            [<strong><a href="5" style="font-family:\'Courier New\',Courier;">Cool</a></strong>        \'Courier New\',              Courier,       ]            (2)     </li>     <li>      those were ids            4,            5,      ...     </li>'), "DOM tree that is generated by the renderer represent correct HTML");
+	equals(flatten($.flirt(template, messy)), flatten('<li>      5:            [<strong><a href="" style="font-family:,arial,,true,0;">Ch&gt;r&gt;cters that should b&amp; &lt;scap&lt;d and Unicode: áœØ™‹¢ÅÛ—±≥÷√∂</a></strong>        ,              arial,              ,              true,              0,       ]            (1)     </li>     <li>      those were ids            ,      ...     </li>'), "Messy data is rendered correctly");
 	
 });
 
-test('$.fn.flirt', 5, function() {
+test("$.flirt: newlines", 1, function() {
+	var newlines = "line1\nline3\n\n\nline6";
 	
-	$flirt.flirt(data);
-	equals($(templateNode).prevAll('li').length, 4, "First comment node is parsed and set into the DOM");
+	equals($('<pre />').append($.flirt("<%= data %>", newlines)).text(), newlines, "Newlines are preserved correctly");
 	
-	$flirt.flirt(data, 'namedtemplate');
-	equals($(templateNode).prevAll('li').length, 10, "Comment node with the given name is parsed and set into the DOM, after the previously set nodes");
+});
+
+test("$.fn.flirt: add from containing element", 4, function() {
+	var $flirt = $('#flirt');
 	
-	$flirt.flirt('clear', 'namedtemplate');
-	equals($(templateNode).prevAll('li').length, 4, "All nodes that sprouted from the template with the given name are cleared from the DOM");
+	equals($flirt.flirt('add', "tim", function() {
+		ok(true, "Callback is being called just like with $.flirt, even if no template name is specified");
+	}), $flirt, "Returns object on which add is initiated");
+	
+	equals($flirt.find('li').length, 4, "One data item is rendered to one additional list item");
+	
+	$flirt.flirt('add', ["anton", "willem"]);
+	equals($flirt.find('li').length, 6, "Additional items are added to the existing rendered parts");
+	
+});
+
+test("$.fn.flirt: add from rendered element", 6, function() {
+	var $flirt = $('#flirt').flirt('add', ["tim", "art"]),
+		$item = $flirt.find('li').eq(1),
+		$insideItem = $item.contents().eq(0);
+	
+	equals($item.flirt('add', "manja"), $item, "Returns object on which add is initiated");
+	equals($flirt.find('li').length, 6, "Rendered item is added to the list");
+	equals($flirt.find('li').eq(2).text(), "manja", "Rendered item is added after the item from which it was added");
+	
+	equals($insideItem.flirt('add', ["molendijk"]), $insideItem, "Returns object on which add is initiated even if it contains only text node(s)");
+	equals($flirt.find('li').length, 7, "Rendered item is added to the list");
+	equals($flirt.find('li').eq(2).text(), "molendijk", "Rendered item is added after the item from inside which it was added");
+	
+});
+
+test("$.fn.flirt: add at a nested level", 3, function() {
+	var $flirt = $('#flirt').flirt('add', data, 'complex'),
+		$member = $flirt.find('strong:first');
+	
+	$member.flirt('add', data[1].members[0]);
+	
+	equals($flirt.find('li').length, 9, "First-level items have not been changed");
+	equals($flirt.find('li').eq(2).find('strong').length, 3, "Second-level items have been changed");
+	equals($flirt.find('li').eq(2).find('strong').eq(1).text(), "Business", "Item has been added at the correct position");
+	
+});
+
+test("$.fn.flirt: clear from containing element", 2, function() {
+	var $flirt = $('#flirt').flirt('add', ["tim", "art", "manja"]);
+	
+	equals($flirt.flirt('clear'), $flirt, "Returns object on which clear is initiated");
+	equals($flirt.find('li').length, 3, "All rendered items are cleared, but others are left untouched");
+	
+});
+
+test("$.fn.flirt: clear from rendered element", 2, function() {
+	var $flirt = $('#flirt').flirt('add', ["tim", "art", "manja"]),
+		$item = $flirt.find('li').eq(1);
+	
+	equals($item.flirt('clear'), $item, "Returns object on which clear is initiated");
+	ok($item.parent().length === 0, "Cleared item is no longer part of DOM tree");
+	
+});
+
+test("$.fn.flirt: clear at a nested level", 3, function() {
+	var $flirt = $('#flirt').flirt('add', data, 'complex'),
+		$member = $flirt.find('strong:first');
+	
+	$member.flirt('clear');
+	equals($flirt.find('li').length, 9, "First-level items have not been changed");
+	equals($flirt.find('li').eq(2).find('strong').length, 1, "Second-level items have been changed");
+	ok($flirt.find('strong')[0] !== $member[0], "Item has been removed from the DOM");
+	
+});
+
+test("$.fn.flirt: clear flat DOM tree that resulted from nested template", 2, function() {
+	var $flirt = $('#flirt');
+	
+	$flirt.flirt('set', {name: 'level1', level2: {name: 'level2', level3: {name: 'level3'}}}, 'nestedtemplateflatdomtree');
+	equals($flirt.find('li').length, 6, "Nested template result in a (flat) set of list items");
+	
+	$flirt.flirt('clear', undefined, 'nestedtemplateflatdomtree');
+	equals($flirt.find('li').length, 3, "All of which are cleared out upon request");
+	
+});
+
+test("$.fn.flirt: set from containing element", 3, function() {
+	var $flirt = $('#flirt');
+	
+	equals($flirt.flirt('set', ["tim", "art", "manja"]), $flirt, "Returns object on which set is initiated");
+	equals($flirt.find('li').length, 6, "Three list items are rendered");
+	
+	$flirt.flirt('set', "molendijk");
+	equals($flirt.find('li').length, 4, "All previously rendered items are replaced with a new one");
+	
+});
+
+test("$.fn.flirt: set from rendered element", 3, function() {
+	var $flirt = $('#flirt').flirt('set', ["tim", "art", "manja"]),
+		$item = $flirt.find('li').eq(1);
+	
+	equals($item.flirt('set', ["anton", "willem"]), $item, "Returns object on which set is initiated");
+	ok($item.parent().length === 0, "Set (overwritten) item is no longer part of DOM tree");
+	equals($flirt.find('li').length, 7, "Two new items are in the place of the replaced one");
+	
+});
+
+test("$.fn.flirt: identifying templates", 3, function() {
+	var $flirt = $('#flirt-deep');
+	
+	$flirt.flirt('set', data);
+	equals($flirt.find('ul > li').length, 7, "If no template name is specified the breadth-first template (comment node) is used");
+	ok($flirt.text().indexOf('complex') === -1, "Template name is never part of the template, regardless of whether it was explicitly selected or not");
+	
+	$flirt.flirt('set', ["tim", "art", "manja"], 'simple');
+	equals($flirt.find('ul > li:first strong').length, 3, "If template name is specified the entire DOM tree is searched for the particular template");
+	
+});
+
+test("$.fn.flirt: working with multiple templates in the same container", 5, function() {
+	var $flirt = $('#flirt');
+	
+	$flirt.
+		flirt('add', data, 'complex').
+		flirt('add', ["tim", "art", "manja"]);
+	ok(flatten($flirt).indexOf('simple') === -1, "Template name is never part of the template, regardless of whether it was explicitly selected or not");
+	equals($flirt.find('li').length, 12, "Rendered items of both templates coexist in the same container after adding items to both");
 	
 	$flirt.flirt('clear');
-	equals($(templateNode).prevAll('li').length, 1, "All nodes that sprouted from the remaining uncleared template are cleared from the DOM");
+	equals($flirt.find('li').length, 3, "Clearing without specifying a template name clears all items of all templates in the container");
 	
-	$flirt.flirt(data, 'namedtemplate');
-	$flirt.flirt('clear');
-	equals($(templateNode).prevAll('li').length, 1, "All nodes that sprouted from any template within the context are cleared from the DOM, including the nodes from named templates that were not explicitly named in the clear call");
+	$flirt.
+		flirt('add', ["tim", "art", "manja"], 'simple').
+		flirt('add', data, 'complex').
+		flirt('clear', 'complex');
+	equals($flirt.find('li').length, 6, "Clearing a named template only removes items that resulted from that template");
+	
+	$flirt.
+		flirt('set', data, 'complex').
+		flirt('set', ["tim", "art", "manja"]);
+	equals($flirt.find('li').length, 12, "Rendered items of both templates coexist in the same container after setting items to both");
 	
 });
 
-// TODO: Test what happens with a template's name if it is not referenced in the
-// flirt call. I ran into the situation in which I used dataview without template
-// name in order to use the first template. The result was that the name of the
-// template remained in place...
-
-// TODO: Using text with newlines parses incorrectly in IE.
+test("$.fn.flirt: working on plural objects", 6, function() {
+	
+	$('#flirt, #flirt-deep').flirt('set', ["tim", "art", "manja"], 'simple');
+	equals($('#flirt li').length, 6, "Set has been successful on first block");
+	equals($('#flirt-deep ul > li:first strong').length, 3, "Set has been successful on second block");
+	
+	// The following are not recommend uses, as it mixes a call that accepts a
+	// template name (the one from the container) with a call that does not
+	// accept a template name (the one from the rendered element). Yet,
+	// entirely blocking mixed calls would be an even less desirable approach
+	// so we opt for making sure they behave logically and consistently.
+	
+	$('#flirt, #flirt-deep ul > li:first strong:first').flirt('add', "molendijk");
+	equals($('#flirt li').length, 7, "Add has been successful on first block");
+	equals($('#flirt-deep ul > li:first strong').length, 4, "Add has been successful on second block");
+	
+	$('#flirt, #flirt-deep ul > li:first strong:first').flirt('clear');
+	equals($('#flirt li').length, 3, "Clear has been successful on first block");
+	equals($('#flirt-deep ul > li:first strong').length, 3, "Clear has been successful on second block");
+	
+});
 
 });

@@ -2,6 +2,12 @@
 
 $.control = {};
 
+$.control.property = function(type, initial) {
+	return $.al.Meta(type).
+		sleep(true).
+		val(initial);
+};
+
 $.control.field = function(initial) {
 	return $.al.Meta($.al.Field).
 		sleep(true).

@@ -1,10 +1,11 @@
 /*
 WISHLIST
-- Include metadata plugin in fetch.
+- Include metadata plugin in fetch => jQuery will incorporate html5 data
+	attributes in $.data, so no more need for metadata as soon as that lands.
 - move to ui widget utility like such:
 	$(elem).tree('get', ns, 'field') , $(elem).tree('set', ns, 'field', 'value')
 	!! PERFORMANCE ???
-- Make it work on text nodes in IE.
+- Use http://benalman.com/projects/jquery-getobject-plugin/ ??
 */
 (function($) {
 
@@ -147,7 +148,7 @@ $.expr[':'].data = function(elem, index, meta, stack) {
 	} else {
 		value = value.toString();
 	}
-	return value === param[1];
+	return param.length === 1 ? value !== 'undefined' : value === param[1];
 };
 
 }(jQuery));

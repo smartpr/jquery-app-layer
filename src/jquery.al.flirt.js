@@ -22,7 +22,7 @@ var compileRegexps = function() {
 	regexps = {
 		singleQuoteHack: new RegExp("'(?=[^" + settings.executeEnd[0] + "]*" + settings.executeEnd + ")", 'g'),
 		interpolation: new RegExp(settings.interpolateStart + '(.+?)' + settings.interpolateEnd, 'g'),
-		nestingLeaf: new RegExp(settings.nestStart + '(\\w+)\\s((?:[\\S\\s](?!' + settings.nestStart + '))+?)' + settings.nestEnd)
+		nestingLeaf: new RegExp(settings.nestStart + '(\\S+)\\s((?:[\\S\\s](?!' + settings.nestStart + '))+?)' + settings.nestEnd)
 	};
 };
 compileRegexps();
@@ -67,7 +67,9 @@ var nodes = function(parts) {
 		}
 	}
 	
-	var $nodes = $('<div>' + parts.join('') + '</div>');
+	// Avoid using .html() because it is flawed in dealing with whitespace in
+	// IE8. See also: http://dev.jquery.com/ticket/7138
+	var $nodes = $('<div />').append(parts.join(''));
 	i = nodeParts.length;
 	while (i--) {
 		nodePart = nodeParts[i];
@@ -86,7 +88,11 @@ var Safemarked = function(value) {
 	};
 };
 
-var $escaper = $('<div />');
+// It turns out that escaping via a pre element is the only way to preserve
+// whitespace correctly in IE8, regardless of white-space CSS settings in the
+// page. This has something to do with the behavior of the innerHTML property
+// in IE8.
+var $escaper = $('<pre />');
 // TODO: rename to simply 'esc': consistent with naming inside Flirt, therefore
 // easier to comprehend.
 var escapeHtml = function(token) {
@@ -151,13 +157,24 @@ var Flirt = function(template, which) {
 		for (var i = 0, l = data.length; i < l; i++) {
 			$part = template[t].call({
 				flirt: this,
-				callback: cb,
+				callback: cb,	// TODO: Do we really want to make this
+								// accessible?
 				safe: Safemarked,
 				esc: escapeHtml,
 				nodes: nodes
 			}, data[i]);
-			// TODO: invalidation
-//			$part.store('flirt', 'source', new Flirt(template, t));
+			
+			$part.filter(function() {
+				return $(this).fetch('flirt', 'data') === undefined;
+			}).store('flirt', {
+				// TODO: It is not necessary to create a new renderer for
+				// every data item at this level, apart from us needing an
+				// identifier that allows us to find out which nodes belong to
+				// the same template part.
+				renderer: new Flirt(template, t),
+				data: data[i]
+			});
+			
 			if ($.isFunction(cb)) {
 				cb.call($part, data[i]);
 			}
@@ -199,6 +216,9 @@ var $findTemplates = function(filter, max) {
 			var remainder = max === undefined ?
 				undefined :
 				max - nodes.length;
+			// TODO: '[nodeType=1]' filter works, but gives the illusion that
+			// elements with another nodeType are even considered, which is not
+			// the case.
 			$.merge(nodes, this.filter('[nodeType=1]').contents().
 				chain($findTemplates, filter, remainder).get());
 		}
@@ -208,80 +228,134 @@ var $findTemplates = function(filter, max) {
 	return $(max === undefined ? nodes : nodes.slice(0, max));
 };
 
-$.fn.flirt = function(action, data, templateName, cb) {
-	// TODO: Remove support for this shortcut interface, as it's not worth the
-	// inconsistency.
-	if (typeof action !== 'string') {
-		cb = templateName;
-		templateName = data;
-		data = action;
-		action = 'set';
+var templateNode = function(context, name) {
+	var templateFilter = new RegExp('^' + (name ? name + '\\s' : '')),
+		$template = $(context).chain($findTemplates, function() {
+			var flirt = $(this).fetch('flirt');
+			return flirt && flirt.name === name || templateFilter.test(this.data);
+		}, 1);
+	
+	if ($template.length === 0) {
+		return;
 	}
+	
+	if (!$template.fetch('flirt', 'renderer')) {
+		var body = $template[0].data,
+			nameMatch = /^\S+\s/.exec(body);
+		if (nameMatch !== null) {
+			body = body.substr(nameMatch.length + 1);
+		}
+		$template.store('flirt', {
+			name: name,
+			renderer: new Flirt(body)
+		});
+	}
+	
+	return $template[0];
+};
+
+$.fn.flirt = function(action) {
 	
 	switch (action) {
 		
-		// TODO: Perhaps we should use 'append' or 'add' here, and use 'set' for
-		// its combination with 'clear'. This design would be consistent with
-		// dataview's.
-		case 'set':
-			var templateFilter = new RegExp('^' + (templateName ? templateName + '\\s' : ''));
+		case 'closest':
+			var $closest = this.eq(0);
 			
-			this.each(function() {
-				// TODO: invalidation
-//				var flirt = $this.fetch('flirt', 'source');
-//				if (flirt) {
-//					$this.replaceWith(flirt.parse(data, cb));
-//					return true;
-//				}
-				
-				var $template = $(this).chain($findTemplates, function() {
-					var flirt = $(this).fetch('flirt');
-					return flirt && flirt.name === templateName ||
-						templateFilter.test(this.data);
-				}, 1);
-				if ($template.length === 0) {
-					return true;
-				}
-				
-				var flirt = $template.fetch('flirt', 'compiled');
-				if (!flirt) {
-					flirt = new Flirt($template[0].data.substr(templateName ? templateName.length + 1 : 0));
-					$template.store('flirt', {
-						name: templateName,
-						compiled: flirt
-					});
-				}
-				
-				// TODO: Think about progressive DOM insertion -- questionable
-				// when this is worth complicating stuff for... what exactly
-				// would we expect to achieve by progressive DOM insertion?
-				$template.before(flirt.parse(data, cb).store('flirt', 'clearable', true));
-			});
-			
-			break;
-	
-		case 'clear':
-			templateName = data;
-			var clear = [];
-			
-			this.each(function() {
-				$(this).chain($findTemplates, function() {
-					var flirt = $(this).fetch('flirt');
-					return flirt && (templateName === undefined || flirt.name === templateName);
-				}).each(function() {
-					var node = this.previousSibling;
-					while (node && $(node).fetch('flirt', 'clearable') === true) {
-						clear.push(node);
-						node = node.previousSibling;
-					}
+			if ($closest.fetch('flirt', 'renderer') === undefined) {
+				$closest = $closest.closest(':data(flirt.renderer)');
+			}
+			// We found a piece of the edge of a template part, now get the
+			// entire edge.
+			if ($closest.length > 0) {
+				var identity = $closest.fetch('flirt', 'renderer');
+				$closest = $closest.parent().contents().filter(function() {
+					return $(this).fetch('flirt', 'renderer') === identity;
 				});
-			});
+			}
+			return $closest;
+		
+		case 'add':
+			var data = arguments[1],
+				templateName = arguments[2],
+				cb = arguments[3];
+			if (arguments.length < 4 && $.isFunction(templateName)) {
+				cb = templateName;
+				templateName = undefined;
+			}
 			
-			$(clear).remove();
-			break;
-	
+			return this.each(function() {
+				var $this = $(this),
+					$closest = $this.flirt('closest');
+				
+				if ($closest.length > 0) {
+					$closest.eq(-1).after($closest.fetch('flirt', 'renderer').parse(data, cb));
+				} else {
+					var $node = $(templateNode(this, templateName));
+					if ($node.length > 0) {
+						$node.before($node.fetch('flirt', 'renderer').parse(data, cb));
+					}
+				}
+			});
+		
+		case 'clear':
+			var templateName = arguments[1];
+			
+			return this.each(function() {
+				var $this = $(this),
+					$closest = $this.flirt('closest');
+				
+				if ($closest.length > 0) {
+					$closest.remove();
+				} else {
+					var clear = [];
+					$this.chain($findTemplates, function() {
+						var flirt = $(this).fetch('flirt');
+						return flirt && (templateName === undefined || flirt.name === templateName);
+					}).each(function() {
+						var node = this.previousSibling;
+						while (node && $(node).fetch('flirt', 'renderer') !== undefined) {
+							clear.push(node);
+							node = node.previousSibling;
+						}
+					});
+					$(clear).remove();
+				}
+			});
+		
+		case 'set':
+			var data = arguments[1],
+				templateName = arguments[2],
+				cb = arguments[3];
+			if (arguments.length < 4 && $.isFunction(templateName)) {
+				cb = templateName;
+				templateName = undefined;
+			}
+			
+			return this.each(function() {
+				var $this = $(this),
+					$closest = $this.flirt('closest');
+				
+				if ($closest.length > 0) {
+					$this.
+						flirt('add', data, templateName, cb).
+						flirt('clear');
+				} else {
+					var $node = $(templateNode(this, templateName));
+					if ($node.length > 0) {
+						var clear = [],
+							node = $node[0].previousSibling;
+						while (node && $(node).fetch('flirt', 'renderer') !== undefined) {
+							clear.push(node);
+							node = node.previousSibling;
+						}
+						$(clear).remove();
+						$node.before($node.fetch('flirt', 'renderer').parse(data, cb));
+					}
+				}
+			});
+		
 	}
-	return this;
+	
 };
 
 }(jQuery));
