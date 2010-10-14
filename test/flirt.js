@@ -207,6 +207,26 @@ test("$.fn.flirt: add at a nested level", 3, function() {
 	
 });
 
+test("$.fn.flirt: get from containing element", 3, function() {
+	var $flirt = $('#flirt');
+	
+	$flirt.
+		flirt('set', ["tim", "art", "manja"]).
+		flirt('set', data, 'complex');
+	
+	equals($flirt.flirt('get', 'complex').filter('li').length, 6, "Returns DOM nodes that were rendered from the specified template");
+	equals($flirt.flirt('get').filter('li').length, 9, "If no template is specified, return all rendered items from any contained template");
+	equals($flirt.flirt('get', 'doesnotexist').length, 0, "In case of no items rendered or specified template not found, and empty selection is returned");
+	
+});
+
+test("$.fn.flirt: get from rendered element", 1, function() {
+	var $flirt = $('#flirt').flirt('set', ["tim", "art"]);
+	
+	equals($flirt.find('li.simple:first').contents().flirt('get')[0], $flirt.find('li.simple:first')[0], "Returns closest (and smallest) rendered item that contains the (first) selected node");
+	
+});
+
 test("$.fn.flirt: clear from containing element", 2, function() {
 	var $flirt = $('#flirt').flirt('add', ["tim", "art", "manja"]);
 	
@@ -272,10 +292,11 @@ test("$.fn.flirt: identifying templates", 3, function() {
 	
 	$flirt.flirt('set', data);
 	equals($flirt.find('ul > li').length, 7, "If no template name is specified the breadth-first template (comment node) is used");
-	ok($flirt.text().indexOf('complex') === -1, "Template name is never part of the template, regardless of whether it was explicitly selected or not");
 	
 	$flirt.flirt('set', ["tim", "art", "manja"], 'simple');
 	equals($flirt.find('ul > li:first strong').length, 3, "If template name is specified the entire DOM tree is searched for the particular template");
+	
+	equals(flatten($('#flirt-name').flirt('set', ["tim", "art"]).text()), flatten("timart"), "Template name is never part of the template, regardless of whether it was explicitly selected or not");
 	
 });
 

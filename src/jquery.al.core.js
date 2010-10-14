@@ -10,6 +10,15 @@ $.al.MolendijkClass = function() {
 		return new $.al.MolendijkClass();
 	}
 };
+
+// Problem: because we are trying to emulate inheritance by merely *wrapping*
+// an instance of another class, there is some unexpected behavior. If an
+// instance of the extended class overrides a method, one would expect other
+// methods from the superclass that use that method to start using that new
+// method instead. That's how classical OOP works. But that's not the case
+// here. Also; if the instance of the superclass has methods that return
+// 'this', one would expect these to return these to be of the type of the
+// subclass. Yet, that's not the case.
 $.al.MolendijkClass.extend = function(wrap) {
 	var Class = this;
 	var Subclass = function() {
@@ -31,9 +40,40 @@ $.al.MolendijkClass.extend = function(wrap) {
 			// TODO: don't copy properties that are only present
 			// on the parent's prototype (and not on its instance) -- one of
 			// them: constructor
-			for (p in parent) {
-				this[p] = parent[p];
-			}
+			var self = this;
+			$.each(parent, function(key, value) {
+				self[key] = value;
+				// if ($.isFunction(value)) {
+				// 	self[key] = function() {
+				// 		console.log(key + ': pass to parent');
+				// 		console.log(this);
+				// 		console.log(value);
+				// 		console.log('with arguments:');
+				// 		console.log(arguments);
+				// 		var t = value.apply(this, arguments);
+				// 		console.log('returned by parent (' + key + ')');
+				// 		console.log(t);
+				// 		return t;
+				// 	};
+				// } else {
+				// 	self[key] = value;
+				// }
+			});
+			// for (p in parent) {
+			// 	// this[p] = parent[p];
+			// 	if ($.isFunction(parent[p])) {
+			// 		this[p] = function() {
+			// 			console.log('pass to parent');
+			// 			console.log(this);
+			// 			console.log(parent[p]);
+			// 			var t = parent[p].apply(this, arguments);
+			// 			console.log(t);
+			// 			return t;
+			// 		};
+			// 	} else {
+			// 		this[p] = parent[p];
+			// 	}
+			// }
 			wrap.apply(this, args);
 		}
 	};
@@ -48,8 +88,6 @@ $.al.MolendijkClass.extend = function(wrap) {
 
 // TODO: Support for supplying an object instance as value for methods.
 $.al.Meta = $.al.MolendijkClass.extend(function(type, instance, playback) {
-	var self = this;
-	
 	if (typeof instance !== 'string') {
 		instance = 'instance';
 	}
@@ -57,44 +95,44 @@ $.al.Meta = $.al.MolendijkClass.extend(function(type, instance, playback) {
 		playback = 'playback';
 	}
 	
-	self[instance] = function() {
+	this[instance] = function() {
 		return type.apply(this, arguments);
 	};
 	
-	self[playback] = function(on) {
+	this[playback] = function(on) {
 		if (!(on instanceof type)) {
-			on = self[instance].apply(self, arguments);
+			on = this[instance].apply(this, arguments);
 		}
 		for (var i = 0, l = record.length; i < l; i++) {
-			on[record[i].method].apply(record[i].context, record[i].arguments);
+			on[record[i].method].apply(on, record[i].arguments);
 		}
 		return on;
 	};
 	
-	var methods = _.keys(self[instance]()),
+	var self = this,
+		methods = _.keys(this[instance]()),
 		record = [];
 	$.each(methods, function(i, method) {
 		self[method] = function() {
 			record.push({
 				method: method,
-				context: this,
+				// context: this,
 				arguments: arguments
 			});
-			return self;
+			return this;
 		};
 	});
 	
 });
 
 $.al.Field = $.al.MolendijkClass.extend(function(base, context) {
-	var self = this,
-		$registry = $('<div />');
+	var $registry = $('<div />');
 	
 	var lastSignal = {};
 	var signal = function(type) {
 		var change = {
-			from: type in lastSignal ? lastSignal[type] : self.base(),
-			to: self.val()
+			from: type in lastSignal ? lastSignal[type] : this.base(),
+			to: this.val()
 		};
 		if (change.from !== change.to) {
 			lastSignal[type] = change.to;
@@ -102,12 +140,12 @@ $.al.Field = $.al.MolendijkClass.extend(function(base, context) {
 		}
 	};
 	var notify = function() {
-		if (self.sleep()) {
+		if (this.sleep()) {
 			return;
 		}
-		signal('silent');
-		if (self.notifies()) {
-			signal('notify');
+		signal.call(this, 'silent');
+		if (this.notifies()) {
+			signal.call(this, 'notify');
 		}
 	};
 	
@@ -115,34 +153,34 @@ $.al.Field = $.al.MolendijkClass.extend(function(base, context) {
 	// value against which is decided if a value change has occurred or not.
 	// Setting the base value will never cause notifications.
 	// FIXME: Get rid of this concept.
-	self.base = function(i) {
+	this.base = function(i) {
 		if (arguments.length === 0) {
 			return base;
 		}
 		base = i;
-		return self;
+		return this;
 	};
 	
 	var val;
-	self.val = function(v) {
+	this.val = function(v) {
 		if (arguments.length === 0) {
-			return val === undefined ? self.base() : val;
+			return val === undefined ? this.base() : val;
 		}
 		val = v;
-		notify();
-		return self;
+		notify.call(this);
+		return this;
 	};
 	
-	self.context = function(c) {
+	this.context = function(c) {
 		if (arguments.length === 0) {
-			return context === undefined ? self : context;
+			return context === undefined ? this : context;
 		}
 		context = c;
-		return self;
+		return this;
 	};
 	
 	// TODO: We can move this one to prototype (but do we want to?)
-	self.bind = function() {
+	this.bind = function() {
 		var args = arguments,
 			binding;
 		
@@ -185,13 +223,14 @@ $.al.Field = $.al.MolendijkClass.extend(function(base, context) {
 		}
 		
 		if ($.isFunction(binding)) {
-			binding.call(self.context(), self.val);
+			binding.call(this.context(), $.proxy(this, 'val'));
 		}
 		
-		return self;
+		return this;
 	};
 	
-	self.observe = function(observer, silent) {
+	this.observe = function(observer, silent) {
+		var self = this;
 		$registry.bind('fieldchange' + (silent ? 'silent' : 'notify'), function(e, data) {
 			// TODO: Supply of data.from is not documented/tested.
 			if (observer.call(self.context(), data.to, data.from) === false) {
@@ -199,23 +238,23 @@ $.al.Field = $.al.MolendijkClass.extend(function(base, context) {
 				$registry.unbind(e);
 			}
 		});
-		return self;
+		return this;
 	};
 	
 	var triggersOn;
-	self.triggersOn = function(on) {
+	this.triggersOn = function(on) {
 		if (arguments.length === 0) {
-			return triggersOn === undefined ? self.context() : triggersOn;
+			return triggersOn === undefined ? this.context() : triggersOn;
 		}
 		triggersOn = on;
-		return self;
+		return this;
 	};
 	
 	var triggers = {};
 	var always = function() {
 		return true;
 	};
-	self.triggers = function(events) {
+	this.triggers = function(events) {
 		if (arguments.length === 0) {
 			return triggers;
 		}
@@ -248,13 +287,13 @@ $.al.Field = $.al.MolendijkClass.extend(function(base, context) {
 			triggers = {};
 		}
 		
-		return self;
+		return this;
 	};
 	
 	// We do not create a field instance before notifies is explicitly set
 	// because otherwise we would end up in a field instantiation loop.
 	var notifies;
-	self.notifies = function(condition) {
+	this.notifies = function(condition) {
 		if (arguments.length === 0) {
 			return notifies === undefined ? true : !!notifies.val();
 		}
@@ -263,48 +302,50 @@ $.al.Field = $.al.MolendijkClass.extend(function(base, context) {
 		// behavior by adding this feature to the general field
 		// implementation.
 		if ($.isFunction(condition)) {
-			condition = condition.call(self.context());
+			condition = condition.call(this.context());
 		}
 		// String values are interpreted as properties of our context.
 		else if (typeof condition === 'string') {
-			condition = self.context()[condition];
+			condition = this.context()[condition];
 		}
 		if (!(condition instanceof $.al.Field)) {
 			condition = $.al.Field(condition);
 		}
 		// notifies is now guaranteed to be a field.
+		var self = this;
 		notifies = condition.observe(function() {
 			// notify can be safely called at any time, regardless of the
 			// value of notifies and the value that was last notified, as it
 			// will check for itself if it needs to do actual signaling.
-			notify();
+			notify.call(self);
 		});
 		// Observer is not called for current value of notifies, so call
 		// notify right now as well.
-		notify();
-		return self;
+		notify.call(this);
+		return this;
 	};
 	// FIXME: temporary
-	self.notifiesField = function() {
+	this.notifiesField = function() {
 		return notifies instanceof $.al.Field ? notifies : undefined;
 	};
 	
 	var sleep = false;
-	self.sleep = function(s) {
+	this.sleep = function(s) {
 		if (arguments.length < 1) {
 			return sleep;
 		}
 		sleep = !!s;
-		notify();
-		return self;
+		notify.call(this);
+		return this;
 	};
 	
 	// Triggering events is always done along with notification, so we can
 	// define one in terms of the other.
-	self.observe(function(v) {
+	var self = this;
+	this.observe(function(v) {
 		var eventData = {
-			to: v
-		};
+				to: v
+			};
 		$.each(self.triggers(), function(type, condition) {
 			if (condition.call(self.context(), v) === true) {
 				var on = self.triggersOn();
@@ -319,44 +360,48 @@ $.al.Field = $.al.MolendijkClass.extend(function(base, context) {
 });
 
 $.al.ConjunctionField = $.al.Field.extend(function() {
-	var self = this,
-		operands = [];
+	var operands = [];
 	
-	delete self.bind;
+	delete this.bind;
 	
 	// TODO: use 'bind' instead of 'operand'.
-	self.operand = function() {
-		operands.push($.al.Field(false, self.context()).
+	this.operand = function() {
+		var self = this,
+			operand = $.al.Field(false, this.context());
+		operand.
 			observe(function(v) {
 				var conjunction = true;
 				for (var i = 0, l = operands.length; i < l; i++) {
 					conjunction = conjunction && !!operands[i].val();
 				}
+				// TODO: self is here *always* an instance of
+				// $.al.ConjunctionField, even if this constructor is being
+				// called as the result of the instantiation of a subclass.
+				// Is this safe??
 				self.val(conjunction);
 			}).
-			bind.apply(undefined, arguments));
-		return self;
+			bind.apply(operand, arguments);
+		operands.push(operand);
+		return this;
 	};
 	
 });
 
 $.al.List = $.al.Field.extend(function() {
-	var self = this;
-	
 	var fetcher;
-	self.fetcher = function(f) {
+	this.fetcher = function(f) {
 		if (arguments.length < 1) {
 			return fetcher;
 		}
 		fetcher = f;
-		return self;
+		return this;
 	};
 	
-	self.fetch = function() {
-		if ($.isFunction(self.fetcher())) {
-			self.fetcher().call(self.context(), self.val);
+	this.fetch = function() {
+		if ($.isFunction(this.fetcher())) {
+			this.fetcher().call(this.context(), $.proxy(this, 'val'));
 		}
-		return self;
+		return this;
 	};
 	
 });

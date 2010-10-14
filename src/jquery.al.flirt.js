@@ -243,7 +243,7 @@ var templateNode = function(context, name) {
 		var body = $template[0].data,
 			nameMatch = /^\S+\s/.exec(body);
 		if (nameMatch !== null) {
-			body = body.substr(nameMatch.length + 1);
+			body = body.substr(nameMatch[0].length);
 		}
 		$template.store('flirt', {
 			name: name,
@@ -258,12 +258,21 @@ $.fn.flirt = function(action) {
 	
 	switch (action) {
 		
+		case 'templateNode':
+			var templateName = arguments[1];
+			return $(templateNode(this[0], templateName));
+		
 		case 'closest':
-			var $closest = this.eq(0);
+			var $this = this.eq(0),
+				$closest = $this;
 			
+			// First check for a renderer manually (without using the :tree
+			// selector) because we want to support text nodes as well, on
+			// which selectors do not work.
 			if ($closest.fetch('flirt', 'renderer') === undefined) {
 				$closest = $closest.closest(':data(flirt.renderer)');
 			}
+			
 			// We found a piece of the edge of a template part, now get the
 			// entire edge.
 			if ($closest.length > 0) {
@@ -272,7 +281,34 @@ $.fn.flirt = function(action) {
 					return $(this).fetch('flirt', 'renderer') === identity;
 				});
 			}
+			
 			return $closest;
+		
+		// TODO: Not sure if this is necessary/desired
+		case 'get':
+			var $this = this.eq(0),
+				$closest = $this.flirt('closest');
+			
+			if ($closest.length > 0) {
+				return $closest;
+			} else {
+				var templateName = arguments[1],
+					templateNodes = $this.chain($findTemplates, function() {
+						var flirt = $(this).fetch('flirt');
+						return flirt && (templateName === undefined || flirt.name === templateName);
+					}).get(),
+					i = templateNodes.length,
+					nodes = [],
+					node;
+				while (i--) {
+					node = templateNodes[i].previousSibling;
+					while (node && $(node).fetch('flirt', 'renderer') !== undefined) {
+						nodes.unshift(node);
+						node = node.previousSibling;
+					}
+				}
+				return $(nodes);
+			}
 		
 		case 'add':
 			var data = arguments[1],
@@ -355,6 +391,7 @@ $.fn.flirt = function(action) {
 			});
 		
 	}
+	return this;
 	
 };
 

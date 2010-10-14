@@ -55,7 +55,103 @@ comment element -> template functie -> aanroepen met data -> html -> invoegen in
 		};
 	};
 
-$.fn.dataview = function(action, data, templateName) {
+var setCallback = function(data) {
+	var $nodes = this;
+	if (data instanceof $.al.Field) {
+		data.observe(function() {
+			// TODO: Simply call invalidate on $nodes (instead
+			// of $nodes.eq(0)) as soon as invalidate is smart
+			// enough to recognize that the corresponding
+			// template part only needs to be invalidated
+			// once.
+			$nodes.eq(0).dataview('invalidate');
+			return false;
+		});
+	}
+	$nodes.store('dataview', 'data', new Record(data));
+};
+
+$.fn.dataview = function(action) {
+	
+	switch (action) {
+		
+		case 'set':
+			var data = arguments[1],
+				templateName = arguments[2];
+			
+			return this.each(function() {
+				var $this = $(this);
+				
+				// Do not support set on a part of the view because that would
+				// lead to the data in the view running out of sync with the
+				// data in the list on the template node.
+				if ($this.flirt('closest').length > 0) {
+					return true;
+				}
+				
+				$this.flirt('templateNode', templateName).store('dataview', 'data', new Record(data));
+				
+				if (data instanceof $.al.List) {
+					data.observe(function() {
+						// TODO: Note that templateName can be undefined, in
+						// which case all views contained by $this will be
+						// invalidated if we implement the idea that is
+						// described in the first TODO under case
+						// 'invalidate'.
+						$this.dataview('invalidate', templateName);
+					});
+				}
+				
+				$this.flirt('set', data instanceof $.al.List ? data.val() : data, templateName, setCallback);
+			});
+		
+		case 'get':
+			var $this = this.eq(0),
+				$closest = $this.flirt('closest');
+			
+			if ($closest.length > 0) {
+				return $closest.fetch('dataview', 'data').gettt();
+			}
+			
+			var templateName = arguments[1],
+				data = $this.flirt('templateNode', templateName).fetch('dataview', 'data');
+			
+			return data ? data.gettt() : [];
+		
+		case 'invalidate':
+			var templateName = arguments[1];
+			
+			// TODO: Allow invalidate to be called on multiple rendered nodes
+			// from the same template part without that part being invalidated
+			// more than once.
+			return this.each(function() {
+				var $this = $(this),
+					$closest = $this.flirt('closest');
+				
+				if ($closest.length > 0) {
+					// Do not use dataview's set here because it does not
+					// support (re)setting part of the view.
+					$closest.flirt('set', $closest.dataview('get'), setCallback);
+					return true;
+				}
+				
+				// TODO: In case of no templateName provided, I think what we
+				// would want there to happen is that the views of all
+				// contained templates would invalidate. The problem is that
+				// in order to implement this we would need a means of getting
+				// all template nodes and looping them. This functionality is
+				// part of flirt and as of now not yet exposed via a public
+				// method. The current 'templateNode' method returns the one
+				// template node based on a supplied name, and the first in
+				// case of no name provided.
+				$this.dataview('set', $this.dataview('get', templateName), templateName);
+			});
+			
+	}
+	
+};
+
+$.fn.dataview_old = function(action, data, templateName) {
 	var self = this;
 	
 	switch (action) {
