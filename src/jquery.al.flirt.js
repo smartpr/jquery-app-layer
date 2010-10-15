@@ -30,6 +30,8 @@ compileRegexps();
 var compile = function(template) {
 	// TODO: Do not allow this function to execute if ('this' in data). Throw
 	// exception in that case?
+	// TODO: Relying on 'this' has one big disadvantage; if the template contains
+	// code that changes this (in some parts), like $.each(), then stuff breaks.
 	return new Function('data',
 		"this.data=data;this.p=[];" +
 		"with(this){" +
@@ -122,7 +124,7 @@ var Flirt = function(template, which) {
 		while (true) {
 			reduced = template.replace(regexps.nestingLeaf, function(match, field, part) {
 				compiled[++t] = compile(part);
-				return settings.interpolateStart + 'this.flirt.parse(' + field + ',' + t + ',this.callback)' + settings.interpolateEnd;
+				return settings.interpolateStart + 'this.flirt.parse(' + field + ',' + t + ',this.callback,this.noNestedCb)' + settings.interpolateEnd;
 			});
 			if (reduced === template) {
 				break;
@@ -136,7 +138,22 @@ var Flirt = function(template, which) {
 		which = 0;
 	}
 	
-	this.parse = function(data, t, cb) {
+	// TODO: noNestedCb is a quick-fix for dataview, which does not want to
+	// work on nested template parts and needs a way of only getting callbacks
+	// from top level renderings. This is a result of the discrepancy between
+	// flirt and dataview in that the former is set up to work in a nested
+	// fashion and the latter intentionally does not want to go there because
+	// it would have far-fetched implications. (F.e. it would mean that lists
+	// of type $.al.List, buried deep in a data object, would have to be
+	// managed in the same way top-level lists are managed. This is just too
+	// complicated for a feature that does not have a clear use case, at least
+	// not until now.) We need to gather some more real-world experience to
+	// see if nested flirt *does* offer a significant benefit. One would say
+	// so, and that's why we do not want to get rid of this feature overnight,
+	// but as of now we do not have a clear use case in which it enables a
+	// solution that would otherwise be not possible. Ergo, this entire issue
+	// needs revision as soon as we know more!
+	this.parse = function(data, t, cb, noNestedCb) {
 		// TODO: Write test for this scenario (parser enters nested level for
 		// non-existent data field).
 		if (data === undefined) {
@@ -145,7 +162,8 @@ var Flirt = function(template, which) {
 		if (!$.isArray(data)) {
 			data = [data];
 		}
-		if (cb === undefined && $.isFunction(t)) {
+		if ($.isFunction(t)) {
+			noNestedCb = cb;
 			cb = t;
 			t = undefined;
 		}
@@ -158,24 +176,28 @@ var Flirt = function(template, which) {
 			$part = template[t].call({
 				flirt: this,
 				callback: cb,	// TODO: Do we really want to make this
-								// accessible?
+								// accessible? --> it's used in the compiled templates for doing nested template part parse calls
+				noNestedCb: noNestedCb,
 				safe: Safemarked,
 				esc: escapeHtml,
 				nodes: nodes
 			}, data[i]);
 			
-			$part.filter(function() {
-				return $(this).fetch('flirt', 'data') === undefined;
-			}).store('flirt', {
+			$part.
+				filter(function() {
+					return $(this).fetch('flirt', 'renderer') === undefined;
+				}).
 				// TODO: It is not necessary to create a new renderer for
 				// every data item at this level, apart from us needing an
 				// identifier that allows us to find out which nodes belong to
 				// the same template part.
-				renderer: new Flirt(template, t),
-				data: data[i]
-			});
+				store('flirt', {
+					renderer: new Flirt(template, t)/*,
+					template: template,
+					level: t*/
+				});
 			
-			if ($.isFunction(cb)) {
+			if ($.isFunction(cb) && (noNestedCb !== true || t === 0)) {
 				cb.call($part, data[i]);
 			}
 			$all.append($part);
@@ -259,7 +281,32 @@ $.fn.flirt = function(action) {
 	switch (action) {
 		
 		case 'templateNode':
-			var templateName = arguments[1];
+			var templateName = arguments[1],
+				$this = this.eq(0),
+				$closest = $this.flirt('closest');
+			
+			if ($closest.length > 0) {
+				
+				// TODO: The only use case for getting the templateNode from a
+				// rendered template part is in dataview, and is therefore
+				// heavily influenced by the nested vs. non-nested discrepancy
+				// between flirt and dataview.
+				
+				// FIXME: This should be recurring.
+				var $up = $closest.parent().flirt('closest');
+				if ($up.length > 0) {
+					$closest = $up;
+				}
+				
+				var node = $closest[0].nextSibling;
+				while (node.nodeType !== 8) {
+					node = node.nextSibling;
+				}
+				
+				return $(node);
+				
+			}
+			
 			return $(templateNode(this[0], templateName));
 		
 		case 'closest':
@@ -279,6 +326,12 @@ $.fn.flirt = function(action) {
 				var identity = $closest.fetch('flirt', 'renderer');
 				$closest = $closest.parent().contents().filter(function() {
 					return $(this).fetch('flirt', 'renderer') === identity;
+					// var siblingIdentity = $(this).fetch('flirt');
+					// return siblingIdentity &&
+					// 	siblingIdentity.template &&
+					// 	siblingIdentity.template.length === identity.template.length &&
+					// 	siblingIdentity.template[siblingIdentity.template.length - 1] === identity.template[identity.template.length - 1] &&
+					// 	siblingIdentity.level >= identity.level;
 				});
 			}
 			
@@ -313,8 +366,10 @@ $.fn.flirt = function(action) {
 		case 'add':
 			var data = arguments[1],
 				templateName = arguments[2],
-				cb = arguments[3];
-			if (arguments.length < 4 && $.isFunction(templateName)) {
+				cb = arguments[3],
+				noNestedCb = arguments[4];
+			if ($.isFunction(templateName)) {
+				noNestedCb = cb;
 				cb = templateName;
 				templateName = undefined;
 			}
@@ -324,11 +379,11 @@ $.fn.flirt = function(action) {
 					$closest = $this.flirt('closest');
 				
 				if ($closest.length > 0) {
-					$closest.eq(-1).after($closest.fetch('flirt', 'renderer').parse(data, cb));
+					$closest.eq(-1).after($closest.fetch('flirt', 'renderer').parse(data, cb, noNestedCb));
 				} else {
 					var $node = $(templateNode(this, templateName));
 					if ($node.length > 0) {
-						$node.before($node.fetch('flirt', 'renderer').parse(data, cb));
+						$node.before($node.fetch('flirt', 'renderer').parse(data, cb, noNestedCb));
 					}
 				}
 			});
@@ -341,6 +396,8 @@ $.fn.flirt = function(action) {
 					$closest = $this.flirt('closest');
 				
 				if ($closest.length > 0) {
+					// console.log('flirt clear:');
+					// console.log($closest);
 					$closest.remove();
 				} else {
 					var clear = [];
@@ -361,8 +418,10 @@ $.fn.flirt = function(action) {
 		case 'set':
 			var data = arguments[1],
 				templateName = arguments[2],
-				cb = arguments[3];
-			if (arguments.length < 4 && $.isFunction(templateName)) {
+				cb = arguments[3],
+				noNestedCb = arguments[4];
+			if ($.isFunction(templateName)) {
+				noNestedCb = cb;
 				cb = templateName;
 				templateName = undefined;
 			}
@@ -372,8 +431,10 @@ $.fn.flirt = function(action) {
 					$closest = $this.flirt('closest');
 				
 				if ($closest.length > 0) {
+					// console.log('flirt invalidate:');
+					// console.log($closest);
 					$this.
-						flirt('add', data, templateName, cb).
+						flirt('add', data, templateName, cb, noNestedCb).
 						flirt('clear');
 				} else {
 					var $node = $(templateNode(this, templateName));
@@ -385,7 +446,7 @@ $.fn.flirt = function(action) {
 							node = node.previousSibling;
 						}
 						$(clear).remove();
-						$node.before($node.fetch('flirt', 'renderer').parse(data, cb));
+						$node.before($node.fetch('flirt', 'renderer').parse(data, cb, noNestedCb));
 					}
 				}
 			});

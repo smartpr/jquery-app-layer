@@ -229,14 +229,33 @@ $.al.Field = $.al.MolendijkClass.extend(function(base, context) {
 		return this;
 	};
 	
-	this.observe = function(observer, silent) {
-		var self = this;
-		$registry.bind('fieldchange' + (silent ? 'silent' : 'notify'), function(e, data) {
+	this.observe = function(observer, condition) {
+		var self = this,
+			observerCondition = true,
+			d, evt;
+		var callObserver = function(e, data) {
+			if (!e || !data || !observerCondition) {
+				d = data;
+				evt = e;
+				return;
+			}
 			// TODO: Supply of data.from is not documented/tested.
 			if (observer.call(self.context(), data.to, data.from) === false) {
 				// TODO: Using return value for this purpose should be tested.
 				$registry.unbind(e);
 			}
+			d = undefined;
+			evt = undefined;
+		};
+		if (condition instanceof $.al.Field) {
+			condition.observe(function(v) {
+				observerCondition = !!v;
+				callObserver(evt, d);
+			});
+			observerCondition = condition.val();
+		}
+		$registry.bind('fieldchange' + (condition === null ? 'silent' : 'notify'), function(e, data) {
+			callObserver(e, data);
 		});
 		return this;
 	};

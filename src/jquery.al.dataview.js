@@ -55,6 +55,8 @@ comment element -> template functie -> aanroepen met data -> html -> invoegen in
 		};
 	};
 
+// TODO: 'setCallback' is unfortunate naming for a function that is not a
+// setter.
 var setCallback = function(data) {
 	var $nodes = this;
 	if (data instanceof $.al.Field) {
@@ -71,6 +73,23 @@ var setCallback = function(data) {
 	$nodes.store('dataview', 'data', new Record(data));
 };
 
+// TODO: We cannot delegate this to flirt for now, due to a discrepancy
+// between flirt and dataview that yet needs to be resolved. See TODO at
+// Flirt.parse in jquery.al.flirt.js.
+var closest = function() {
+	var $closest = this.eq(0);
+	if ($closest.fetch('dataview', 'data') === undefined) {
+		$closest = $closest.closest(':data(dataview.data)');
+	}
+	if ($closest.length > 0) {
+		var identity = $closest.fetch('dataview', 'data');
+		$closest = $closest.parent().contents().filter(function() {
+			return $(this).fetch('dataview', 'data') === identity;
+		});
+	}
+	return $closest;
+}
+
 $.fn.dataview = function(action) {
 	
 	switch (action) {
@@ -85,7 +104,7 @@ $.fn.dataview = function(action) {
 				// Do not support set on a part of the view because that would
 				// lead to the data in the view running out of sync with the
 				// data in the list on the template node.
-				if ($this.flirt('closest').length > 0) {
+				if (closest.call($this).length > 0) {
 					return true;
 				}
 				
@@ -102,12 +121,31 @@ $.fn.dataview = function(action) {
 					});
 				}
 				
-				$this.flirt('set', data instanceof $.al.List ? data.val() : data, templateName, setCallback);
+				var trigger = [];
+				$this.flirt('set', data instanceof $.al.List ? data.val() : data, templateName, function(d) {
+					var $nodes = this;
+					if (d instanceof $.al.Field) {
+						// console.log('flirt set rendered:');
+						// console.log($nodes);
+						d.observe(function() {
+							// console.log("observed change in field:");
+							// console.log(d.val());
+							// console.log("dataview invalidate:");
+							// console.log($nodes);
+							$nodes.eq(0).dataview('invalidate');
+							return false;
+						}, data instanceof $.al.List ? data.notifiesField() : undefined);
+					}
+					$nodes.store('dataview', 'data', new Record(d));
+					trigger = trigger.concat($nodes.get());
+				}, true);
+				$(trigger).trigger('dataviewinvalidate');
+				
 			});
 		
 		case 'get':
 			var $this = this.eq(0),
-				$closest = $this.flirt('closest');
+				$closest = closest.call($this);
 			
 			if ($closest.length > 0) {
 				return $closest.fetch('dataview', 'data').gettt();
@@ -116,7 +154,7 @@ $.fn.dataview = function(action) {
 			var templateName = arguments[1],
 				data = $this.flirt('templateNode', templateName).fetch('dataview', 'data');
 			
-			return data ? data.gettt() : [];
+			return data ? data.gettt() : undefined;	// TODO: Formalize return type in test suite.
 		
 		case 'invalidate':
 			var templateName = arguments[1];
@@ -126,12 +164,29 @@ $.fn.dataview = function(action) {
 			// more than once.
 			return this.each(function() {
 				var $this = $(this),
-					$closest = $this.flirt('closest');
+					$closest = closest.call($this);
 				
 				if ($closest.length > 0) {
 					// Do not use dataview's set here because it does not
 					// support (re)setting part of the view.
-					$closest.flirt('set', $closest.dataview('get'), setCallback);
+					var data = $closest.flirt('templateNode').fetch('dataview', 'data').gettt(),
+						trigger = [];
+					$closest.eq(0).flirt('set', $closest.dataview('get'), function(d) {
+						var $nodes = this;
+						if (d instanceof $.al.Field) {
+							d.observe(function() {
+								// console.log("observed change in field:");
+								// console.log(d.val());
+								// console.log("invalidate:");
+								// console.log($nodes);
+								$nodes.eq(0).dataview('invalidate');
+								return false;
+							}, data instanceof $.al.List ? data.notifiesField() : undefined);
+						}
+						$nodes.store('dataview', 'data', new Record(d));
+						trigger = trigger.concat($nodes.get());
+					}, true);
+					$(trigger).trigger('dataviewinvalidate');
 					return true;
 				}
 				

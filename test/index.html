@@ -74,17 +74,36 @@
 					</li>
 				-->
 				<!--nestedtemplateflatdomtree
-					<li><%= name %></li>
+					<li class="nestedtemplateflatdomtree"><%= name %></li>
 					<!-level2
-						<li><%= name %></li>
+						<li class="nestedtemplateflatdomtree"><%= name %></li>
 						<!-level3
-							<li><%= name %></li>
+							<li class="nestedtemplateflatdomtree"><%= name %></li>
 						->
 					->
 				-->
 				<li>Footer</li>
 				<!--fields
 					<li class="field"><%= val() %></li>
+				-->
+				<!--complexfields
+					<% with (val()) { %>
+						<li class="complexfields">
+							<em><% this.print(safe(group), ':'); %></em>
+							<!-members
+								[<strong><a href="<%= id %>" style="font-family:<%= fonts.join(',') %>;"><%= name %></a></strong> <!-fonts
+									<%= data %>,
+								->]
+							->
+							(<%= members.length %>)
+						</li>
+						<li>
+							those were ids
+							<!-members
+								<% print(id); %>,
+							->...
+						</li>
+					<% } %>
 				-->
 			</ul>
 			<ul id="flirt-deep">

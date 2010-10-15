@@ -261,9 +261,8 @@ test("$.fn.flirt: clear flat DOM tree that resulted from nested template", 2, fu
 	$flirt.flirt('set', {name: 'level1', level2: {name: 'level2', level3: {name: 'level3'}}}, 'nestedtemplateflatdomtree');
 	equals($flirt.find('li').length, 6, "Nested template result in a (flat) set of list items");
 	
-	$flirt.flirt('clear', undefined, 'nestedtemplateflatdomtree');
+	$flirt.find('li.nestedtemplateflatdomtree:first').flirt('clear', undefined, 'nestedtemplateflatdomtree');
 	equals($flirt.find('li').length, 3, "All of which are cleared out upon request");
-	
 });
 
 test("$.fn.flirt: set from containing element", 3, function() {

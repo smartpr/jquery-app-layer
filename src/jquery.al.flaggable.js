@@ -73,7 +73,7 @@ $.widget('al.flaggable', {
 		});
 		
 		// TODO: This is just a proof of concept.
-		self.element.delegate(self.options.elements, 'invalidate', function(e) {
+		self.element.delegate(self.options.elements, 'dataviewinvalidate', function(e) {
 			if (self.flagged(self.options.data.call(this))) {
 				self._trigger('invalidateflagged', e, {elements: $(this)});
 			}
