@@ -53,6 +53,72 @@ r.invalidate()
 
 (function($) {
 
+$.al.Record = $.al.Field.extend(function() {
+	
+	this.equals = function(record) {
+		return this.toString() === record.toString() && this.val() === record.val();
+	};
+	
+	this.toString = function() {
+		return "[object $.al.Record]";
+	};
+	
+});
+
+// TODO: store does not have to be global i guess...
+var store = $.store = new Hashtable();
+$.al.Record.instantiate = function(data, type) {
+	if (!$.isFunction(type) || !((new type) instanceof $.al.Record)) {
+		type = $.al.Record;
+	}
+	
+	var singularity = false;
+	if (!$.isArray(data)) {
+		data = [data];
+		singularity = true;
+	}
+	
+	var records = [],
+		record, existingRecord;
+	for (var i = 0, l = data.length; i < l; i++) {
+		record = type().val(data[i]);
+		if (store.containsKey(record)) {
+			existingRecord = store.remove(record);
+			record = existingRecord.val(record.val());
+		}
+		store.put(record, record);
+		records.push(record);
+	}
+	
+	return records.length === 1 && singularity ? records[0] : records;
+};
+
+$.al.Record.del = function(records) {
+	if (records === undefined) {
+		return;
+	}
+	
+	if (!$.isArray(records)) {
+		records = [records];
+	}
+	
+	for (var i = 0, l = records.length; i < l; i++) {
+		// TODO: can't this remove call be done by an observer that is attached
+		// to the fielddelete event at the moment the record is added to the store?
+		store.remove(records[i]);
+		// records[i].remove();
+		// $(records[i]).trigger('fielddelete');
+	}
+};
+
+}(jQuery));
+
+
+
+
+/*
+(function($) {
+
 var Record = function(data) {
 	if (!(this instanceof Record)) {
 		return new Record(data);
@@ -89,3 +155,4 @@ $.RecordSet = function(data) {
 };
 
 }(jQuery));
+*/

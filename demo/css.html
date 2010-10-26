@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="en" class="no-js">
+
+	<head>
+		<meta http-equiv="X-UA-Compatible" content="IE=Edge">
+		<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+		
+		<title>
+			CSS
+		</title>
+		
+	    <script type="text/javascript" src="../lib/modernizr-1.5.min.js"></script>
+		<style type="text/css">
+			
+			div {
+				position: absolute;
+				top: 0;
+				right: 0;
+				bottom: 0;
+				left: 0;
+				background-color: red;
+				-webkit-transition: opacity 1s;
+			}
+			div.no-display {
+				bottom: 100%;
+				opacity: 0;
+				-webkit-transition: opacity 1s, bottom 0s 1s;
+			}
+			
+		</style>
+	</head>
+	
+	<body>
+		
+		<div class="no-display">
+			blaaa
+		</div>
+		
+		<script type="text/javascript" src="http://ajax.googleapis.com/ajax/libs/jquery/1.4.2/jquery.js"></script>
+		<script type="text/javascript">
+			
+			$('html').click(function() {
+				$('div').toggleClass('display no-display');
+			});
+			
+		</script>
+		
+	</body>
+
+</html>

@@ -100,10 +100,22 @@ $.control.Controller = $.al.ResigClass.extend({
 		
 	},
 	
+	awake: function() {
+		for (member in this) {
+			if (this[member] instanceof $.al.Field) {
+				this[member].sleep(false);
+			}
+		}
+	},
+	
 	displayInit: $.noop,
 	
 	observeDisplay: function(value) {
-		this.element[value ? 'show' : 'hide']();
+		if (value) {
+			this.element.removeClass('no-display').addClass('display');
+		} else {
+			this.element.removeClass('display').addClass('no-display');
+		}
 		if (value && this.displayed !== true) {
 			this.displayed = true;
 			this.displayInit();
@@ -139,11 +151,7 @@ $.fn.control = function(action, value) {
 
 		if (action === 'init') {
 			var instance = new Class(this);
-			for (member in instance) {
-				if (instance[member] instanceof $.al.Field) {
-					instance[member].sleep(false);
-				}
-			}
+			instance.awake();
 			$this.store('control', 'instance', instance);
 			return true;
 		}

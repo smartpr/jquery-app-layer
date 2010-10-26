@@ -7,7 +7,7 @@ $.route = function(action) {
 	
 	var routes = $.makeArray(arguments);
 	
-	$(window).bind('hashchange', function() {
+	var map = function() {
 		var $this = $(this),
 			hash = location.hash,
 			oldMatch = $this.fetch('route', 'match'),	// TODO: Use $.fetch(?)
@@ -40,7 +40,11 @@ $.route = function(action) {
 		}
 		$this.trigger('routechange', eventData);
 		
-	});
+	};
+	
+	$(window).bind('hashchange', map);
+	
+	map();
 	
 };
 

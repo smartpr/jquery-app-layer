@@ -1,9 +1,13 @@
 // TODO: Add a function to the flirt run-time environment which can tell us if
 // we are at the first or last item of a list. Use case: allow for easy
-// generation of comma-separated lists.
+// generation of comma-separated lists. ==> think we should solve this in a
+// more generic way; by providing access to a shared/static scope in which you
+// can store variables that live throughout the entire parse iteration.
 
 // TODO: Find out why it does not work on <title />, and if we can change
 // this situation.
+
+// TODO: Provide a prettify template function (in addition to safe and esc).
 
 (function($) {
 

@@ -108,9 +108,10 @@ $.fn.dataview = function(action) {
 					return true;
 				}
 				
-				$this.flirt('templateNode', templateName).store('dataview', 'data', new Record(data));
+				var $template = $this.flirt('templateNode', templateName);
 				
-				if (data instanceof $.al.List) {
+				var savedList = $template.fetch('dataview', 'data');
+				if (data instanceof $.al.List && (!savedList || savedList.gettt() !== data)) {
 					data.observe(function() {
 						// TODO: Note that templateName can be undefined, in
 						// which case all views contained by $this will be
@@ -120,6 +121,8 @@ $.fn.dataview = function(action) {
 						$this.dataview('invalidate', templateName);
 					});
 				}
+				
+				$template.store('dataview', 'data', new Record(data));
 				
 				var trigger = [];
 				$this.flirt('set', data instanceof $.al.List ? data.val() : data, templateName, function(d) {
