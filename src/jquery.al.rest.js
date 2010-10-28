@@ -33,6 +33,7 @@ $.Rest = function(url, dataType, error, validate) {
 				contentType: contentType,
 				processData: contentType === 'application/x-www-form-urlencoded',
 				data: contentType === 'application/json' ? JSON.stringify(data) : data,
+				cache: false,	// IE tends to cache xhr responses.
 				// TODO: smartpr api expects traditional (I think?)
 				// traditional: true,
 				complete: function(xhr, textStatus) {
