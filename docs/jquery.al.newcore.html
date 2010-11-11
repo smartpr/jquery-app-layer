@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta http-equiv="content-type" content="text/html;charset=utf-8">
+  <title>jquery.al.newcore.js</title>
+  <link rel="stylesheet" href="pycco.css">
+</head>
+<body>
+<div id='container'>
+  <div id="background"></div>
+  
+  <table cellspacing=0 cellpadding=0>
+  <thead>
+    <tr>
+      <th class=docs><h1>jquery.al.newcore.js</h1></th>
+      <th class=code></th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr id='section-0'>
+      <td class=docs>
+        <div class="octowrap">
+          <a class="octothorpe" href="#section-0">#</a>
+        </div>
+        <p>This module contains generic components that are depended on through-out
+all of <strong>jQuery App Layer</strong>.</p>
+      </td>
+      <td class=code>
+        <div class='highlight'><pre><div class="highlight"><pre><span class="p">(</span><span class="kd">function</span><span class="p">(</span><span class="nx">$</span><span class="p">)</span> <span class="p">{</span>
+
+<span class="nx">$</span><span class="p">.</span><span class="nx">al</span> <span class="o">=</span> <span class="p">{};</span></pre></div></pre></div>
+      </td>
+    </tr><tr id='section-1'>
+      <td class=docs>
+        <div class="octowrap">
+          <a class="octothorpe" href="#section-1">#</a>
+        </div>
+        <h2>Utilities</h2>
+      </td>
+      <td class=code>
+        <div class='highlight'><pre><div class="highlight"><pre></pre></div></pre></div>
+      </td>
+    </tr><tr id='section-2'>
+      <td class=docs>
+        <div class="octowrap">
+          <a class="octothorpe" href="#section-2">#</a>
+        </div>
+        <p><a href="http://msdn.microsoft.com/en-us/library/kb6te8d3(v=VS.85).aspx">Source</a></p>
+      </td>
+      <td class=code>
+        <div class='highlight'><pre><div class="highlight"><pre><span class="kd">var</span> <span class="nx">objectPrototype</span> <span class="o">=</span> <span class="p">[</span>
+	<span class="s1">&#39;constructor&#39;</span><span class="p">,</span>
+	<span class="s1">&#39;propertyIsEnumerable&#39;</span><span class="p">,</span>
+	<span class="s1">&#39;isPrototypeOf&#39;</span><span class="p">,</span>
+	<span class="s1">&#39;hasOwnProperty&#39;</span><span class="p">,</span>
+	<span class="s1">&#39;toLocaleString&#39;</span><span class="p">,</span>
+	<span class="s1">&#39;toString&#39;</span><span class="p">,</span>
+	<span class="s1">&#39;valueOf&#39;</span>
+<span class="p">];</span></pre></div></pre></div>
+      </td>
+    </tr><tr id='section-3'>
+      <td class=docs>
+        <div class="octowrap">
+          <a class="octothorpe" href="#section-3">#</a>
+        </div>
+        <p>Like <code>jQuery.extend</code>, but attempts to work-around <a href="https://developer.mozilla.org/en/ECMAScript_DontEnum_attribute#
+JScript_DontEnum_Bug">JScript's DontEnum
+bug</a>. Does not support deep copy for now. Hopefully we can
+expect this utility function to become obsolete once jQuery decides to
+<a href="http://bugs.jquery.com/ticket/7467">incorporate a fix</a>.</p>
+      </td>
+      <td class=code>
+        <div class='highlight'><pre><div class="highlight"><pre><span class="nx">$</span><span class="p">.</span><span class="nx">al</span><span class="p">.</span><span class="nx">extend</span> <span class="o">=</span> <span class="kd">function</span><span class="p">(</span><span class="nx">target</span><span class="p">)</span> <span class="p">{</span>
+	<span class="kd">var</span> <span class="nx">result</span> <span class="o">=</span> <span class="nx">$</span><span class="p">.</span><span class="nx">extend</span><span class="p">.</span><span class="nx">apply</span><span class="p">(</span><span class="kc">undefined</span><span class="p">,</span> <span class="nx">arguments</span><span class="p">),</span>
+		<span class="nx">p</span><span class="p">,</span> <span class="nx">n</span><span class="p">,</span> <span class="nx">prop</span><span class="p">;</span>
+	</pre></div></pre></div>
+      </td>
+    </tr><tr id='section-4'>
+      <td class=docs>
+        <div class="octowrap">
+          <a class="octothorpe" href="#section-4">#</a>
+        </div>
+        <p>TODO: Ideally we would only run this if our current environment suffers
+from the said bug, but we do not want to invest any more time in this
+before jQuery has decided if they will be taking care of this problem
+for us (see ticket as linked above).</p>
+      </td>
+      <td class=code>
+        <div class='highlight'><pre><div class="highlight"><pre>	<span class="k">for</span> <span class="p">(</span><span class="kd">var</span> <span class="nx">i</span> <span class="o">=</span> <span class="k">typeof</span> <span class="nx">arguments</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">===</span> <span class="s1">&#39;boolean&#39;</span> <span class="o">?</span> <span class="mi">1</span> <span class="o">:</span> <span class="mi">0</span><span class="p">,</span> <span class="nx">l</span> <span class="o">=</span> <span class="nx">arguments</span><span class="p">.</span><span class="nx">length</span> <span class="o">-</span> <span class="nx">i</span><span class="p">;</span> <span class="nx">i</span> <span class="o">&lt;</span> <span class="nx">l</span> <span class="o">&amp;&amp;</span> <span class="nx">arguments</span><span class="p">[</span><span class="nx">i</span><span class="p">];</span> <span class="nx">i</span><span class="o">++</span><span class="p">)</span> <span class="p">{</span>
+		<span class="k">for</span> <span class="p">(</span><span class="nx">p</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span> <span class="nx">n</span> <span class="o">=</span> <span class="nx">objectPrototype</span><span class="p">.</span><span class="nx">length</span><span class="p">;</span> <span class="nx">p</span> <span class="o">&lt;</span> <span class="nx">n</span><span class="p">;</span> <span class="nx">p</span><span class="o">++</span><span class="p">)</span> <span class="p">{</span>
+			<span class="nx">prop</span> <span class="o">=</span> <span class="nx">objectPrototype</span><span class="p">[</span><span class="nx">p</span><span class="p">];</span>
+			<span class="k">if</span> <span class="p">(</span><span class="nx">arguments</span><span class="p">[</span><span class="nx">i</span><span class="p">].</span><span class="nx">hasOwnProperty</span><span class="p">(</span><span class="nx">prop</span><span class="p">))</span> <span class="p">{</span>
+				<span class="nx">result</span><span class="p">[</span><span class="nx">prop</span><span class="p">]</span> <span class="o">=</span> <span class="nx">arguments</span><span class="p">[</span><span class="nx">i</span><span class="p">][</span><span class="nx">prop</span><span class="p">];</span>
+			<span class="p">}</span>
+		<span class="p">}</span>
+	<span class="p">}</span>
+	
+	<span class="k">return</span> <span class="nx">result</span><span class="p">;</span>
+<span class="p">};</span></pre></div></pre></div>
+      </td>
+    </tr><tr id='section-5'>
+      <td class=docs>
+        <div class="octowrap">
+          <a class="octothorpe" href="#section-5">#</a>
+        </div>
+        <h2>Type inheritance</h2>
+      </td>
+      <td class=code>
+        <div class='highlight'><pre><div class="highlight"><pre></pre></div></pre></div>
+      </td>
+    </tr><tr id='section-6'>
+      <td class=docs>
+        <div class="octowrap">
+          <a class="octothorpe" href="#section-6">#</a>
+        </div>
+        <p>Inspired by <a href="http://www.coolpage.com/developer/
+javascript/Correct%20OOP%20for%20Javascript.html">Correct OOP for Javascript</a> and <a href="http://ejohn.org/blog/simple-javascript-inheritance/">Simple JavaScript
+Inheritance</a>.
+Argument <code>Base</code> should be either <code>Object</code> or a non-native class function.</p>
+      </td>
+      <td class=code>
+        <div class='highlight'><pre><div class="highlight"><pre><span class="kd">var</span> <span class="nx">initializing</span> <span class="o">=</span> <span class="kc">false</span><span class="p">;</span>
+<span class="kd">var</span> <span class="nx">initialize</span> <span class="o">=</span> <span class="kd">function</span><span class="p">(</span><span class="nx">Type</span><span class="p">)</span> <span class="p">{</span>
+	<span class="nx">initializing</span> <span class="o">=</span> <span class="kc">true</span><span class="p">;</span>
+	<span class="kd">var</span> <span class="nx">initialized</span> <span class="o">=</span> <span class="k">new</span> <span class="nx">Type</span><span class="p">;</span>
+	<span class="nx">initializing</span> <span class="o">=</span> <span class="kc">false</span><span class="p">;</span>
+	<span class="k">return</span> <span class="nx">initialized</span><span class="p">;</span>
+<span class="p">};</span>
+<span class="nx">$</span><span class="p">.</span><span class="nx">al</span><span class="p">.</span><span class="nx">subtype</span> <span class="o">=</span> <span class="kd">function</span><span class="p">(</span><span class="nx">Base</span><span class="p">,</span> <span class="nx">name</span><span class="p">,</span> <span class="nx">init</span><span class="p">,</span> <span class="nx">protoProps</span><span class="p">,</span> <span class="nx">typeProps</span><span class="p">,</span> <span class="nx">alterArgs</span><span class="p">)</span> <span class="p">{</span>
+	<span class="k">if</span> <span class="p">(</span><span class="k">typeof</span> <span class="nx">name</span> <span class="o">!==</span> <span class="s1">&#39;string&#39;</span><span class="p">)</span> <span class="p">{</span>
+		<span class="nx">alterArgs</span> <span class="o">=</span> <span class="nx">typeProps</span><span class="p">;</span>
+		<span class="nx">typeProps</span> <span class="o">=</span> <span class="nx">protoProps</span><span class="p">;</span>
+		<span class="nx">protoProps</span> <span class="o">=</span> <span class="nx">init</span><span class="p">;</span>
+		<span class="nx">init</span> <span class="o">=</span> <span class="nx">name</span><span class="p">;</span>
+		<span class="nx">name</span> <span class="o">=</span> <span class="kc">undefined</span><span class="p">;</span>
+	<span class="p">}</span>
+	<span class="k">if</span> <span class="p">(</span><span class="o">!</span><span class="nx">$</span><span class="p">.</span><span class="nx">isFunction</span><span class="p">(</span><span class="nx">init</span><span class="p">))</span> <span class="p">{</span>
+		<span class="nx">alterArgs</span> <span class="o">=</span> <span class="nx">typeProps</span><span class="p">;</span>
+		<span class="nx">typeProps</span> <span class="o">=</span> <span class="nx">protoProps</span><span class="p">;</span>
+		<span class="nx">protoProps</span> <span class="o">=</span> <span class="nx">init</span><span class="p">;</span>
+		<span class="nx">init</span> <span class="o">=</span> <span class="nx">$</span><span class="p">.</span><span class="nx">noop</span><span class="p">;</span>
+	<span class="p">}</span>
+	<span class="k">if</span> <span class="p">(</span><span class="nx">$</span><span class="p">.</span><span class="nx">isFunction</span><span class="p">(</span><span class="nx">protoProps</span><span class="p">))</span> <span class="p">{</span>
+		<span class="nx">alterArgs</span> <span class="o">=</span> <span class="nx">protoProps</span><span class="p">;</span>
+		<span class="nx">typeProps</span> <span class="o">=</span> <span class="kc">undefined</span><span class="p">;</span>
+		<span class="nx">protoProps</span> <span class="o">=</span> <span class="kc">undefined</span><span class="p">;</span>
+	<span class="p">}</span>
+	
+	<span class="kd">var</span> <span class="nx">isNamed</span> <span class="o">=</span> <span class="k">typeof</span> <span class="nx">name</span> <span class="o">===</span> <span class="s1">&#39;string&#39;</span> <span class="o">&amp;&amp;</span> <span class="nx">name</span><span class="p">.</span><span class="nx">length</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">;</span>
+	<span class="kd">var</span> <span class="nx">Type</span> <span class="o">=</span> <span class="nb">Function</span><span class="p">(</span><span class="s1">&#39;init&#39;</span><span class="p">,</span></pre></div></pre></div>
+      </td>
+    </tr><tr id='section-7'>
+      <td class=docs>
+        <div class="octowrap">
+          <a class="octothorpe" href="#section-7">#</a>
+        </div>
+        <p>TODO: Preprocessing on name should be smarter than just dealing
+with dots.</p>
+      </td>
+      <td class=code>
+        <div class='highlight'><pre><div class="highlight"><pre>		<span class="s2">&quot;return function&quot;</span> <span class="o">+</span> <span class="p">(</span><span class="nx">isNamed</span> <span class="o">?</span> <span class="s2">&quot; &quot;</span> <span class="o">+</span> <span class="nx">_</span><span class="p">.</span><span class="nx">last</span><span class="p">(</span><span class="nx">name</span><span class="p">.</span><span class="nx">split</span><span class="p">(</span><span class="s1">&#39;.&#39;</span><span class="p">))</span> <span class="o">:</span> <span class="s2">&quot;&quot;</span><span class="p">)</span> <span class="o">+</span> <span class="s2">&quot;() {\</span>
+<span class="s2">			return init.apply(this, arguments);\</span>
+<span class="s2">		};&quot;</span>
+	<span class="p">)(</span><span class="kd">function</span><span class="p">()</span> <span class="p">{</span>
+		<span class="kd">var</span> <span class="nx">args</span> <span class="o">=</span> <span class="nx">arguments</span><span class="p">;</span>
+		<span class="kd">var</span> <span class="nx">construct</span> <span class="o">=</span> <span class="kd">function</span><span class="p">()</span> <span class="p">{</span></pre></div></pre></div>
+      </td>
+    </tr><tr id='section-8'>
+      <td class=docs>
+        <div class="octowrap">
+          <a class="octothorpe" href="#section-8">#</a>
+        </div>
+        <p>Calling <code>Base</code> as a regular function will not do anything
+useful if <code>Base === Object</code>, but it doesn't harm either.</p>
+      </td>
+      <td class=code>
+        <div class='highlight'><pre><div class="highlight"><pre>			<span class="kd">var</span> <span class="nx">baseArgs</span> <span class="o">=</span> <span class="nx">args</span><span class="p">;</span>
+			<span class="k">if</span> <span class="p">(</span><span class="nx">$</span><span class="p">.</span><span class="nx">isFunction</span><span class="p">(</span><span class="nx">alterArgs</span><span class="p">))</span> <span class="p">{</span>
+				<span class="nx">baseArgs</span> <span class="o">=</span> <span class="nx">alterArgs</span><span class="p">.</span><span class="nx">apply</span><span class="p">(</span><span class="k">this</span><span class="p">,</span> <span class="nx">args</span><span class="p">);</span>
+				<span class="nx">baseArgs</span> <span class="o">=</span> <span class="nx">baseArgs</span> <span class="o">===</span> <span class="kc">undefined</span> <span class="o">?</span> <span class="nx">args</span> <span class="o">:</span> <span class="nx">_</span><span class="p">.</span><span class="nx">flatten</span><span class="p">([</span><span class="nx">baseArgs</span><span class="p">]);</span>
+			<span class="p">}</span>
+			<span class="nx">Base</span><span class="p">.</span><span class="nx">apply</span><span class="p">(</span><span class="k">this</span><span class="p">,</span> <span class="nx">baseArgs</span><span class="p">);</span>
+			<span class="nx">init</span><span class="p">.</span><span class="nx">apply</span><span class="p">(</span><span class="k">this</span><span class="p">,</span> <span class="nx">args</span><span class="p">);</span>
+			<span class="k">return</span> <span class="k">this</span><span class="p">;</span>
+		<span class="p">};</span>
+		
+		<span class="k">if</span> <span class="p">(</span><span class="o">!</span><span class="p">(</span><span class="k">this</span> <span class="k">instanceof</span> <span class="nx">Type</span><span class="p">))</span> <span class="p">{</span></pre></div></pre></div>
+      </td>
+    </tr><tr id='section-9'>
+      <td class=docs>
+        <div class="octowrap">
+          <a class="octothorpe" href="#section-9">#</a>
+        </div>
+        <p>TODO: Implement true currying, in that you can pass part of the
+instantiation arguments upon actual instantiation (as opposed
+to upon creation of instantiator).</p>
+      </td>
+      <td class=code>
+        <div class='highlight'><pre><div class="highlight"><pre>			<span class="kd">var</span> <span class="nx">factory</span> <span class="o">=</span> <span class="kd">function</span><span class="p">()</span> <span class="p">{</span>
+				<span class="k">return</span> <span class="nx">construct</span><span class="p">.</span><span class="nx">call</span><span class="p">(</span><span class="nx">initialize</span><span class="p">(</span><span class="nx">Type</span><span class="p">));</span>
+			<span class="p">};</span>
+			<span class="nx">factory</span><span class="p">.</span><span class="nx">create</span> <span class="o">=</span> <span class="nx">factory</span><span class="p">.</span><span class="nx">call</span><span class="p">;</span>
+			<span class="k">return</span> <span class="nx">factory</span><span class="p">;</span>
+		<span class="p">}</span>
+		
+		<span class="k">if</span> <span class="p">(</span><span class="nx">initializing</span><span class="p">)</span> <span class="k">return</span><span class="p">;</span>
+		
+		<span class="nx">construct</span><span class="p">.</span><span class="nx">call</span><span class="p">(</span><span class="k">this</span><span class="p">);</span>
+	<span class="p">});</span>
+	
+	<span class="nx">Type</span><span class="p">.</span><span class="nx">prototype</span> <span class="o">=</span> <span class="nx">$</span><span class="p">.</span><span class="nx">al</span><span class="p">.</span><span class="nx">extend</span><span class="p">(</span>
+		<span class="nx">initialize</span><span class="p">(</span><span class="nx">Base</span><span class="p">),</span>
+		<span class="p">{</span> <span class="nx">constructor</span><span class="o">:</span> <span class="nx">Type</span> <span class="p">},</span>
+		<span class="nx">isNamed</span> <span class="o">?</span> <span class="p">{</span> <span class="nx">toString</span><span class="o">:</span> <span class="kd">function</span><span class="p">()</span> <span class="p">{</span> <span class="k">return</span> <span class="s2">&quot;[object &quot;</span> <span class="o">+</span> <span class="nx">name</span> <span class="o">+</span> <span class="s2">&quot;]&quot;</span><span class="p">;</span> <span class="p">}</span> <span class="p">}</span> <span class="o">:</span> <span class="p">{},</span>
+		<span class="nx">protoProps</span>
+	<span class="p">);</span>
+	
+	<span class="nx">$</span><span class="p">.</span><span class="nx">al</span><span class="p">.</span><span class="nx">extend</span><span class="p">(</span>
+		<span class="nx">Type</span><span class="p">,</span>
+		<span class="p">{</span> <span class="nx">subtype</span><span class="o">:</span> <span class="nx">_</span><span class="p">.</span><span class="nx">bind</span><span class="p">(</span><span class="nx">$</span><span class="p">.</span><span class="nx">al</span><span class="p">.</span><span class="nx">subtype</span><span class="p">,</span> <span class="kc">undefined</span><span class="p">,</span> <span class="nx">Type</span><span class="p">)</span> <span class="p">},</span>
+		<span class="nx">isNamed</span> <span class="o">?</span> <span class="p">{</span> <span class="nx">toString</span><span class="o">:</span> <span class="kd">function</span><span class="p">()</span> <span class="p">{</span> <span class="k">return</span> <span class="s2">&quot;[type &quot;</span> <span class="o">+</span> <span class="nx">name</span> <span class="o">+</span> <span class="s2">&quot;]&quot;</span><span class="p">;</span> <span class="p">}</span> <span class="p">}</span> <span class="o">:</span> <span class="p">{},</span>
+		<span class="nx">typeProps</span>
+	<span class="p">);</span>
+	
+	<span class="k">return</span> <span class="nx">Type</span><span class="p">;</span>
+<span class="p">};</span></pre></div></pre></div>
+      </td>
+    </tr><tr id='section-10'>
+      <td class=docs>
+        <div class="octowrap">
+          <a class="octothorpe" href="#section-10">#</a>
+        </div>
+        <h2>Base types</h2>
+      </td>
+      <td class=code>
+        <div class='highlight'><pre><div class="highlight"><pre></pre></div></pre></div>
+      </td>
+    </tr><tr id='section-11'>
+      <td class=docs>
+        <div class="octowrap">
+          <a class="octothorpe" href="#section-11">#</a>
+        </div>
+        <p>Every single <strong>jQuery App Layer</strong> type extends from this one.</p>
+      </td>
+      <td class=code>
+        <div class='highlight'><pre><div class="highlight"><pre><span class="nx">$</span><span class="p">.</span><span class="nx">al</span><span class="p">.</span><span class="nx">Value</span> <span class="o">=</span> <span class="nx">$</span><span class="p">.</span><span class="nx">al</span><span class="p">.</span><span class="nx">subtype</span><span class="p">(</span><span class="nb">Object</span><span class="p">,</span> <span class="s1">&#39;jQuery.al.Value&#39;</span><span class="p">,</span> <span class="kd">function</span><span class="p">()</span> <span class="p">{</span>
+	<span class="k">this</span><span class="p">.</span><span class="nx">args</span> <span class="o">=</span> <span class="nx">arguments</span><span class="p">;</span>
+<span class="p">});</span></pre></div></pre></div>
+      </td>
+    </tr><tr id='section-12'>
+      <td class=docs>
+        <div class="octowrap">
+          <a class="octothorpe" href="#section-12">#</a>
+        </div>
+        <p>And every array type extends from this one.</p>
+      </td>
+      <td class=code>
+        <div class='highlight'><pre><div class="highlight"><pre><span class="nx">$</span><span class="p">.</span><span class="nx">al</span><span class="p">.</span><span class="nx">Value</span><span class="p">.</span><span class="nb">Array</span> <span class="o">=</span> <span class="nx">$</span><span class="p">.</span><span class="nx">al</span><span class="p">.</span><span class="nx">Value</span><span class="p">.</span><span class="nx">subtype</span><span class="p">(</span><span class="s1">&#39;jQuery.al.Value.Array&#39;</span><span class="p">,</span> <span class="kd">function</span><span class="p">()</span> <span class="p">{</span></pre></div></pre></div>
+      </td>
+    </tr><tr id='section-13'>
+      <td class=docs>
+        <div class="octowrap">
+          <a class="octothorpe" href="#section-13">#</a>
+        </div>
+        <p>this.set(Array.apply(undefined, arguments));</p>
+      </td>
+      <td class=code>
+        <div class='highlight'><pre><div class="highlight"><pre><span class="p">});</span>
+
+<span class="p">}(</span><span class="nx">jQuery</span><span class="p">));</span>
+
+</pre></div></pre></div>
+      </td>
+    </tr>
+  </table>
+</div>
+</body>

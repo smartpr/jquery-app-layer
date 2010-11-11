@@ -34,6 +34,22 @@ $('ul').flaggable('invalidate')
 */
 
 
+/* TODO: This gives an idea of how an (Virtual)Array can be generated from
+	another array (control.contacts) and flagged,unflagged.
+// This setter is evaluated every time a value is requested.
+list.set(function(representation, cb) {
+	var flagged = control.element.flaggable('flagged');
+	if (flagged !== null) {
+		return flagged;
+	}
+	var unflagged = control.element.flaggable('unflagged');
+	if (unflagged !== null) {
+		control.contacts.get().get(representation, function(array) {
+			cb(_(array).without.apply(undefined, unflagged));
+		});
+	}
+});
+*/
 
 
 // TODO: add invalidate method to force/manually signal invalidation
@@ -56,6 +72,8 @@ $.widget('al.flaggable', {
 		
 		if (self.options.data === true) {
 			self.options.data = function() {
+				// TODO: if no dataview data, try .data('flaggable') (can be
+				// set on the element as a data- attribute).
 				return $(this).dataview('get');
 			};
 		}

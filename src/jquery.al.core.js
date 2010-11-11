@@ -11,6 +11,19 @@ $.al.MolendijkClass = function() {
 	}
 };
 
+// WISHLIST:
+// - subclassing native objects (other than Object), f.e. Array.
+// - ability to alter constructor arguments, f.e. to have $.record.Array()
+//	work with different instantiation parameters than Array(). ==> not sure if
+//	we really want/need this.
+// - find out if a class is a subclass of another, f.e. to check if class x
+//	is the same as or a subclass of $.al.Class.
+// - allow supplying a name upon subclassing, which is used in toString.
+// - create an Array class in a class property.
+// - put/keep stuff in prototype whenever it is possible.
+// - instantiation is curried if no new operator is used.
+// - can/should $.al.Value.Array be of type $.al.Value?
+
 // Problem: because we are trying to emulate inheritance by merely *wrapping*
 // an instance of another class, there is some unexpected behavior. If an
 // instance of the extended class overrides a method, one would expect other
@@ -20,6 +33,8 @@ $.al.MolendijkClass = function() {
 // 'this', one would expect these to return these to be of the type of the
 // subclass. Yet, that's not the case.
 $.al.MolendijkClass.extend = function(wrap) {
+	// TODO: Make it possible to extend native classes (other than Object) --
+	// should work for most (not for Function, RegExp(?)).
 	var Class = this;
 	var Subclass = function() {
 		// idea: i can also instantiate Subclass without arguments if
