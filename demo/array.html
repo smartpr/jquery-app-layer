@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en" class="no-js">
+
+	<head>
+		<meta http-equiv="X-UA-Compatible" content="IE=Edge">
+		<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+		
+		<title>
+			$.al.Array
+		</title>
+		
+		<style type="text/css">
+			
+		</style>
+	</head>
+	
+	<body>
+		
+		<button>Load</button>
+		
+		<script type="text/javascript" src="../lib/underscore.js"></script>
+		<!-- // <script type="text/javascript" src="http://ajax.googleapis.com/ajax/libs/jquery/1.4.3/jquery.js"></script> -->
+		<script type="text/javascript" src="http://ajax.microsoft.com/ajax/jQuery/jquery-1.4.4.min.js"></script>
+		<script type="text/javascript" src="../src/jquery.al.newcore.js"></script>
+		<script type="text/javascript" src="../src/jquery.al.rest.js"></script>
+		<script type="text/javascript">
+			
+			jQuery(function($) {
+				
+				var api = new $.Rest('http://app.smartpr.dev/api/', 'jsonp');
+				
+				var array = new $.al.VirtualArray();
+				
+				array.load(function() {
+					var self = this;
+					api.get('contacts/', {
+						offset: 0,
+						limit: 50
+					}, function(data) {
+						self.push.apply(self, data.result);
+						self.size(data.total);
+					});
+				}, false);
+				
+				$(array).bind('valuechange', function() {
+					console.log(array.valueOf());
+					console.log(array.size());
+				});
+				
+				$('button').bind('click', function() {
+					array.load();
+				});
+				
+			});
+			
+		</script>
+		
+	</body>
+
+</html>

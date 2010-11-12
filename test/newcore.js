@@ -11,15 +11,17 @@ test("$.al.extend", 1, function() {
 test("$.al.subtype", 14, function() {
 	
 	var Obj = $.al.subtype(Object, 'Obj', function() {
+		this.args = $.makeArray(arguments);
 		// We only want to test instantiation arguments alteration if we are
 		// creating a MyObj instance, as that is where we have defined an
 		// alteration function.
-		this.args = $.makeArray(arguments);
 		if (this instanceof MyObj) {
 			same(this.args, [1, 2, 3, 4, 5], "Instantation arguments are altered by MyObj");
 		}
 	}, {
 		toString: function() { return "custom name"; }
+	}, function() {
+		ok(true, "Arguments alteration function is called");
 	});
 	var MyObj = $.al.subtype(Obj, 'MyObj', function() {
 		ok(this instanceof MyObj, "Constructor is called with correct context");
@@ -32,7 +34,7 @@ test("$.al.subtype", 14, function() {
 	}, function() {
 		return $.makeArray(arguments).concat([4, 5]);
 	});
-	equals(Obj.toString(), "[type Obj]", "toString on type returns type name");
+	equals(Obj.toString(), "Obj", "toString on type returns type name");
 	ok('subtype' in Obj, "Type object has subtype method");
 	ok('onType' in MyObj, "Type object can have custom properties");
 	
@@ -40,7 +42,6 @@ test("$.al.subtype", 14, function() {
 		myobj = new MyObj(1, 2, 3);
 	ok(myobj instanceof MyObj && myobj instanceof Obj, "Instances are instanceof all their parent types");
 	equals(obj.toString(), "custom name", "toString can be overridden by defining it as a prototype method");
-	equals(myobj.toString(), "[object MyObj]", "toString on myobj type name");
 	ok('valueOf' in myobj && !myobj.hasOwnProperty('valueOf'), "Instance has properties from Object");
 	ok('onPrototype' in myobj && 'onPrototype' in MyObj.prototype && !myobj.hasOwnProperty('onPrototype'), "Instance has custom properties from its prototype")
 	ok('onInstance' in myobj && myobj.hasOwnProperty('onInstance'), "Instance has instance properties");
@@ -66,6 +67,10 @@ test("$.al.subtype: optional arguments", 3, function() {
 	})(1, 2).create();
 	
 });
+
+// TODO: test alterArgs: value/function, return sth/nothing, return array/value.
+
+// TODO: test $.al.Object (mainly toString and extend)
 
 /*
 test("$.al.extend: class types", 2, function() {
