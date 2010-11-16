@@ -7,6 +7,11 @@ $.al = {};
 
 // ## Utilities
 
+// TODO: This is not a generic solution (https://github.com/documentcloud/
+// underscore/issues/issue/60/), but merely a solution to the problem in
+// $.al.subtype. So implement it as part of $.al.subtype instead of as a
+// would-be re-implementation of $.extend.
+
 // [Source](http://msdn.microsoft.com/en-us/library/kb6te8d3(v=VS.85).aspx)
 var objectPrototype = [
 	'constructor',
@@ -195,7 +200,18 @@ $.al.Array = $.al.Object.subtype('jQuery.al.Array', function() {
 	// //developer.mozilla.org/en/JavaScript/Reference/Global_Objects/Array#
 	// Methods_2).
 }, {
-	size: function() { return this.valueOf().length; }
+	size: function(s) {
+		var array = this.valueOf();
+		if (arguments.length === 0) {
+			return array.length;
+		}
+		var change = array.length !== s;
+		this.valueOf().length = s;
+		if (change) {
+			$(this).trigger('valuechange', { to: array.slice() });
+		}
+		return this;
+	}
 }, function(length) {
 	// If one numeric argument has been passed we follow Array's
 	// interpretation and create an empty array of that length.
@@ -207,31 +223,56 @@ $.al.Array = $.al.Object.subtype('jQuery.al.Array', function() {
 	return [_.toArray(arguments)];
 });
 
-$.al.VirtualArray = $.al.Array.subtype('jQuery.al.VirtualArray', function() {
+$.al.VirtualArray = $.al.Array.subtype('jQuery.al.VirtualArray', function(loader) {
+	var length;
+	
 	var _size = this.size;
 	this.size = function(s) {
 		var size = _size.call(this);
 		if (arguments.length === 0) {
-			return size;
+			return length === undefined ? size : length;
 		}
+		length = undefined;
 		if (s < size) {
-			this.splice(s);
+			_size.call(this, s);
 		} else if (s > size) {
-			this.push.apply(this, new Array(s - size));
+			length = s;
+			$(this).trigger('sizechange', { to: length });
 		}
 		return this;
 	};
 	
-	var loader;
-	this.load = function(l, now) {
-		if (arguments.length > 0) {
-			loader = l;
-		}
-		if (now !== false && $.isFunction(loader)) {
-			loader.call(this);
-		}
-		return this;
+	this.loaded = function() {
+		return _size.call(this);
 	};
+	
+	loader.call(this);
+}, function(loader) {
+	if ($.isFunction(loader)) {
+		return [];
+	}
+});
+
+$.al.Conditional = $.al.Object.subtype('jQuery.al.Conditional', function(object, condition) {
+	var self = this,
+		pending;
+	
+	$(object).bind('valuechange', function(e, data) {
+		if (condition.valueOf()) {
+			$(self).trigger('valuechange', data);
+		} else {
+			pending = arguments;
+		}
+	});
+	
+	$(condition).bind('valuechange', function(e, data) {
+		if (data.to && pending !== undefined) {
+			pending[0] = pending[0].type;
+			$.fn.trigger.apply($(self), pending);
+			pending = undefined;
+		}
+	});
+	
 });
 
 

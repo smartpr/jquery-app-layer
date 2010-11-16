@@ -44,7 +44,12 @@ comment element -> template functie -> aanroepen met data -> html -> invoegen in
 (function($) {
 
 // TODO: Make al.data not change object identities, so we don't need this
-// work-around here!
+// work-around here! -- this is trickier than one might think. The reason that
+// object identities are not preserved is illustrated by this use case:
+//	var o = { tim: 28 };
+//	$('div').data(o);	// $('div').length === 2
+//	$('div:first').data('tim', 29);
+//	$('div:last').data() ==> should return { tim: 28 }
 	var Record = function(data) {
 		if (!(this instanceof Record)) {
 			return new Record(data);

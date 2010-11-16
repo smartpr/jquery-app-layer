@@ -10,46 +10,86 @@
 		</title>
 		
 		<style type="text/css">
-			
+			body.loading {
+				background-color: gray;
+			}
 		</style>
 	</head>
 	
 	<body>
 		
+		<label><input type="checkbox" /> Display</label>
+		
 		<button>Load</button>
 		
+		<div id="component">
+			
+			<span><!-- listing <%= loaded() %> out of <%= size() %> contacts --></span>
+		
+			<ul>
+				<!--
+					<li><%= contact_name || medium_name || emails.join(', ') || safe('&ndash;') %></li>
+				-->
+			</ul>
+			
+		</div>
+		
 		<script type="text/javascript" src="../lib/underscore.js"></script>
-		<!-- // <script type="text/javascript" src="http://ajax.googleapis.com/ajax/libs/jquery/1.4.3/jquery.js"></script> -->
-		<script type="text/javascript" src="http://ajax.microsoft.com/ajax/jQuery/jquery-1.4.4.min.js"></script>
+		<script type="text/javascript" src="http://ajax.microsoft.com/ajax/jQuery/jquery-1.4.3.js"></script>
+		<script type="text/javascript" src="http://ajax.microsoft.com/ajax/jquery.templates/beta1/jquery.tmpl.js"></script>
+		<script type="text/javascript" src="../src/jquery.al.util.js"></script>
+		<script type="text/javascript" src="../src/jquery.al.data.js"></script>
 		<script type="text/javascript" src="../src/jquery.al.newcore.js"></script>
 		<script type="text/javascript" src="../src/jquery.al.rest.js"></script>
+		<script type="text/javascript" src="../src/jquery.al.flirt.js"></script>
+		<script type="text/javascript" src="../src/jquery.al.newdataview.js"></script>
 		<script type="text/javascript">
 			
 			jQuery(function($) {
 				
 				var api = new $.Rest('http://app.smartpr.dev/api/', 'jsonp');
 				
-				var array = new $.al.VirtualArray();
+				var display = new $.al.Object();
 				
-				array.load(function() {
+				$(display).bind('valuechange', function(e, data) {
+					$('#component')[data.to ? 'show' : 'hide']();
+				});
+				
+				display.valueOf(false);
+				
+				$(':checkbox').bind('change', function() {
+					display.valueOf($(this).attr('checked'));
+				});
+				
+				array = new $.al.VirtualArray(function() {
 					var self = this;
-					api.get('contacts/', {
-						offset: 0,
-						limit: 50
-					}, function(data) {
-						self.push.apply(self, data.result);
-						self.size(data.total);
-					});
-				}, false);
-				
-				$(array).bind('valuechange', function() {
-					console.log(array.valueOf());
-					console.log(array.size());
+					var load = function() {
+						if (self.size() > 0 && self.size() === self.loaded()) {
+							return;
+						}
+						api.get('contacts/', {
+							offset: self.loaded(),
+							limit: 50
+						}, function(data) {
+							self.size(data.total);
+							self.push.apply(self, data.result);
+						});
+					};
+					$('button').bind('click', load);
 				});
 				
-				$('button').bind('click', function() {
-					array.load();
+				$(array).bind('valuechange', function(e) {
+					if (this.size() === this.loaded()) {
+						$('button').attr('disabled', true);
+					}
 				});
+				
+				$('ul').dataview('set', {
+					data: array,
+					condition: display
+				});
+				
+				$('span').dataview('set', { data: [array] });
 				
 			});
 			
