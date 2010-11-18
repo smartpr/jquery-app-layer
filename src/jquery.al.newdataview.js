@@ -29,18 +29,25 @@ $.fn.dataview = function(action, opts) {
 				}
 			}
 			
+			var invalidate = [];
 			$this.flirt('set', array.valueOf(), opts.template, function(item) {
 				if (!$.isArray(item)) {
 					var $nodes = this;
 					$(opts.condition !== undefined ? new $.al.Conditional(item, opts.condition) : item).bind('valuechange', function() {
 						// TODO: Make flirt smart enough to make `.eq(0)` not
 						// necessary here.
+						// TODO: Use `.dataview('invalidate')`.
+						var invalidate = [];
 						$nodes.eq(0).flirt('set', [item], function() {
 							$nodes = this;
+							invalidate.push.apply(invalidate, $nodes.get());
 						}, true);
+						$(invalidate).trigger('invalidate');
 					});
 				}
+				invalidate.push.apply(invalidate, this.get());
 			}, true);
+			$(invalidate).trigger('invalidate');
 			
 			break;
 			

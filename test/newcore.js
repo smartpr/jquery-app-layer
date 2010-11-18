@@ -72,6 +72,8 @@ test("$.al.subtype: optional arguments", 3, function() {
 
 // TODO: test $.al.Object (mainly toString and extend)
 
+// TODO: test that alterArgs function is not turned into its return value after first object instantiation.
+
 /*
 test("$.al.extend: class types", 2, function() {
 	

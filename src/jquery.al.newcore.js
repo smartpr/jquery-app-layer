@@ -96,9 +96,9 @@ $.al.subtype = function(Base, name, init, protoProps, typeProps, alterArgs) {
 		var construct = function() {
 			// Calling `Base` as a regular function will not do anything
 			// useful if `Base === Object`, but it doesn't harm either.
-			if ($.isFunction(alterArgs)) alterArgs = alterArgs.apply(this, args);
-			Base.apply(this, alterArgs === undefined ? args :
-				$.isArray(alterArgs) ? alterArgs : [alterArgs]);
+			var parentArgs = $.isFunction(alterArgs) ? alterArgs.apply(this, args) : alterArgs;
+			Base.apply(this, parentArgs === undefined ? args :
+				$.isArray(parentArgs) ? parentArgs : [parentArgs]);
 			init.apply(this, args);
 			return this;
 		};
@@ -149,10 +149,12 @@ $.al.Object = $.al.subtype(Object, 'jQuery.al.Object', function(v) {
 		return this;
 	};
 	
-	// Always notify valuechange if an initial value is supplied, so that
-	// undefined can be used as a value like any others.
+	// Don't bother to notify `valuechange` upon object instantiation, as
+	// nobody has had the chance to bind an actual handler yet. Not even an
+	// imaginary subtype of `$.al.Object`, as its constructor is executed
+	// after this one.
 	if (arguments.length > 0) {
-		this.valueOf(v, true);
+		this.valueOf(v, false);
 	}
 }, {
 	toString: function() {
@@ -223,7 +225,7 @@ $.al.Array = $.al.Object.subtype('jQuery.al.Array', function() {
 	return [_.toArray(arguments)];
 });
 
-$.al.VirtualArray = $.al.Array.subtype('jQuery.al.VirtualArray', function(loader) {
+$.al.VirtualArray = $.al.Array.subtype('jQuery.al.VirtualArray', function(l) {
 	var length;
 	
 	var _size = this.size;
@@ -246,7 +248,11 @@ $.al.VirtualArray = $.al.Array.subtype('jQuery.al.VirtualArray', function(loader
 		return _size.call(this);
 	};
 	
-	loader.call(this);
+	var loader = l;
+	this.load = function() {
+		loader.call(this);
+		return this;
+	};
 }, function(loader) {
 	if ($.isFunction(loader)) {
 		return [];
@@ -275,6 +281,74 @@ $.al.Conditional = $.al.Object.subtype('jQuery.al.Conditional', function(object,
 	
 });
 
+$.al.Selection = $.al.Object.subtype('jQuery.al.Selection', function() {
+	var _valueOf = this.valueOf;
+	this.valueOf = function() {
+		return _valueOf.call(this).values();
+	};
+	
+	this.add = function(items) {
+		if (!$.isArray(items)) {
+			items = [items];
+		}
+		var set = _valueOf.call(this);
+		set.addAll(items);
+		$(this).
+			trigger('valuechange', { to: set.values() }).
+			trigger('selectionadd', { items: items });
+	};
+	
+	this.remove = function(items) {
+		if (!$.isArray(items)) {
+			items = [items];
+		}
+		var set = _valueOf.call(this);
+		var i = items.length;
+		while (i--) {
+			set.remove(items[i]);
+		}
+		$(this).
+			trigger('valuechange', { to: set.values() }).
+			trigger('selectionremove', { items: items });
+	};
+	
+	this.contains = function(items) {
+		if (!$.isArray(items)) {
+			items = [items];
+		}
+		var subset = new HashSet();
+		subset.addAll(items);
+		return subset.isSubsetOf(_valueOf.call(this));
+	};
+}, {
+	// TODO: I think we would like to make `change` the core method that all
+	// selection change operations are defined in terms of.
+	change: function(items) {
+		// TODO: This is not completely correct, as values that are both in
+		// `this.valueOf()` and in `items` should not be removed and added.
+		// Also `valuechange` is triggered twice, which is undesirable.
+		this.remove(this.valueOf());
+		this.add(items);
+	},
+	toggle: function(items) {
+		if (!$.isArray(items)) {
+			items = [items];
+		}
+		var add = [], remove = [];
+		for (var i = 0, l = items.length; i < l; i++) {
+			(this.contains(items[i]) ? remove : add).push(items[i]);
+		}
+		this.add(add);
+		this.remove(remove);
+	},
+	size: function() {
+		return this.valueOf().length;
+	}
+}, function() {
+	var set = new HashSet();
+	set.addAll(arguments);
+	return [set];
+});
 
 /*
 $.al.Value = $.al.Object.subtype('jQuery.al.Value', function() {

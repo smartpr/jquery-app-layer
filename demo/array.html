@@ -13,6 +13,9 @@
 			body.loading {
 				background-color: gray;
 			}
+			li.checked {
+				background-color: yellow;
+			}
 		</style>
 	</head>
 	
@@ -22,13 +25,19 @@
 		
 		<button>Load</button>
 		
+		<hr />
+		
 		<div id="component">
 			
-			<span><!-- listing <%= loaded() %> out of <%= size() %> contacts --></span>
-		
+			<input type="checkbox" />
+			
+			<span><!-- selected <%= selected.size() %>, displayed <%= contacts.loaded() %>, out of <%= contacts.size() %> contacts --></span>
+			
+			<input type="search" />
+			
 			<ul>
 				<!--
-					<li><%= contact_name || medium_name || emails.join(', ') || safe('&ndash;') %></li>
+					<li data-id="<%= id %>"><%= contact_name || medium_name || emails.join(', ') || safe('&ndash;') %></li>
 				-->
 			</ul>
 			
@@ -37,17 +46,65 @@
 		<script type="text/javascript" src="../lib/underscore.js"></script>
 		<script type="text/javascript" src="http://ajax.microsoft.com/ajax/jQuery/jquery-1.4.3.js"></script>
 		<script type="text/javascript" src="http://ajax.microsoft.com/ajax/jquery.templates/beta1/jquery.tmpl.js"></script>
+		<script type="text/javascript" src="http://ajax.googleapis.com/ajax/libs/jqueryui/1.8.6/jquery-ui.js"></script>
+		<script type="text/javascript" src="../lib/jshashtable-2.1_src.js"></script>
+		<script type="text/javascript" src="../lib/jshashset_src.js"></script>
 		<script type="text/javascript" src="../src/jquery.al.util.js"></script>
 		<script type="text/javascript" src="../src/jquery.al.data.js"></script>
 		<script type="text/javascript" src="../src/jquery.al.newcore.js"></script>
+		<script type="text/javascript" src="../src/jquery.al.newrecord.js"></script>
 		<script type="text/javascript" src="../src/jquery.al.rest.js"></script>
 		<script type="text/javascript" src="../src/jquery.al.flirt.js"></script>
 		<script type="text/javascript" src="../src/jquery.al.newdataview.js"></script>
+		<script type="text/javascript" src="../src/jquery.al.selectable.js"></script>
+		<script type="text/javascript" src="../lib/jquery.lint.js"></script>
 		<script type="text/javascript">
 			
-			jQuery(function($) {
+			SPR = {};
+			
+			(function($) {
 				
-				var api = new $.Rest('http://app.smartpr.dev/api/', 'jsonp');
+				var api = new $.Rest('http://app.smartpr.dev/api/contacts/', 'jsonp');
+				
+				SPR.Contact = $.al.Record.subtype('SPR.Contact', function() {
+					
+				}, {}, {
+					
+					Array: $.al.Record.Array.subtype('SPR.Contact.Array', function() {
+						
+					}),
+					
+					records: $.al.Record.records,
+					
+					read: function(filter) {
+						var array = (new SPR.Contact.Array(function() {
+							var self = this;
+							if (self.size() > 0 && self.size() === self.loaded()) {
+								return;
+							}
+							api.get('', {
+								filter: filter.value,	// TODO: should be a generic .valueOf()
+								offset: self.loaded(),
+								limit: 50
+							}, function(data) {
+								self.size(data.total);
+								self.push.apply(self, data.result);
+							});
+						})).create();	// TODO: create should not be necessary!
+						
+						$(filter).bind('valuechange', function() {
+							array.splice(0);
+							array.load();
+						});
+						
+						return array;
+					}
+					
+				});
+				
+			}(jQuery));
+			
+			jQuery(function($) {
 				
 				var display = new $.al.Object();
 				
@@ -57,26 +114,20 @@
 				
 				display.valueOf(false);
 				
-				$(':checkbox').bind('change', function() {
+				$('label > :checkbox').bind('change', function() {
 					display.valueOf($(this).attr('checked'));
 				});
 				
-				array = new $.al.VirtualArray(function() {
-					var self = this;
-					var load = function() {
-						if (self.size() > 0 && self.size() === self.loaded()) {
-							return;
-						}
-						api.get('contacts/', {
-							offset: self.loaded(),
-							limit: 50
-						}, function(data) {
-							self.size(data.total);
-							self.push.apply(self, data.result);
-						});
-					};
-					$('button').bind('click', load);
+				$('input[type="search"]').bind('keydown', function() {
+					var $this = $(this);
+					setTimeout(function() {
+						$this.trigger('valuechange', { to: $this.val() });
+					}, 300);
 				});
+				
+				array = SPR.Contact.records($('input[type="search"]')[0]);
+				
+				$('button').bind('click', $.proxy(array, 'load'));
 				
 				$(array).bind('valuechange', function(e) {
 					if (this.size() === this.loaded()) {
@@ -84,12 +135,55 @@
 					}
 				});
 				
-				$('ul').dataview('set', {
-					data: array,
-					condition: display
+				selected = new $.al.Selection(146);
+				
+				$('#component > :checkbox').bind('click', function() {
+					selected.change($(this).attr('checked') ? _.pluck(array.valueOf(), 'id') : []);
 				});
 				
-				$('span').dataview('set', { data: [array] });
+				$('ul').
+					dataview('set', {
+						data: array,
+						condition: display
+					}).
+					selectable({
+						elements: 'li',
+						data: function() {
+							return $(this).data('id');
+						},
+						selection: selected,
+						invalidateselected: function(e, data) {
+							$(data.elements).addClass('checked');
+						},
+						invalidateunselected: function(e, data) {
+							$(data.elements).removeClass('checked');
+						}
+					});
+				
+				$([array, selected]).bind('valuechange', function() {
+					// TODO: Can't we think of a way to make dataview understand
+					// when to invalidate? F.e. wrap data in a composite
+					// $.al.Object subtype?
+					$('span').dataview('set', { data: { contacts: array, selected: selected } });
+					
+					var $cb = $('#component > :checkbox');
+					if (array.loaded() === selected.size()) {
+						$cb.attr({
+							checked: true,
+							indeterminate: false
+						});
+					} else if (selected.size() === 0) {
+						$cb.attr({
+							checked: false,
+							indeterminate: false
+						});
+					} else {
+						$cb.attr({
+							checked: false,
+							indeterminate: true
+						});
+					}
+				});
 				
 			});
 			
