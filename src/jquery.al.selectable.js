@@ -19,6 +19,11 @@ $.widget('al.selectable', {
 		
 		// TODO: Apply current `.valueOf()` `self.options.selection`.
 		
+		// TODO: Make it possible to have `select` and `no-select` classes on
+		// items by default. Would take away the need to implement
+		// `invalidateselected` and `invalidateunselected` handlers in most
+		// scenarios.
+		
 		$(self.options.selection).bind('selectionadd selectionremove', function(e, data) {
 			self._trigger('invalidate' + (e.type === 'selectionadd' ? '' : 'un') + 'selected', e, { elements: self._findElements(data.items) });
 		});

@@ -10,11 +10,17 @@
 		</title>
 		
 		<style type="text/css">
-			body.loading {
-				background-color: gray;
+			li {
+				padding: .2em;
+			}
+			li:not(.checked) > input {
+				border-color: transparent;
+			}
+			li:not(.checked) > button {
+				display: none;
 			}
 			li.checked {
-				background-color: yellow;
+				background-color: #396ED9;
 			}
 		</style>
 	</head>
@@ -23,7 +29,8 @@
 		
 		<label><input type="checkbox" /> Display</label>
 		
-		<button>Load</button>
+		<button class="load">Load</button>
+		<button class="delete">Delete selected</button>
 		
 		<hr />
 		
@@ -37,7 +44,10 @@
 			
 			<ul>
 				<!--
-					<li data-id="<%= id %>"><%= contact_name || medium_name || emails.join(', ') || safe('&ndash;') %></li>
+					<li data-id="<%= get('id') %>">
+						<input type="text" value="<%= get('contact_name') || get('medium_name') || get('emails').join(', ') || safe('&ndash;') %>" />
+						<button>Save contact with id <%= get('id') %></button>
+					</li>
 				-->
 			</ul>
 			
@@ -49,6 +59,7 @@
 		<script type="text/javascript" src="http://ajax.googleapis.com/ajax/libs/jqueryui/1.8.6/jquery-ui.js"></script>
 		<script type="text/javascript" src="../lib/jshashtable-2.1_src.js"></script>
 		<script type="text/javascript" src="../lib/jshashset_src.js"></script>
+		<script type="text/javascript" src="../lib/jquery.ba-getobject.js"></script>
 		<script type="text/javascript" src="../src/jquery.al.util.js"></script>
 		<script type="text/javascript" src="../src/jquery.al.data.js"></script>
 		<script type="text/javascript" src="../src/jquery.al.newcore.js"></script>
@@ -57,14 +68,13 @@
 		<script type="text/javascript" src="../src/jquery.al.flirt.js"></script>
 		<script type="text/javascript" src="../src/jquery.al.newdataview.js"></script>
 		<script type="text/javascript" src="../src/jquery.al.selectable.js"></script>
-		<script type="text/javascript" src="../lib/jquery.lint.js"></script>
 		<script type="text/javascript">
 			
 			SPR = {};
 			
 			(function($) {
 				
-				var api = new $.Rest('http://app.smartpr.dev/api/contacts/', 'jsonp');
+				api = new $.Rest('http://app.smartpr.dev/api/contacts/', 'jsonp');
 				
 				SPR.Contact = $.al.Record.subtype('SPR.Contact', function() {
 					
@@ -74,10 +84,12 @@
 						
 					}),
 					
+					idField: 'id',
+					
 					records: $.al.Record.records,
 					
 					read: function(filter) {
-						var array = (new SPR.Contact.Array(function() {
+						var array = new SPR.Contact.Array(function() {
 							var self = this;
 							if (self.size() > 0 && self.size() === self.loaded()) {
 								return;
@@ -88,9 +100,14 @@
 								limit: 50
 							}, function(data) {
 								self.size(data.total);
-								self.push.apply(self, data.result);
+								self.push.apply(self, _.map(data.result, function(item) {
+									// TODO: should be done inside SPR.Contact.Array.push()
+									return new SPR.Contact(item);
+								}));
+								
+								// TODO: Trigger `readsuccess` event.
 							});
-						})).create();	// TODO: create should not be necessary!
+						});
 						
 						$(filter).bind('valuechange', function() {
 							array.splice(0);
@@ -98,9 +115,22 @@
 						});
 						
 						return array;
+					},
+					
+					update: function(data) {
+						api.put(data.id + '/', data, function() {
+							$([SPR.Contact]).trigger('updatesuccess');
+						});
+					},
+					
+					del: function(ids) {
+						alert('delete ' + ids.join(','));
 					}
 					
 				});
+				
+				// TODO: This back-reference should be created automatically.
+				SPR.Contact.Array.recordType = SPR.Contact;
 				
 			}(jQuery));
 			
@@ -127,21 +157,28 @@
 				
 				array = SPR.Contact.records($('input[type="search"]')[0]);
 				
-				$('button').bind('click', $.proxy(array, 'load'));
+				$('.load').bind('click', $.proxy(array, 'load'));
 				
 				$(array).bind('valuechange', function(e) {
 					if (this.size() === this.loaded()) {
-						$('button').attr('disabled', true);
+						$('.load').attr('disabled', true);
 					}
 				});
 				
 				selected = new $.al.Selection(146);
 				
+				$('.delete').bind('click', function() {
+					SPR.Contact.del(selected.valueOf());
+				});
+				
 				$('#component > :checkbox').bind('click', function() {
-					selected.change($(this).attr('checked') ? _.pluck(array.valueOf(), 'id') : []);
+					selected.change($(this).attr('checked') ? array.pluck('id') : []);
 				});
 				
 				$('ul').
+					delegate('button', 'click', function() {
+						// $(this).closest('li').fetch('dataview', 'data').save({ contact_name: $(this).prev().val() });
+					}).
 					dataview('set', {
 						data: array,
 						condition: display
@@ -152,6 +189,8 @@
 							return $(this).data('id');
 						},
 						selection: selected,
+						changeOn: 'click',
+						toggleOn: null,
 						invalidateselected: function(e, data) {
 							$(data.elements).addClass('checked');
 						},

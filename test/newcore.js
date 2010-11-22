@@ -2,6 +2,35 @@ jQuery(function($) {
 
 module('newcore');
 
+test("$.al.subtype", 4, function() {
+	
+	var Obj = $.al.subtype({
+			init: function() {
+				same($.makeArray(arguments), [1, 2], "Parent initializer is being called with altered arguments");
+			}
+		}),
+		MyObj = $.al.subtype({
+			base: Obj,
+			init: function() {
+				same($.makeArray(arguments), [1, 2, 3], "Initializer is being called with correct arguments");
+			},
+			args: function() {
+				same($.makeArray(arguments), [1, 2, 3], "Instantiation arguments are pass through alteration function");
+				return $.makeArray(arguments).slice(0, 2);
+			}
+		}),
+		obj = new MyObj(1, 2, 3);
+	
+	ok(obj instanceof MyObj && obj instanceof Obj, "Instances are instanceof all their parent types");
+	
+});
+
+});
+
+jQuery(function($) {
+/*
+module('newcore');
+
 test("$.al.extend", 1, function() {
 	
 	equals($.al.extend({}, { toString: 'x' }).toString, 'x', "Properties that are in Object.prototype are copied");
@@ -67,7 +96,7 @@ test("$.al.subtype: optional arguments", 3, function() {
 	})(1, 2).create();
 	
 });
-
+*/
 // TODO: test alterArgs: value/function, return sth/nothing, return array/value.
 
 // TODO: test $.al.Object (mainly toString and extend)

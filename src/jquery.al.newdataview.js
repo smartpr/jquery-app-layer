@@ -18,6 +18,8 @@ $.fn.dataview = function(action, opts) {
 			
 			if ($template.fetch('dataview', 'array') !== array) {
 				$template.store('dataview', 'array', array);
+				// TODO: We don't need this condition, as we can bind to any
+				// type of object (including arrays) using `$([array])`.
 				if (!$.isArray(array)) {
 					$(opts.condition !== undefined ? new $.al.Conditional(array, opts.condition) : array).bind('valuechange', function() {
 						$this.dataview('set', {
@@ -31,6 +33,7 @@ $.fn.dataview = function(action, opts) {
 			
 			var invalidate = [];
 			$this.flirt('set', array.valueOf(), opts.template, function(item) {
+				this.store('dataview', 'data', item);
 				if (!$.isArray(item)) {
 					var $nodes = this;
 					$(opts.condition !== undefined ? new $.al.Conditional(item, opts.condition) : item).bind('valuechange', function() {
@@ -39,6 +42,7 @@ $.fn.dataview = function(action, opts) {
 						// TODO: Use `.dataview('invalidate')`.
 						var invalidate = [];
 						$nodes.eq(0).flirt('set', [item], function() {
+							this.store('dataview', 'data', item);
 							$nodes = this;
 							invalidate.push.apply(invalidate, $nodes.get());
 						}, true);

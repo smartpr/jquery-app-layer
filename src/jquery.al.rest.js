@@ -81,7 +81,6 @@ $.Rest.prototype = {
 		this.request('GET', handler, data, success);
 	},
 	post: function(handler, data, success) {
-					// TODO: add callback to handler in case of jsonp?
 		this.request('POST', handler, data, success);
 	},
 	put: function(handler, data, success) {
