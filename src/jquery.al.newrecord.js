@@ -95,6 +95,8 @@ $.al.Record = $.al.Object.subtype({
 					return read.call(Type, query, function() {
 						$([Type]).trigger('readsuccess');
 						if ($.isFunction(cb)) {
+							// TODO: Map data items in `arguments[0]` to
+							// instances of `Type`?
 							cb.apply(this, arguments);
 						}
 					});

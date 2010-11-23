@@ -6,6 +6,44 @@
 $.al = {};
 
 // ## Utilities
+/*
+$.fn.holdEvents = function(type) {
+	type = type || 'valuechange';
+	
+	return this.each(function() {
+		var $this = $([this]),
+			backlog = [];
+		var stopper = function(e) {
+			e.stopImmediatePropagation();
+			var args = _.toArray(arguments);
+			args[0] = args[0].type;
+			backlog.push(args);
+		};
+		$this.bind(type, stopper);
+		// TODO: How to name this event?
+		$this.one('al-unholdEvents', function() {
+			$([this]).unbind(type, stopper);
+			while (backlog.length > 0) {
+				$.fn.trigger.apply($([this]), backlog.shift());
+			}
+		});
+	});
+};
+
+$.fn.unholdEvents = function() {
+	this.trigger('al-unholdEvents');
+};
+*/
+
+// TODO: We can (and should) probably move this delay into `$.event.special`.
+$.fn.asyncTrigger = function() {
+	var $this = this,
+		args = arguments;
+	setTimeout(function() {
+		$.fn.trigger.apply($this, args);
+	}, 0);
+	return this;
+};
 
 // TODO: This is not a generic solution (https://github.com/documentcloud/
 // underscore/issues/issue/60/), but merely a solution to the problem in
@@ -121,9 +159,16 @@ $.al.subtype = function(opts) {
 		opts.proto
 	);
 	
+	// Make sure we ignore `prototype` because obviously we do not want to
+	// replace `Type`'s prototype with the `opts.base`'s prototype. In most
+	// browsers this won't happen, but at least in Firefox (3.6) the
+	// `prototype` property is included in the extend.
+	var baseProps = $.extend({}, opts.base);
+	delete baseProps.prototype;
+	
 	return $.al.extend(
 		Type,
-		opts.base,
+		baseProps,
 		// TODO: We do not have to define a new `subtype` implementation if
 		// `opts.base` already contains one.
 		{ subtype: function(o) { return $.al.subtype($.extend(o, { base: this })); } },
@@ -142,6 +187,7 @@ $.al.Object = $.al.subtype({
 	init: function(v) {
 		var value;
 		this.valueOf = function(newValue, notify) {
+			var self = this;
 			if (arguments.length === 0) {
 				return value;
 			}
@@ -149,9 +195,9 @@ $.al.Object = $.al.subtype({
 			var change = value !== newValue;
 			value = newValue;
 			if (notify === true || change && notify !== false) {
-				$(this).trigger('valuechange', { to: value });
+				$(self).asyncTrigger('valuechange', { to: value });
 			}
-			return this;
+			return self;
 		};
 		
 		// Don't bother to notify `valuechange` upon object instantiation, as
@@ -198,7 +244,7 @@ $.al.Array = $.al.Object.subtype({
 				result = Array.prototype.splice.apply(array, arguments);
 	
 			if (array.length !== size || result.length > 0) {
-				$(this).trigger('valuechange', { to: array.slice() });
+				$(this).asyncTrigger('valuechange', { to: array.slice() });
 			}
 	
 			return result;
@@ -236,7 +282,7 @@ $.al.Array = $.al.Object.subtype({
 			var change = array.length !== s;
 			this.valueOf().length = s;
 			if (change) {
-				$(this).trigger('valuechange', { to: array.slice() });
+				$(this).asyncTrigger('valuechange', { to: array.slice() });
 			}
 			return this;
 		},
@@ -273,7 +319,7 @@ $.al.VirtualArray = $.al.Array.subtype({
 				_size.call(this, s);
 			} else if (s > size) {
 				length = s;
-				$(this).trigger('sizechange', { to: length });
+				$(this).asyncTrigger('sizechange', { to: length });
 			}
 			return this;
 		};
@@ -282,8 +328,12 @@ $.al.VirtualArray = $.al.Array.subtype({
 			return _size.call(this);
 		};
 		
-		var loader = l,
+		var loader,
 			isPristine = true;
+		this.loader = function(l) {
+			loader = l;
+			return this;
+		};
 		this.load = function(cb) {
 			this.isPristine(false);
 			loader.call(this, $.proxy(cb, this));
@@ -296,6 +346,10 @@ $.al.VirtualArray = $.al.Array.subtype({
 			isPristine = !!p;
 			return this;
 		};
+		
+		if ($.isFunction(l)) {
+			this.loader(l);
+		}
 	},
 	
 	args: function(loader) {
@@ -320,6 +374,34 @@ $.al.VirtualArray = $.al.Array.subtype({
 	
 });
 
+$.al.Decorator = $.al.Object.subtype({
+	
+	name: 'jQuery.al.Decorator',
+	
+	init: function() {
+		var _valueOf = this.valueOf;
+		this.valueOf = function() {
+			// TODO: Is it a problem that we are returning an uncloned object
+			// (in case of an array for instance). Doesn't `$.al.Record` do
+			// the same?
+			return _valueOf.call(this);
+		};
+		
+		var decorate;
+		this.decorate = function(d) {
+			var self = this;
+			decorate = d;
+			delete this.decorate;
+			$([decorate]).bind('valuechange', function() {
+				_valueOf.call(self, this.valueOf());
+			});
+			_valueOf.call(self, decorate.valueOf());
+			return this;
+		};
+	}
+	
+});
+
 $.al.Conditional = $.al.Object.subtype({
 	
 	name: 'jQuery.al.Conditional',
@@ -330,7 +412,7 @@ $.al.Conditional = $.al.Object.subtype({
 		
 		$(object).bind('valuechange', function(e, data) {
 			if (condition.valueOf()) {
-				$(self).trigger('valuechange', data);
+				$(self).asyncTrigger('valuechange', data);
 			} else {
 				pending = arguments;
 			}
@@ -339,7 +421,7 @@ $.al.Conditional = $.al.Object.subtype({
 		$(condition).bind('valuechange', function(e, data) {
 			if (data.to && pending !== undefined) {
 				pending[0] = pending[0].type;
-				$.fn.trigger.apply($(self), pending);
+				$.fn.asyncTrigger.apply($(self), pending);
 				pending = undefined;
 			}
 		});

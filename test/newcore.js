@@ -2,26 +2,32 @@ jQuery(function($) {
 
 module('newcore');
 
-test("$.al.subtype", 4, function() {
+test("$.al.subtype", 5, function() {
 	
 	var Obj = $.al.subtype({
 			init: function() {
-				same($.makeArray(arguments), [1, 2], "Parent initializer is being called with altered arguments");
+				// Just test the one time we are actually testing arguments
+				// alteration.
+				if (arguments.length > 0) {
+					same($.makeArray(arguments), [1, 2], "Parent initializer is being called with altered arguments");
+				}
 			}
 		}),
+		obj = new Obj(),
 		MyObj = $.al.subtype({
 			base: Obj,
 			init: function() {
 				same($.makeArray(arguments), [1, 2, 3], "Initializer is being called with correct arguments");
 			},
 			args: function() {
-				same($.makeArray(arguments), [1, 2, 3], "Instantiation arguments are pass through alteration function");
+				same($.makeArray(arguments), [1, 2, 3], "Instantiation arguments are passed through alteration function");
 				return $.makeArray(arguments).slice(0, 2);
 			}
 		}),
-		obj = new MyObj(1, 2, 3);
+		myobj = new MyObj(1, 2, 3);
 	
-	ok(obj instanceof MyObj && obj instanceof Obj, "Instances are instanceof all their parent types");
+	ok(myobj instanceof MyObj && myobj instanceof Obj, "Instances are instanceof all their parent types");
+	ok(!(obj instanceof MyObj), "Instances are not instanceof types that are not their parent");
 	
 });
 
