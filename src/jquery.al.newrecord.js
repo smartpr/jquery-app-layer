@@ -73,7 +73,13 @@ $.al.Record = $.al.Object.subtype({
 					name: opts.name + '.Array',
 					
 					init: function() {
-						
+						var _loader = this.loader;
+						this.loader = function() {
+							var args = _.toArray(arguments);
+							return _loader.call(this, function() {
+								opts.type.load.apply(Type, $.merge([this], args));
+							});
+						};
 					},
 					
 					type: {

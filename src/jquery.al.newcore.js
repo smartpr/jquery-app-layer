@@ -45,6 +45,21 @@ $.fn.asyncTrigger = function() {
 	return this;
 };
 
+$.fn.toggleSwitch = function(name, state) {
+	var on = name,
+		off = 'no-' + name;
+	return this.each(function() {
+		var $this = $(this);
+		if (state === undefined) {
+			// TODO: If no class is set on the element at all, do we want to
+			// interpret this as off, or leave it alone?
+			state = $this.is('.' + on) ? false : $this.is('.' + off) ? true : undefined;
+		}
+		if (state === undefined) return true;
+		$this.removeClass(state ? off : on).addClass(state ? on : off);
+	});
+};
+
 // TODO: This is not a generic solution (https://github.com/documentcloud/
 // underscore/issues/issue/60/), but merely a solution to the problem in
 // $.al.subtype. So implement it as part of $.al.subtype instead of as a
@@ -166,6 +181,8 @@ $.al.subtype = function(opts) {
 	var baseProps = $.extend({}, opts.base);
 	delete baseProps.prototype;
 	
+	// TODO: Make sure we don't copy `__events__` properties.
+	
 	return $.al.extend(
 		Type,
 		baseProps,
@@ -176,6 +193,10 @@ $.al.subtype = function(opts) {
 		opts.type
 	);
 };
+
+// TODO: Perhaps we can make `$.al.CurryableObject` (or something like that) a
+// subtype of `$.al.Object`, which then is the base type for all the other
+// types.
 
 // ## Base types
 
