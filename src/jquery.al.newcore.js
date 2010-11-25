@@ -6,34 +6,6 @@
 $.al = {};
 
 // ## Utilities
-/*
-$.fn.holdEvents = function(type) {
-	type = type || 'valuechange';
-	
-	return this.each(function() {
-		var $this = $([this]),
-			backlog = [];
-		var stopper = function(e) {
-			e.stopImmediatePropagation();
-			var args = _.toArray(arguments);
-			args[0] = args[0].type;
-			backlog.push(args);
-		};
-		$this.bind(type, stopper);
-		// TODO: How to name this event?
-		$this.one('al-unholdEvents', function() {
-			$([this]).unbind(type, stopper);
-			while (backlog.length > 0) {
-				$.fn.trigger.apply($([this]), backlog.shift());
-			}
-		});
-	});
-};
-
-$.fn.unholdEvents = function() {
-	this.trigger('al-unholdEvents');
-};
-*/
 
 // TODO: We can (and should) probably move this delay into `$.event.special`.
 $.fn.asyncTrigger = function() {
@@ -73,7 +45,13 @@ var objectPrototype = [
 	'hasOwnProperty',
 	'toLocaleString',
 	'toString',
-	'valueOf'
+	'valueOf',
+	// The following properties will not be enumerated over in IE8 if they are
+	// held by an object of type `Function`. This is not documented as part of
+	// JScript's DontEnum bug, but the work-around is the same. We are not
+	// sure if more properties are affected by this problem.
+	'call',
+	'apply'
 ];
 // Like `jQuery.extend`, but attempts to work-around [JScript's DontEnum
 // bug](https://developer.mozilla.org/en/ECMAScript_DontEnum_attribute#
@@ -107,9 +85,6 @@ $.al.extend = function(target) {
 // Inheritance](http://ejohn.org/blog/simple-javascript-inheritance/).
 // Argument `Base` should be either `Object` or a non-native class function.
 
-// TODO: Use another term than `initialize` for this, as we want to use it for
-// the constructor method, which is exactly what this `initializing` flag is
-// supposed to contradict with.
 var initializing = false;
 var initialize = function(Type) {
 	initializing = true;
@@ -121,7 +96,7 @@ var initialize = function(Type) {
 var defaultOpts = {
 	base: Object,
 	name: undefined,
-	init: $.noop,
+	construct: $.noop,
 	args: $.noop,
 	proto: {},
 	type: {}
@@ -134,38 +109,23 @@ var defaultOpts = {
 $.al.subtype = function(opts) {
 	opts = $.extend({}, defaultOpts, opts);
 	
-	var isNamed = typeof opts.name === 'string' && opts.name.length > 0;
-	var Type = Function('init',
-		// TODO: Preprocessing on name should be smarter than just dealing
-		// with dots, like: `jQuery.al.Object` => `jQuery_al_Object`.
-		"return function" + (isNamed ? " " + _.last(opts.name.split('.')) : "") + "() {\
-			return init.apply(this, arguments);\
+	var isNamed = typeof opts.name === 'string' && opts.name.length > 0,
+		// If either this type or one of its parents is named, use it to
+		// name the type function: replace any prepending numbers with `$`,
+		// any other non-valid function name characters with `_`.
+		funcName = (isNamed ? opts.name : opts.base.getName ? opts.base.getName() : '').
+			replace(/^[0-9]+/, function(prefix) {
+				return _.map(prefix, function() { return '$'; }).join('');
+			}).
+			replace(/[^a-zA-Z0-9_$]/g, '_');
+	
+	var Type = Function('run',
+		"return function " + funcName + "() {\
+			return run.apply(this, arguments);\
 		};"
 	)(function() {
-		var args = arguments;
-		var construct = function() {
-			// Note that calling `opts.base` as a regular function will not do
-			// anything useful if `opts.base === Object`, but it doesn't harm
-			// either.
-			var parentArgs = $.isFunction(opts.args) ? opts.args.apply(this, args) : args;
-			opts.base.apply(this, parentArgs === undefined ? args :
-				$.isArray(parentArgs) ? parentArgs : [parentArgs]);
-			opts.init.apply(this, args);
-			return this;
-		};
-		
-		if (!(this instanceof Type)) {
-			// TODO: Implement true currying, in that you can pass part of the
-			// instantiation arguments upon actual instantiation (as opposed
-			// to upon creation of instantiator).
-			var instantiate = function() {
-				return construct.call(initialize(Type));
-			};
-			instantiate.create = instantiate.call;
-			return instantiate;
-		}
-		
-		if (!initializing) construct.call(this);
+		if (!(this instanceof Type)) return Type.call.apply(Type, arguments);
+		if (!initializing) Type.instantiate.apply(this, arguments);
 	});
 	
 	Type.prototype = $.al.extend(
@@ -178,25 +138,63 @@ $.al.subtype = function(opts) {
 	// replace `Type`'s prototype with the `opts.base`'s prototype. In most
 	// browsers this won't happen, but at least in Firefox (3.6) the
 	// `prototype` property is included in the extend.
-	var baseProps = $.extend({}, opts.base);
+	var baseProps = $.al.extend({}, opts.base);
 	delete baseProps.prototype;
 	
 	// TODO: Make sure we don't copy `__events__` properties.
 	
 	return $.al.extend(
 		Type,
+		// We make these overridable by methods in `baseProps` as we always
+		// want to use the implementation that is lowest in the type chain.
+		{
+			
+			subtype: function(o) {
+				return $.al.subtype($.extend({}, o, { base: this }));
+			},
+			
+			call: function() {
+				// TODO: Do we really want this (pseudo-)currying as default
+				// call behavior? Isn't that too specific for a utility as
+				// generic as `$.al.subtype`?
+				var curried = _.bind.apply(undefined, $.merge([this.instantiate, this], arguments));
+				curried.instantiate = curried.call;
+				return curried;
+			}
+			
+		},
 		baseProps,
-		// TODO: We do not have to define a new `subtype` implementation if
-		// `opts.base` already contains one.
-		{ subtype: function(o) { return $.al.subtype($.extend(o, { base: this })); } },
-		isNamed ? { toString: function() { return opts.name; } } : {},
-		opts.type
+		isNamed ? {
+			
+			getName: function() {
+				return opts.name;
+			},
+			
+			toString: function() {
+				return this.getName();
+			}
+			
+		} : {},
+		opts.type,
+		{
+			
+			instantiate: function() {
+				var instance = this instanceof Type ? this : initialize(Type);
+				
+				// Note that calling `opts.base` as a regular function will
+				// not do anything useful if `opts.base === Object`, but it
+				// doesn't harm either.
+				var parentArgs = $.isFunction(opts.args) ? opts.args.apply(instance, arguments) : opts.args;
+				opts.base.apply(instance, parentArgs === undefined ? arguments :
+					$.isArray(parentArgs) ? parentArgs : [parentArgs]);
+				opts.construct.apply(instance, arguments);
+				
+				return instance;
+			}
+			
+		}
 	);
 };
-
-// TODO: Perhaps we can make `$.al.CurryableObject` (or something like that) a
-// subtype of `$.al.Object`, which then is the base type for all the other
-// types.
 
 // ## Base types
 
@@ -205,7 +203,7 @@ $.al.Object = $.al.subtype({
 	
 	name: 'jQuery.al.Object',
 	
-	init: function(v) {
+	construct: function(v) {
 		var value;
 		this.valueOf = function(newValue, notify) {
 			var self = this;
@@ -245,7 +243,7 @@ $.al.Array = $.al.Object.subtype({
 	
 	name: 'jQuery.al.Array',
 	
-	init: function() {
+	construct: function() {
 		// We want $.al.Array to represent array identity, like Array, so do not
 		// allow setting another array instance.
 		var _valueOf = this.valueOf;
@@ -326,7 +324,7 @@ $.al.VirtualArray = $.al.Array.subtype({
 	
 	name: 'jQuery.al.VirtualArray',
 	
-	init: function(l) {
+	construct: function(l) {
 		var length;
 		
 		var _size = this.size;
@@ -399,7 +397,7 @@ $.al.Decorator = $.al.Object.subtype({
 	
 	name: 'jQuery.al.Decorator',
 	
-	init: function() {
+	construct: function() {
 		var _valueOf = this.valueOf;
 		this.valueOf = function() {
 			// TODO: Is it a problem that we are returning an uncloned object
@@ -427,7 +425,7 @@ $.al.Conditional = $.al.Object.subtype({
 	
 	name: 'jQuery.al.Conditional',
 	
-	init: function(object, condition) {
+	construct: function(object, condition) {
 		var self = this,
 			pending;
 		
@@ -454,7 +452,7 @@ $.al.Selection = $.al.Object.subtype({
 	
 	name: 'jQuery.al.Selection',
 	
-	init: function() {
+	construct: function() {
 		var _valueOf = this.valueOf;
 		this.valueOf = function() {
 			return _valueOf.call(this).values();

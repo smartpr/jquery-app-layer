@@ -1,10 +1,11 @@
 (function($) {
 
+// TODO: Change namespace to `$.record`.
 $.al.Record = $.al.Object.subtype({
 	
 	name: 'jQuery.al.Record',
 	
-	init: function() {
+	construct: function() {
 		
 	},
 	
@@ -65,6 +66,7 @@ $.al.Record = $.al.Object.subtype({
 	type: {
 		
 		subtype: function(opts) {
+			opts = $.extend({}, opts);
 			
 			opts.type = $.extend(opts.type || {}, {
 				
@@ -72,7 +74,7 @@ $.al.Record = $.al.Object.subtype({
 					
 					name: opts.name + '.Array',
 					
-					init: function() {
+					construct: function() {
 						var _loader = this.loader;
 						this.loader = function() {
 							var args = _.toArray(arguments);
@@ -115,9 +117,9 @@ $.al.Record = $.al.Object.subtype({
 			// something we can technically do as `this` might by any subtype
 			// of `$.al.Record`. Problem: we currently have no means of
 			// accessing this method (before it is actually overridden).
-			// Idea: if we can find `Type`'s parent type, we could call its
+			// Idea: if we can find `this`'s parent type, we could call its
 			// `subtype` method and force `Type` as its context. For instance:
-			// `Type.parentType().subtype.call(Type, opts)`.
+			// `this.parentType().subtype.call(Type, opts)`.
 			var Type = $.al.subtype($.extend(opts, { base: this }));
 			
 			return Type;
@@ -128,7 +130,7 @@ $.al.Record = $.al.Object.subtype({
 			
 			name: 'jQuery.al.Record.Array',
 			
-			init: function() {
+			construct: function() {
 				var _splice = this.splice;
 				this.splice = function() {
 					var Record = this.constructor.recordType();

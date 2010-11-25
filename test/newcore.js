@@ -5,7 +5,7 @@ module('newcore');
 test("$.al.subtype", 5, function() {
 	
 	var Obj = $.al.subtype({
-			init: function() {
+			construct: function() {
 				// Just test the one time we are actually testing arguments
 				// alteration.
 				if (arguments.length > 0) {
@@ -16,7 +16,7 @@ test("$.al.subtype", 5, function() {
 		obj = new Obj(),
 		MyObj = $.al.subtype({
 			base: Obj,
-			init: function() {
+			construct: function() {
 				same($.makeArray(arguments), [1, 2, 3], "Initializer is being called with correct arguments");
 			},
 			args: function() {

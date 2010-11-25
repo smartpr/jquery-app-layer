@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en" class="no-js">
+
+	<head>
+		<meta http-equiv="X-UA-Compatible" content="IE=Edge">
+		<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+		
+		<title>
+			$.component
+		</title>
+		
+		<style type="text/css">
+		</style>
+	</head>
+	
+	<body>
+		
+		<label><input type="checkbox" /> Display</label>
+		
+		<button class="load">Load</button>
+		<button class="delete">Delete selected</button>
+		
+		<hr />
+		
+		<div id="component">
+			
+			<input type="checkbox" />
+			
+			<span><!-- selected <%= selected.size() %>, displayed <%= contacts.loaded() %>, out of <%= contacts.size() %> contacts --></span>
+			
+			<input type="search" />
+			
+			<ul>
+				<!--
+					<li data-id="<%= get('id') %>">
+						<input type="text" value="<%= get('contact_name') || get('medium_name') || get('emails').join(', ') || safe('&ndash;') %>" />
+						<button>Save contact with id <%= get('id') %></button>
+					</li>
+				-->
+			</ul>
+			
+		</div>
+		
+		<script type="text/javascript" src="../lib/underscore.js"></script>
+		<script type="text/javascript" src="http://ajax.microsoft.com/ajax/jQuery/jquery-1.4.3.js"></script>
+		<script type="text/javascript" src="http://ajax.microsoft.com/ajax/jquery.templates/beta1/jquery.tmpl.js"></script>
+		<script type="text/javascript" src="http://ajax.googleapis.com/ajax/libs/jqueryui/1.8.6/jquery-ui.js"></script>
+		<script type="text/javascript" src="../lib/jshashtable-2.1_src.js"></script>
+		<script type="text/javascript" src="../lib/jshashset_src.js"></script>
+		<script type="text/javascript" src="../lib/jquery.ba-getobject.js"></script>
+		<script type="text/javascript" src="../src/jquery.al.data.js"></script>
+		<script type="text/javascript" src="../src/jquery.al.newcore.js"></script>
+		<script type="text/javascript" src="../src/jquery.al.newrecord.js"></script>
+		<script type="text/javascript" src="../src/jquery.al.rest.js"></script>
+		<script type="text/javascript" src="../src/jquery.al.flirt.js"></script>
+		<script type="text/javascript" src="../src/jquery.al.newdataview.js"></script>
+		<script type="text/javascript" src="../src/jquery.al.selectable.js"></script>
+		<script type="text/javascript" src="../src/jquery.al.component.js"></script>
+		<script type="text/javascript">
+			
+			C = $.component.Component.subtype({
+				
+				tim: 28
+				
+			});
+			
+			// c = new C();
+			
+			D = C.subtype({
+				
+				tim: new $.component.Property().setup(function() {
+					console.log('SETUP!');
+				})
+				
+			});
+			// 
+			// d = D();
+			
+		</script>
+		
+	</body>
+
+</html>

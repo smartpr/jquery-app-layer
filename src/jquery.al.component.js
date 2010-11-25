@@ -1,3 +1,155 @@
+(function($, undefined) {
+/*
+$.fn.component = function(definition) {
+	
+	return this.each(function() {
+		var $this = $(this);
+		
+		var component = ($this.fetch('component', 'type') || $.component.Component).subtype({
+			
+			
+			
+		});
+		
+		var parsed = $.component($.extend({}, definition), base);
+		
+		$this.store('component', 'definition', parsed);
+	});
+	
+};
+*/
+
+$.component = {};
+
+function setupComponent() {
+	for (var key in this.constructor.prototype) {
+		if (this.constructor.prototype[key] instanceof $.component.Property) {
+			this.constructor.prototype[key].setup(this);
+		}
+	}
+	return this;
+};
+
+// TODO: Put all type definitions under `$.al`.
+$.component.Component = $.al.subtype({
+	
+	name: 'jQuery.component.Component',
+	
+	construct: function(setup) {
+		
+		// TODO: Ignore bindings.
+		for (var key in this) {
+			if (this[key] instanceof $.component.Property) {
+				this[key] = this[key].valueOf();
+			}
+		}
+		if (setup !== false) setupComponent.call(this);
+	},
+	
+	args: [],
+	
+	type: {
+		
+		subtype: function(opts) {
+			var Base = this,
+				properties = {}
+			
+			// TODO: We could use `_.reduce()`.
+			$.each(opts, function(key, value) {
+				if (!(value instanceof $.component.Property)) {
+					value = new $.component.Property(value);
+				}
+				if (Base.prototype) value.parent(Base.prototype[key]);
+				properties[key] = value;
+			});
+			
+			// TODO: See corresponding implementation in `$.al.Record`.
+			return $.al.subtype({
+				
+				base: Base,
+				
+				proto: properties
+				
+			});
+		},
+		
+		call: function() {
+			return $.proxy(setupComponent, this.instantiate(false));
+		}
+		
+	}
+	
+});
+
+$.component.Property = $.al.Object.subtype({
+	
+	name: 'jQuery.component.Property',
+	
+	construct: function() {
+		
+		var _valueOf = this.valueOf;
+		this.valueOf = function() {
+			var v = _valueOf.call(this);
+			return v !== undefined ? v :
+				parent instanceof $.component.Property ? parent.valueOf() :
+				undefined;
+		};
+		
+		var parent;
+		this.parent = function(p) {
+			parent = p;
+			return this;
+		};
+		
+		var setups = [];
+		this.setup = function(s) {
+			if (s instanceof $.component.Component) {
+				// Execute setup in context of `s`.
+				for (var i = 0, l = setups.length; i < l; i++) {
+					setups[i].call(s);
+				}
+			} else {
+				// Add `s` to list of setup functions.
+				setups.push(s);
+			}
+			return this;
+		};
+		
+	}
+	
+});
+/*
+$.component.property = function(type) {
+	if (arguments.length === 0) {
+		type = $.al.Object;
+	}
+	return new $.component.Property(new $.al.CurriedObject(type));
+};
+
+$.component.switch = function() {
+	
+	return $.component.property().setup(function(me) {
+		// TODO: toggle switch css class.
+	});
+	
+};
+
+$.component.inherit = function() {
+	
+	return new $.component.Property();
+	
+};
+
+$.component.binding = function(element, property) {
+	
+	return new $.component.Property();
+};
+*/
+}(this.jQuery));
+
+
+
+/*
 (function($) {
 
 var pending = [];
@@ -116,7 +268,7 @@ $.component.Property = $.al.Object.subtype({
 	
 	name: 'jQuery.component.Property',
 	
-	init: function(type, setup) {
+	construct: function(type, setup) {
 		this.type = type;
 		this.setup = setup;
 	}
@@ -176,3 +328,4 @@ $.component.binding = function(element, key) {
 };
 
 }(jQuery));
+*/
