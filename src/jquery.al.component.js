@@ -1,4 +1,56 @@
 (function($, undefined) {
+
+
+
+$.al.Property = $.al.Wrapper.subtype({
+	
+	name: 'jQuery.al.Property',
+	
+	construct: function() {
+		
+		// TODO: The concept of a property is that the object that it holds
+		// should only leave upon installment.
+		var _wrapped = this.wrapped;
+		delete this.wrapped;
+		
+		this.install = function(context, key) {
+			var property = this,
+				wrapped = _wrapped.call(property),
+				wrappedSetup;
+			
+			if (wrapped instanceof $.al.Property) {
+				wrappedSetup = wrapped.install(context, key);
+			} else {
+				context[key] = property.valueOf();
+			}
+			
+			return function() {
+				var wrapped = _wrapped.call(property);
+				for (var i = 0, l = setups.length; i < l; i++) {
+					setups[i].call(context, context[key], wrappedSetup);
+				}
+			};
+			
+			// TODO: Make sure to unwrap after setup, in order to make the
+			// property instance garbage collectable. But that would mean we
+			// can only install once, by design. Do we want this?
+		};
+		
+		var setups = [];
+		this.setup = function(s) {
+			setups.push(s);
+			return this;
+		};
+		
+	}
+	
+});
+
+}(this.jQuery));
+
+
+
+(function($, undefined) {
 /*
 $.fn.component = function(definition) {
 	
@@ -21,7 +73,7 @@ $.fn.component = function(definition) {
 
 $.component = {};
 
-function setupComponent() {
+var setupComponent = function() {
 	for (var key in this.constructor.prototype) {
 		if (this.constructor.prototype[key] instanceof $.component.Property) {
 			this.constructor.prototype[key].setup(this);
@@ -37,10 +89,16 @@ $.component.Component = $.al.subtype({
 	
 	construct: function(setup) {
 		
+		// TODO: Include all of this into the "setup" which can be prevented
+		// using the `setup` parameter? => No, because we would lose the
+		// ability to first create instances on a bunch of components, and
+		// only then set them all up
 		// TODO: Ignore bindings.
+		var setuppers = [];
 		for (var key in this) {
 			if (this[key] instanceof $.component.Property) {
-				this[key] = this[key].valueOf();
+				setuppers.push(this[key].install(this, key));
+				// this[key] = this[key].valueOf();
 			}
 		}
 		if (setup !== false) setupComponent.call(this);
@@ -56,11 +114,17 @@ $.component.Component = $.al.subtype({
 			
 			// TODO: We could use `_.reduce()`.
 			$.each(opts, function(key, value) {
-				if (!(value instanceof $.component.Property)) {
-					value = new $.component.Property(value);
-				}
-				if (Base.prototype) value.parent(Base.prototype[key]);
-				properties[key] = value;
+				properties[key] = new $.component.Property(value, Base.prototype[key]);
+				
+				// if (!(value instanceof $.component.Property)) {
+				// 	value = new $.component.Property(value);
+				// } else {
+				// 	// TODO: Clone property, we do not control when it was
+				// 	// created so it may be used on other components as well.
+				// 	// Better: clone only if it has already a "host".
+				// }
+				// if (Base.prototype) value.parent(Base.prototype[key]);
+				// properties[key] = value;
 			});
 			
 			// TODO: See corresponding implementation in `$.al.Record`.
@@ -68,11 +132,22 @@ $.component.Component = $.al.subtype({
 				
 				base: Base,
 				
+				construct: function(setup) {
+					
+					// loop opts => convert to properties
+					// 'install' each of them on `this` =>
+					//		assign value to this.key
+					//		
+					// if `setup` call `setupComponent`
+					
+				},
+				
 				proto: properties
 				
 			});
 		},
 		
+		// TODO: This is more confusing than that it really solves a problem.
 		call: function() {
 			return $.proxy(setupComponent, this.instantiate(false));
 		}
@@ -103,14 +178,20 @@ $.component.Property = $.al.Object.subtype({
 		
 		var setups = [];
 		this.setup = function(s) {
-			if (s instanceof $.component.Component) {
-				// Execute setup in context of `s`.
-				for (var i = 0, l = setups.length; i < l; i++) {
-					setups[i].call(s);
-				}
-			} else {
+			if ($.isFunction(s)) {
 				// Add `s` to list of setup functions.
 				setups.push(s);
+			} else {
+				// Else we take `s` to be the context in which we want to run
+				// all functions in `setups`.
+				for (var i = 0, l = setups.length; i < l; i++) {
+					// TODO: `this.valueOf()` is the current value of the
+					// property, which is not necessarily the current value
+					// on the component, correct? But, this setup function
+					// should not have to know beyond its own scope, so there
+					// we have a design problem which needs to be fixed.
+					setups[i].call(s, this.valueOf());
+				}
 			}
 			return this;
 		};

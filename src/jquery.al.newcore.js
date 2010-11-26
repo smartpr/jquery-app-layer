@@ -107,6 +107,8 @@ var defaultOpts = {
 // term as the type method (to be done) that returns the type that a type was
 // extended from.
 $.al.subtype = function(opts) {
+	// Make sure not to mutate the original `opts` object, as we do not know
+	// where it came from and what else might depends on it.
 	opts = $.extend({}, defaultOpts, opts);
 	
 	var isNamed = typeof opts.name === 'string' && opts.name.length > 0,
@@ -134,6 +136,8 @@ $.al.subtype = function(opts) {
 		opts.proto
 	);
 	
+	// TODO: Solve this in a more generic way, i.e. moving it into
+	// `$.al.extend`.
 	// Make sure we ignore `prototype` because obviously we do not want to
 	// replace `Type`'s prototype with the `opts.base`'s prototype. In most
 	// browsers this won't happen, but at least in Firefox (3.6) the
@@ -141,7 +145,8 @@ $.al.subtype = function(opts) {
 	var baseProps = $.al.extend({}, opts.base);
 	delete baseProps.prototype;
 	
-	// TODO: Make sure we don't copy `__events__` properties.
+	// TODO: Make sure we don't copy `__events__` properties. (Also move into
+	// `$.al.extend`?)
 	
 	return $.al.extend(
 		Type,
@@ -154,12 +159,10 @@ $.al.subtype = function(opts) {
 			},
 			
 			call: function() {
-				// TODO: Do we really want this (pseudo-)currying as default
-				// call behavior? Isn't that too specific for a utility as
-				// generic as `$.al.subtype`?
-				var curried = _.bind.apply(undefined, $.merge([this.instantiate, this], arguments));
-				curried.instantiate = curried.call;
-				return curried;
+				// Default behavior for calling a type without `new` operator
+				// is to return an instance, as seems to be the convention in
+				// jQuery (cf. `$.Event`).
+				return this.instantiate.apply(this, arguments);
 			}
 			
 		},
@@ -278,6 +281,7 @@ $.al.Array = $.al.Object.subtype({
 		}
 		// The full list of arguments should be stored by the parent constructor
 		// as one array value.
+		// TODO: Do we really need to do the `_.toArray()` here?
 		return [_.toArray(arguments)];
 	},
 	
@@ -393,6 +397,75 @@ $.al.VirtualArray = $.al.Array.subtype({
 	
 });
 
+$.al.Wrapper = $.al.Object.subtype({
+	
+	name: 'jQuery.al.Wrapper',
+	
+	construct: function(w, filter) {
+		
+		var _valueOf = this.valueOf;
+		this.valueOf = function() {
+			return _valueOf.call(this);
+		};
+		
+		var update = function() {
+			_valueOf.call(this, wrapped.valueOf());
+		};
+		
+		var wrapped;
+		this.wrapped = function(w) {
+			
+			if (arguments.length === 0) {
+				return wrapped;
+			}
+			
+			if (wrapped !== w) {
+				
+				if (wrapped !== undefined) $([wrapped]).unbind('valuechange', update);
+				
+				// TODO: We should make sure that `w` is an instance of
+				// `Object`.
+				wrapped = w;
+				
+				if (wrapped !== undefined) $([wrapped]).bind('valuechange', $.proxy(update, this));
+				
+				_valueOf.call(this, wrapped === undefined ? undefined : wrapped.valueOf());
+				
+			}
+			
+			return this;
+		};
+		
+		this.wrapped(w);
+	},
+	
+	args: []
+	
+});
+
+/*
+$.al.Wrapper = $.al.Object.subtype({
+	
+	name: 'jQuery.al.Wrapper',
+	
+	construct: function() {
+		
+		var _valueOf = this.valueOf;
+		this.valueOf = function(v, notify) {
+			var self = this;
+			
+			if (arguments.length > 0) {
+				$([v]).bind('valuechange', function() {
+					$.fn.trigger.apply($(self), arguments);
+				});
+			}
+			return _valueOf.call(this, arguments);
+		};
+		
+	}
+	
+});
+
 $.al.Decorator = $.al.Object.subtype({
 	
 	name: 'jQuery.al.Decorator',
@@ -447,6 +520,7 @@ $.al.Conditional = $.al.Object.subtype({
 	}
 	
 });
+*/
 
 $.al.Selection = $.al.Object.subtype({
 	

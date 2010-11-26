@@ -60,7 +60,10 @@
 			
 			C = $.component.Component.subtype({
 				
-				tim: 28
+				tim: new $.component.Property(28).setup(function(me) {
+					console.log("C.tim => setup!");
+					console.log(me);
+				})
 				
 			});
 			
@@ -68,13 +71,25 @@
 			
 			D = C.subtype({
 				
-				tim: new $.component.Property().setup(function() {
-					console.log('SETUP!');
+				tim: new $.component.Property().setup(function(me) {
+					console.log("D.tim => setup!");
+					console.log(me);
 				})
 				
 			});
 			// 
 			// d = D();
+			
+			pbase = $.al.Property(new String("tim")).setup(function() {
+				console.log('pbase setup!');
+				console.log(arguments);
+			});
+			
+			p = $.al.Property(pbase).setup(function(me, parentSetup) {
+				console.log('setup!');
+				console.log(arguments);
+				parentSetup();
+			});
 			
 		</script>
 		

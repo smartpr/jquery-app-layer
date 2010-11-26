@@ -1,6 +1,5 @@
 (function($) {
 
-// TODO: Change namespace to `$.record`.
 $.al.Record = $.al.Object.subtype({
 	
 	name: 'jQuery.al.Record',
