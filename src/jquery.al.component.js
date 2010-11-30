@@ -1,39 +1,233 @@
 (function($, undefined) {
 
+var needSetup = new HashSet();
 
+$.fn.component = function(action, arg) {
+	if (typeof action !== 'string') {
+		arg = action;
+		action = 'define';
+	}
+	
+	if (action === 'binding') {
+		// `arg` is the key of the property which is to be bound.
+		
+		var $this = this.eq(0),
+			component = $this.fetch('component', 'definition');
+		
+		// We need the actual component object in order to get to its
+		// properties, but we do not want to touch setup status.
+		if ($.isFunction(component)) component = component(false);
+		
+		// We do not care if `component[arg]` is still a property instance or
+		// if it is already installed, as `$.al.Property`'s constructor can
+		// deal with both and they will all eventually lead to the actual
+		// value, which is what a binding is all about.
+		return $.al.Property(function() { return component[arg]; }, true);
+	}
+	
+	// `arg` is the properties that need to go on the component.
+	
+	if (arg !== undefined) {
+		this.each(function() {
+			var $this = $(this);
+			
+			var parent = $this.fetch('component', 'definition');
+			
+			// We don't inherit from components that are already setup. We are
+			// not sure if it technically or conceptually impossible, but we
+			// cannot think of a decent use case. In that light, if we end up
+			// trying to do so, this is most probably not intended and can
+			// therefore best be ignored.
+			if (parent !== undefined && !$.isFunction(parent)) return true;
+			
+			// A feature of `$.fn.component` is that each component is
+			// automatically given an `element` property. We do not need to
+			// wrap it inside a `$.al.Property` object as it does not have any
+			// behavior attached to it upon setup. This can be added by the
+			// caller by providing an inheriting property at key `element`.
+			parent = $.extend({ element: this }, $.isFunction(parent) ? parent(false) : parent);
+			
+			$.each(parent, function(key, property) {
+				// Inheritance can occur directly, because the current
+				// component does not contain a definition for a particular
+				// property (or this definition is `undefined`, which means
+				// "inherit from parent component").
+				if (arg[key] === undefined) {
+					arg[key] = property;
+				}
+				// Or the current component contains a property without a
+				// value (i.e. a value of `undefined`), in which case the
+				// parent property will be assigned as its value.
+				else if (arg[key] instanceof $.al.Property && arg[key].valueOf() === undefined) {
+					arg[key].valueOf(property);
+				}
+			});
+			
+			// Create component, but don't set it up just yet.
+			$this.store('component', 'definition', $.component(arg, false));
+			needSetup.add(this);
+		});
+	}
+	
+	if (action === 'setup') {	
+		this.each(function() {
+			var $this = $(this);
+		
+			var component = $this.fetch('component', 'definition');
+			
+			// If a component is already setup, move on.
+			if (!$.isFunction(component)) return true;
+			
+			// Setup the component (by calling the stored setup function).
+			$this.store('component', 'definition', component());
+			needSetup.remove(this);
+		});
+	}
+	
+	return this;
+};
 
-$.al.Property = $.al.Wrapper.subtype({
+$.component = function() {
+	return $.al.Component.apply(undefined, arguments);
+};
+
+$.component.setup = function(cb) {
+	$(needSetup.values()).component('setup');
+	cb();
+};
+
+// The significance of `$.component.property` as opposed to `$.al.Property` is
+// that this one has a more specific use-case. It is for use on a component,
+// it always has a value other than `undefined` (which means it is never
+// interpreted as inheriting property in the context of a component), and it
+// tries to trigger an event on the element (if available) upon value change.
+$.component.property = function(Type) {
+	if (Type === undefined) {
+		Type = $.al.Object;
+	}
+	return $.al.Property(function() { return new Type(); }, true).setup(function(me, key) {
+		var component = this;
+		
+		if (!('element' in component)) return;
+		
+		$([me]).bind('valuechange', function() {
+			var args = _.toArray(arguments);
+			args[0] = 'componentchange:' + key;
+			$.fn.trigger.apply($([component.element]), args);
+		});
+	});
+};
+
+// TODO: Run inherited setup(?)
+$.component.inherit = function() {
+	// Does not use `$.component.property`, as the latter is explicitly not
+	// intended for creating inheriting properties.
+	return $.al.Property();
+};
+
+$.component.binding = function(element, key) {
+	return $(element).component('binding', key);
+};
+
+$.component.flag = function() {
+	return $.component.property($.al.Boolean).setup(function(me, key) {
+		var component = this;
+		
+		if (!('element' in component)) return;
+		
+		$([me]).bind('valuechange', function() {
+			$([component.element]).toggleSwitch(key, this.valueOf());
+		});
+	});
+};
+
+// Returns a function to setup `component`, allowing for delayed setup which
+// in turn allows for creating multiple interdependent components without
+// having to worry about definition order.
+var createSetupKit = function(component) {
+	return function(setup) {
+		if (setup !== false) {
+			var setups = [];
+			// First make sure we assign all values, so setup functions can
+			// freely reference them all.
+			$.each(component, function(key, property) {
+				if (!(property instanceof $.al.Property)) {
+					return true;
+				}
+				setups.push(property.install(component, key));
+			});
+			// Then run all setup functions. We do not have an ordering
+			// problem (race condition) here as all property values are
+			// already assigned, and handlers that are bound to `valuechange`
+			// events of internal property values will only be called after
+			// the call stack has been cleared (thanks to
+			// `$.event.special.valuechange`).
+			for (var i = 0, l = setups.length; i < l; i++) {
+				setups[i]();
+			}
+		}
+		return component;
+	};
+};
+
+$.al.Component = $.al.subtype({
+	
+	name: 'jQuery.al.Component',
+	
+	construct: function(properties, setup) {
+		var self = this;
+		
+		// TODO: Deal with JScript's DontEnum bug (see `$.al.extend`). And the
+		// same for all other places where an object's properties are iterated
+		// over.
+		$.each(properties, function(key, property) {
+			self[key] = property instanceof $.al.Property ? property : $.al.Property(property);
+		});
+		
+		if (setup !== false) createSetupKit(this).call();
+	},
+	
+	type: {
+		
+		call: function(properties, setup) {
+			if (setup !== false) {
+				// As `$.al.Component` does not subtype from a custom type, we
+				// will have to create a custom type in order to get to a
+				// default implementation of a type's `call` method.
+				return $.al.subtype().call.apply(this, arguments);
+			}
+			return createSetupKit(this.instantiate(properties, setup));
+		}
+	
+	}
+	
+});
+
+// Although `$.al.Property` is (currently) exclusively used in the context of
+// components, its concept is more generic than that. It allows defining and
+// installing a value and related behavior onto any context, not just
+// components.
+$.al.Property = $.al.Object.subtype({
 	
 	name: 'jQuery.al.Property',
 	
-	construct: function() {
+	construct: function(v, lazy) {
 		
-		// TODO: The concept of a property is that the object that it holds
-		// should only leave upon installment.
-		var _wrapped = this.wrapped;
-		delete this.wrapped;
-		
-		this.install = function(context, key) {
-			var property = this,
-				wrapped = _wrapped.call(property),
-				wrappedSetup;
-			
-			if (wrapped instanceof $.al.Property) {
-				wrappedSetup = wrapped.install(context, key);
-			} else {
-				context[key] = property.valueOf();
+		var _valueOf = this.valueOf,
+			isLazy;
+		this.valueOf = function(v, lazy, notify) {
+			if (arguments.length > 0) {
+				isLazy = lazy;
+				return _valueOf.call(this, v, notify);
 			}
 			
-			return function() {
-				var wrapped = _wrapped.call(property);
-				for (var i = 0, l = setups.length; i < l; i++) {
-					setups[i].call(context, context[key], wrappedSetup);
-				}
-			};
-			
-			// TODO: Make sure to unwrap after setup, in order to make the
-			// property instance garbage collectable. But that would mean we
-			// can only install once, by design. Do we want this?
+			var value = _valueOf.call(this);
+			if (isLazy === true && $.isFunction(value)) {
+				// We are dealing with a "get" call, and the value is to be
+				// evaluated lazily.
+				value = value.call(this);
+			}
+			return value;
 		};
 		
 		var setups = [];
@@ -42,371 +236,34 @@ $.al.Property = $.al.Wrapper.subtype({
 			return this;
 		};
 		
-	}
-	
-});
-
-}(this.jQuery));
-
-
-
-(function($, undefined) {
-/*
-$.fn.component = function(definition) {
-	
-	return this.each(function() {
-		var $this = $(this);
-		
-		var component = ($this.fetch('component', 'type') || $.component.Component).subtype({
+		this.install = function(context, key) {
+			// Obtain value once at the beginning in order to guarantee that
+			// we are using the same value in the install and setup steps of
+			// the process.
+			var value = this.valueOf(),
+				valueSetup;
 			
-			
-			
-		});
-		
-		var parsed = $.component($.extend({}, definition), base);
-		
-		$this.store('component', 'definition', parsed);
-	});
-	
-};
-*/
-
-$.component = {};
-
-var setupComponent = function() {
-	for (var key in this.constructor.prototype) {
-		if (this.constructor.prototype[key] instanceof $.component.Property) {
-			this.constructor.prototype[key].setup(this);
-		}
-	}
-	return this;
-};
-
-// TODO: Put all type definitions under `$.al`.
-$.component.Component = $.al.subtype({
-	
-	name: 'jQuery.component.Component',
-	
-	construct: function(setup) {
-		
-		// TODO: Include all of this into the "setup" which can be prevented
-		// using the `setup` parameter? => No, because we would lose the
-		// ability to first create instances on a bunch of components, and
-		// only then set them all up
-		// TODO: Ignore bindings.
-		var setuppers = [];
-		for (var key in this) {
-			if (this[key] instanceof $.component.Property) {
-				setuppers.push(this[key].install(this, key));
-				// this[key] = this[key].valueOf();
+			if (value instanceof $.al.Property) {
+				// This property holds another property, so delegate
+				// installation and store its setup function.
+				valueSetup = value.install(context, key);
+			} else {
+				context[key] = value;
 			}
-		}
-		if (setup !== false) setupComponent.call(this);
+			
+			return function() {
+				for (var i = 0, l = setups.length; i < l; i++) {
+					setups[i].call(context, value, key, valueSetup);
+				}
+			};
+		};
+		
+		this.valueOf(v, lazy, false);
+		
 	},
 	
-	args: [],
-	
-	type: {
-		
-		subtype: function(opts) {
-			var Base = this,
-				properties = {}
-			
-			// TODO: We could use `_.reduce()`.
-			$.each(opts, function(key, value) {
-				properties[key] = new $.component.Property(value, Base.prototype[key]);
-				
-				// if (!(value instanceof $.component.Property)) {
-				// 	value = new $.component.Property(value);
-				// } else {
-				// 	// TODO: Clone property, we do not control when it was
-				// 	// created so it may be used on other components as well.
-				// 	// Better: clone only if it has already a "host".
-				// }
-				// if (Base.prototype) value.parent(Base.prototype[key]);
-				// properties[key] = value;
-			});
-			
-			// TODO: See corresponding implementation in `$.al.Record`.
-			return $.al.subtype({
-				
-				base: Base,
-				
-				construct: function(setup) {
-					
-					// loop opts => convert to properties
-					// 'install' each of them on `this` =>
-					//		assign value to this.key
-					//		
-					// if `setup` call `setupComponent`
-					
-				},
-				
-				proto: properties
-				
-			});
-		},
-		
-		// TODO: This is more confusing than that it really solves a problem.
-		call: function() {
-			return $.proxy(setupComponent, this.instantiate(false));
-		}
-		
-	}
+	args: []
 	
 });
 
-$.component.Property = $.al.Object.subtype({
-	
-	name: 'jQuery.component.Property',
-	
-	construct: function() {
-		
-		var _valueOf = this.valueOf;
-		this.valueOf = function() {
-			var v = _valueOf.call(this);
-			return v !== undefined ? v :
-				parent instanceof $.component.Property ? parent.valueOf() :
-				undefined;
-		};
-		
-		var parent;
-		this.parent = function(p) {
-			parent = p;
-			return this;
-		};
-		
-		var setups = [];
-		this.setup = function(s) {
-			if ($.isFunction(s)) {
-				// Add `s` to list of setup functions.
-				setups.push(s);
-			} else {
-				// Else we take `s` to be the context in which we want to run
-				// all functions in `setups`.
-				for (var i = 0, l = setups.length; i < l; i++) {
-					// TODO: `this.valueOf()` is the current value of the
-					// property, which is not necessarily the current value
-					// on the component, correct? But, this setup function
-					// should not have to know beyond its own scope, so there
-					// we have a design problem which needs to be fixed.
-					setups[i].call(s, this.valueOf());
-				}
-			}
-			return this;
-		};
-		
-	}
-	
-});
-/*
-$.component.property = function(type) {
-	if (arguments.length === 0) {
-		type = $.al.Object;
-	}
-	return new $.component.Property(new $.al.CurriedObject(type));
-};
-
-$.component.switch = function() {
-	
-	return $.component.property().setup(function(me) {
-		// TODO: toggle switch css class.
-	});
-	
-};
-
-$.component.inherit = function() {
-	
-	return new $.component.Property();
-	
-};
-
-$.component.binding = function(element, property) {
-	
-	return new $.component.Property();
-};
-*/
 }(this.jQuery));
-
-
-
-/*
-(function($) {
-
-var pending = [];
-
-$.fn.component = function(action, definition) {
-	if (arguments.length === 1 && typeof action !== 'string') {
-		definition = action;
-		action = 'define';
-	}
-	
-	return this.each(function() {
-		var $this = $(this),
-			elementDefinition,
-			parentDefinition = $this.fetch('component', 'definition') || {};
-		
-		if (definition) {
-			elementDefinition = $.extend({}, definition, { element: new $.component.Property(undefined, definition.element) });
-			// TODO: Work-around DontEnum bug.
-			$.each(elementDefinition, function(key, property) {
-				if (!(property instanceof $.component.Property)) {
-					return true;
-				}
-				if (!(key in parentDefinition)) {
-					return true;
-				}
-				var parentProperty = parentDefinition[key],
-					inheritProperty = new $.component.Property();
-				inheritProperty.type = property.type || parentProperty instanceof $.component.Property ? parentProperty.type : parentProperty;
-				inheritProperty.setup = function() {
-					var args = _.toArray(arguments);
-					if (parentProperty instanceof $.component.Property) {
-						args.push(parentProperty.setup);
-					}
-					property.setup.apply(this, args);
-				};
-				elementDefinition[key] = inheritProperty;
-			});
-			$this.store('component', 'definition', $.extend({}, parentDefinition, elementDefinition));
-		}
-		
-		// TODO: None of the elements should be started before all of them are
-		// defined.
-		if (action === 'start') {
-			elementDefinition = $this.fetch('component', 'definition');
-			
-			var component = {};
-			$.each(elementDefinition, function(key, property) {
-				if (key === 'element') {
-					component[key] = $this[0];
-				} else if (property instanceof $.component.Property) {
-					component[key] = new property.type();
-				} else {
-					component[key] = property;
-				}
-				$(component[key]).bind('valuechange', function(e, data) {
-					$(component.element).trigger('componentchange:' + key, data);
-				});
-			});
-			
-			// TODO: None of the elements should be setup before all of them
-			// are instantiated.
-			$.each(elementDefinition, function(key, property) {
-				if (property instanceof $.component.Property) {
-					property.setup.call(component, component[key], key);
-				}
-			});
-			
-			// component.start();
-		}
-	});
-	// 
-	// 
-	// // TODO: Deal with inheritance where necessary.
-	// this.store('component', 'definition', $.extend(this.fetch('component', 'definition'), definition));
-	// 
-	// // TODO: Loop `this`.
-	// if (action === 'start') {
-	// 	definition = this.fetch('component', 'definition');
-	// 	
-	// 	var component = {};
-	// 	for (field in definition) {
-	// 		if ($.isPlainObject(definition[field]) && definition[field].instance) {
-	// 			component[field] = new $.al.Decorator();
-	// 		} else {
-	// 			component[field] = definition[field];
-	// 		}
-	// 	}
-	// 	component.element = this[0];
-	// 	
-	// 	for (field in definition) {
-	// 		if ($.isPlainObject(definition[field]) && definition[field].instance) {
-	// 			component[field].decorate(definition[field].instance.call(component));
-	// 		}
-	// 	}
-	// 	
-	// 	component.start();
-	// 	
-	// }
-	// 
-	// return this;
-	// 
-};
-
-$.component = {};
-
-$.component.start = function(cb) {
-	$(window).component('start');
-	$('#nav, #contact-list').component('start');
-	
-	// TODO: Should only be called when we are certain that all component-related
-	// code has finished running (i.e. valuechange callstack is empty or sth like that)
-	cb();
-};
-
-$.component.Property = $.al.Object.subtype({
-	
-	name: 'jQuery.component.Property',
-	
-	construct: function(type, setup) {
-		this.type = type;
-		this.setup = setup;
-	}
-	
-});
-
-$.component.property = function(type, setup) {
-	if (arguments.length === 1) {
-		setup = type;
-		type = $.al.Object;
-	}
-	
-	return new $.component.Property(type, setup);
-};
-
-// TODO: rename to $.component.switch (corresponds with $.al.toggleSwitch).
-$.component.flag = function() {
-	var operands = _.toArray(arguments);
-	return $.component.property(function(me, name) {
-		var component = this,
-			ops = [];
-		$(me).bind('valuechange', function() {
-			$(component.element).
-				removeClass(this.valueOf() ? ('no-' + name) : name).
-				addClass(this.valueOf() ? name : ('no-' + name));
-		});
-		var update = function(ops) {
-			for (var i = 0, l = ops.length; i < l; i++) {
-				if (!ops[i].valueOf()) {
-					me.valueOf(false);
-					return;
-				}
-			}
-			me.valueOf(true);
-		};
-		$.each(operands, function(i, operand) {
-			var op = new $.al.Object(false);
-			ops.push(op);
-			$(op).bind('valuechange', function() {
-				update(ops);
-			});
-			operand.call(component, function(flag) {
-				// TODO: return value?
-				op.valueOf(!!flag);
-			});
-		});
-		update(ops);
-	});
-};
-
-$.component.binding = function(element, key) {
-	return $.component.property(function(me) {
-		$(element).bind('componentchange:' + key, function(e, data) {
-			me.valueOf(data.to);
-		});
-	});
-};
-
-}(jQuery));
-*/

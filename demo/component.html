@@ -58,28 +58,56 @@
 		<script type="text/javascript" src="../src/jquery.al.component.js"></script>
 		<script type="text/javascript">
 			
-			C = $.component.Component.subtype({
+			$('input[type="search"]').component({
 				
-				tim: new $.component.Property(28).setup(function(me) {
-					console.log("C.tim => setup!");
-					console.log(me);
+				searchspecific: $.al.Property(new String("blub")).setup(function(me) {
+					console.log('searchspecific setup!');
+					console.log(arguments);
 				})
 				
 			});
 			
-			// c = new C();
-			
-			D = C.subtype({
+			$('input').component({
 				
-				tim: new $.component.Property().setup(function(me) {
-					console.log("D.tim => setup!");
-					console.log(me);
+				name: $.al.Property(new String("tim")).setup(function() {
+					console.log('name setup!');
+					console.log(arguments);
+					console.log(this.searchspecific);
 				})
 				
 			});
+			
+			$('ul').component({
+				
+				inputname: $('input[type="search"]').component('binding', 'name').setup(function() {
+					console.log('inputname setup!');
+					console.log(arguments);
+				})
+				
+			});
+			
+			// C = $.component.Component.subtype({
+			// 	
+			// 	tim: new $.component.Property(28).setup(function(me) {
+			// 		console.log("C.tim => setup!");
+			// 		console.log(me);
+			// 	})
+			// 	
+			// });
 			// 
-			// d = D();
-			
+			// // c = new C();
+			// 
+			// D = C.subtype({
+			// 	
+			// 	tim: new $.component.Property().setup(function(me) {
+			// 		console.log("D.tim => setup!");
+			// 		console.log(me);
+			// 	})
+			// 	
+			// });
+			// // 
+			// // d = D();
+			// 
 			pbase = $.al.Property(new String("tim")).setup(function() {
 				console.log('pbase setup!');
 				console.log(arguments);

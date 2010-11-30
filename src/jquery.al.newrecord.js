@@ -14,7 +14,10 @@ $.al.Record = $.al.Object.subtype({
 	
 	proto: {
 		
-		// TODO: Merge `get` and `set` into something like `data`?
+		// TODO: Merge `get` and `set` into something like `data`? What about
+		// `exists` in that case?
+		
+		// TODO: Allow for optional getters and setters.
 		
 		get: function(path) {
 			if (arguments.length === 0) {

@@ -17,6 +17,8 @@ $.fn.asyncTrigger = function() {
 	return this;
 };
 
+// TODO: Don't use "switch" in the name, as the corresponding property is not
+// named `$.component.switch`.
 $.fn.toggleSwitch = function(name, state) {
 	var on = name,
 		off = 'no-' + name;
@@ -208,27 +210,24 @@ $.al.Object = $.al.subtype({
 	
 	construct: function(v) {
 		var value;
-		this.valueOf = function(newValue, notify) {
-			var self = this;
+		this.valueOf = function(v, notify) {
 			if (arguments.length === 0) {
 				return value;
 			}
 		
-			var change = value !== newValue;
-			value = newValue;
+			var change = value !== v;
+			value = v;
 			if (notify === true || change && notify !== false) {
-				$(self).asyncTrigger('valuechange', { to: value });
+				$(this).asyncTrigger('valuechange', { to: value });
 			}
-			return self;
+			return this;
 		};
 		
 		// Don't bother to notify `valuechange` upon object instantiation, as
-		// nobody has had the chance to bind an actual handler yet. Not even an
-		// imaginary subtype of `$.al.Object`, as its constructor is executed
-		// after this one.
-		if (arguments.length > 0) {
-			this.valueOf(v, false);
-		}
+		// nobody has had the chance to bind an actual handler yet. Not even
+		// an imaginary subtype of `$.al.Object`, as its constructor is
+		// executed after this one.
+		this.valueOf(v, false);
 	},
 	
 	proto: {
@@ -240,6 +239,27 @@ $.al.Object = $.al.subtype({
 		}
 		
 	}
+});
+
+$.al.Boolean = $.al.Object.subtype({
+	
+	name: 'jQuery.al.Boolean',
+	
+	construct: function() {
+		
+		var _valueOf = this.valueOf;
+		this.valueOf = function() {
+			var args = _.toArray(arguments);
+			if (args.length > 0) {
+				// If a new value has been provided, make sure that is gets
+				// passed on as a boolean.
+				args[0] = !!args[0];
+			}
+			return _valueOf.apply(this, args);
+		};
+		
+	}
+	
 });
 
 $.al.Array = $.al.Object.subtype({
@@ -403,6 +423,8 @@ $.al.Wrapper = $.al.Object.subtype({
 	
 	construct: function(w, filter) {
 		
+		// TODO: Implement use of `filter`, as a "volatile condition."
+		
 		var _valueOf = this.valueOf;
 		this.valueOf = function() {
 			return _valueOf.call(this);
@@ -436,6 +458,9 @@ $.al.Wrapper = $.al.Object.subtype({
 			return this;
 		};
 		
+		// Wrapping `undefined` is interpreted as wrapping nothing, so we can
+		// safely pass `w` on regardless of whether it was actually provided
+		// by the caller of this constructor.
 		this.wrapped(w);
 	},
 	
@@ -493,7 +518,7 @@ $.al.Decorator = $.al.Object.subtype({
 	}
 	
 });
-
+*/
 $.al.Conditional = $.al.Object.subtype({
 	
 	name: 'jQuery.al.Conditional',
@@ -520,7 +545,6 @@ $.al.Conditional = $.al.Object.subtype({
 	}
 	
 });
-*/
 
 $.al.Selection = $.al.Object.subtype({
 	
