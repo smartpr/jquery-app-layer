@@ -1,158 +1,259 @@
-/*
-
-RecordSet
----------
-
-rs = $.RecordSet(id)
-
-rs.clear()
-
-[r1] = rs.add(o1)
-
-[r2, r3] = rs.add([o1, o2, o3, o2])
-
-[r1, r2, r3] = rs.get()
-
-[r1, r2, r2, r4] = rs.get([o1, o2, o2, o4])
-
-[r1, r2, r3, r4] = rs.get()
-
-?? [r1] = rs.set(o1)
-
-?? [r2, r3, r4] = rs.set([o2, o3, o4])
-
-[r4] = rs.remove(o4)
-
-[r2] = rs.remove([o1, o2, o2])
-
-[] = rs.remove([o1, o5])
-
-[r3] = rs.get()
-
-true = rs.equals(o3)
-
-true = rs.equals([o3, o3])
-
-rs2 = rs.clone()
-
----
-
-rs.*(items, dry-run)
-
-Record
-------
-
-r.set(<$.fn.store syntax>)
-
-r.get(<$.fn.fetch syntax>)
-
-r.invalidate()
-
-
-*/
-
 (function($) {
 
-$.al.Record = $.al.Field.extend(function() {
+$.al.Record = $.al.Object.subtype({
 	
-	this.equals = function(record) {
-		return this.toString() === record.toString() && this.val() === record.val();
-	};
+	name: 'jQuery.al.Record',
 	
-	this.toString = function() {
-		return "[object $.al.Record]";
-	};
+	construct: function() {
+		
+	},
+	
+	args: function() {
+		
+	},
+	
+	proto: {
+		
+		// TODO: Merge `get` and `set` into something like `data`? What about
+		// `exists` in that case?
+		
+		// TODO: Allow for optional getters and setters.
+		
+		get: function(path) {
+			if (arguments.length === 0) {
+				return this.valueOf();
+			}
+			return $.getObject(path, this.valueOf());
+		},
+		
+		// TODO: Use `$.fn.data` in order to be compatible with
+		// jquery-datalink.
+		// TODO: Make sure `valuechange` is triggered appropriately.
+		set: function(path, value) {
+			if (arguments.length > 0) {
+
+				if (arguments.length === 1) {
+					value = path;
+					path = undefined;
+				}
+
+				if (path === undefined) {
+					this.valueOf(value);
+				} else {
+					$.setObject(path, value, this.valueOf());
+				}
+
+			}
+
+			return this;
+		},
+		
+		exists: $.noop, // TODO
+		
+		isNew: function() {
+			// TODO: Should be more generic.
+			return this.get('id') === undefined;
+		},
+		
+		save: function() {
+			if (this.isNew()) {
+				// TODO: create
+			} else {
+				this.constructor.update(this.get());
+			}
+			return this;
+		}
+		
+	},
+	
+	type: {
+		
+		subtype: function(opts) {
+			opts = $.extend({}, opts);
+			
+			opts.type = $.extend(opts.type || {}, {
+				
+				Array: this.Array.subtype({
+					
+					name: opts.name + '.Array',
+					
+					construct: function() {
+						var _loader = this.loader;
+						this.loader = function() {
+							var args = _.toArray(arguments);
+							return _loader.call(this, function() {
+								opts.type.load.apply(Type, $.merge([this], args));
+							});
+						};
+					},
+					
+					type: {
+						
+						recordType: function() {
+							return Type;
+						}
+						
+					}
+					
+				})
+				
+			});
+			
+			if (opts.type.read) {
+				var read = opts.type.read;
+				opts.type.read = function(query, cb) {
+					var Type = this;
+					return read.call(Type, query, function() {
+						$([Type]).trigger('readsuccess');
+						if ($.isFunction(cb)) {
+							// TODO: Map data items in `arguments[0]` to
+							// instances of `Type`?
+							cb.apply(this, arguments);
+						}
+					});
+				};
+			}
+			
+			// TODO: What would be better here is to use `this`'s `subtype`
+			// method that is being overridden by this one, as here we are
+			// making assumptions about its implementation, which is not
+			// something we can technically do as `this` might by any subtype
+			// of `$.al.Record`. Problem: we currently have no means of
+			// accessing this method (before it is actually overridden).
+			// Idea: if we can find `this`'s parent type, we could call its
+			// `subtype` method and force `Type` as its context. For instance:
+			// `this.parentType().subtype.call(Type, opts)`.
+			var Type = $.al.subtype($.extend(opts, { base: this }));
+			
+			return Type;
+			
+		},
+		
+		Array: $.al.VirtualArray.subtype({
+			
+			name: 'jQuery.al.Record.Array',
+			
+			construct: function() {
+				var _splice = this.splice;
+				this.splice = function() {
+					var Record = this.constructor.recordType();
+					
+					return _splice.apply(this, $.merge(_.toArray(arguments).slice(0, 2), _.map(_.toArray(arguments).slice(2), function(item) {
+						// TODO: Here we might need call in the central store
+						// (which is to be done), instead of direct
+						// instantiation.
+						return item instanceof Record ? item : new Record(item);
+					})));
+				};
+			},
+			
+			proto: {
+				
+				pluck: function(path) {
+					return _.map(this.valueOf(), function(record) { return record.get(path); });
+				}
+				
+			},
+			
+			type: {
+				
+				recordType: function() {
+					return $.al.Record;
+				}
+				
+			}
+			
+		})
+		
+	}
 	
 });
 
-// TODO: store does not have to be global i guess...
-var store = $.store = new Hashtable();
-$.al.Record.instantiate = function(data, type) {
-	if (!$.isFunction(type) || !((new type) instanceof $.al.Record)) {
-		type = $.al.Record;
-	}
-	
-	var singularity = false;
-	if (!$.isArray(data)) {
-		data = [data];
-		singularity = true;
-	}
-	
-	var records = [],
-		record, existingRecord;
-	for (var i = 0, l = data.length; i < l; i++) {
-		record = type().val(data[i]);
-		if (store.containsKey(record)) {
-			existingRecord = store.remove(record);
-			record = existingRecord.val(record.val());
-		}
-		store.put(record, record);
-		records.push(record);
-	}
-	
-	return records.length === 1 && singularity ? records[0] : records;
-};
-
-$.al.Record.del = function(records) {
-	if (records === undefined) {
-		return;
-	}
-	
-	if (!$.isArray(records)) {
-		records = [records];
-	}
-	
-	for (var i = 0, l = records.length; i < l; i++) {
-		// TODO: can't this remove call be done by an observer that is attached
-		// to the fielddelete event at the moment the record is added to the store?
-		store.remove(records[i]);
-		// records[i].remove();
-		// $(records[i]).trigger('fielddelete');
-	}
-};
-
 }(jQuery));
 
-
-
-
-/*
 (function($) {
 
-var Record = function(data) {
-	if (!(this instanceof Record)) {
-		return new Record(data);
-	}
+// TODO: We might want to switch to not returning the new type, but instead
+// assigning it automatically to the variable as denoted by the name
+// argument.
+$.al.Record = $.al.Object.subtype('jQuery.al.Record', function() {
 	
-	this.get = function() {
-		return data;
-	};
-};
-
-$.RecordSet = function(data) {
-	if (!(this instanceof $.RecordSet)) {
-		return new $.RecordSet(data);
-	}
+}, {
 	
-	var records = [];
-	for (var i = 0, l = data.length; i < l; i++) {
-		records.push(new Record(data[i]));
-	}
-	
-	this.data = function() {
-		return data;
-	};
-	this.get = function(data) {
-		if (data !== undefined) {
-			for (var i = 0, l = records.length; i < l; i++) {
-				if (records[i].get() === data) {
-					return records[i];
-				}
-			}
+	get: function(path) {
+		if (arguments.length === 0) {
+			return this.valueOf();
 		}
-		return records;
-	};
-};
+		return $.getObject(path, this.valueOf());
+	},
+	
+	set: function(path, value) {
+		if (arguments.length > 0) {
+			
+			if (arguments.length === 1) {
+				value = path;
+				path = undefined;
+			}
+		
+			if (path === undefined) {
+				this.valueOf(value);
+			} else {
+				$.setObject(path, value, this.valueOf());
+			}
+			
+		}
+		
+		return this;
+	},
+	
+	exists: $.noop, // TODO
+	
+	isNew: function() {
+		// TODO: Should be more generic.
+		return this.get('id') === undefined;
+	},
+	
+	save: function() {
+		if (this.isNew()) {
+			// TODO: create
+		} else {
+			this.constructor.update(this.get());
+		}
+		return this;
+	}
+	
+}, {
+	
+	// subtype: function(definition) {
+	// 	// TODO: custom subtyping logic
+	// },
+	
+	Array: $.al.VirtualArray.subtype('jQuery.al.Record.Array', function() {
+		
+	}, {
+		
+		pluck: function(path) {
+			return _.map(this.valueOf(), function(record) { return record.get(path); });
+		},
+		
+		del: function() {
+			var self = this;
+			self.constructor.recordType.del(this.pluck(self.constructor.recordType.idField));
+		}
+		
+	}, function() {
+		// TODO: Can't we get this logic out of here, into the array's value
+		// setter or something like that? Include logic that reuses instances
+		// from a central store in case identity matches.
+		if (!_.all(arguments, function(arg) { return $.isPlainObject(arg); })) return;
+		console.log(arguments);
+		return _.map(arguments, function(arg) { return new this.constructor.recordType(arg); });
+	}),
+	
+	records: function() {
+		return this.read.apply(this, arguments);
+	}
+	
+});
 
-}(jQuery));
-*/
+}/*(jQuery)*/);

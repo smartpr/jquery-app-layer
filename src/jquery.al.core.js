@@ -1,528 +1,550 @@
+// This module contains generic components that are depended on through-out
+// all of **jQuery App Layer**.
+
 (function($) {
 
-$.al = $.al || {};
+$.al = {};
+
+// ## Utilities
+
+// // TODO: We can (and should) probably move this delay into `$.event.special`.
+// $.fn.asyncTrigger = function() {
+// 	var $this = this,
+// 		args = arguments;
+// 	setTimeout(function() {
+// 		$.fn.trigger.apply($this, args);
+// 	}, 0);
+// 	return this;
+// };
+
+// TODO: Don't use "switch" in the name, as the corresponding property is not
+// named `$.component.switch`.
+$.fn.toggleSwitch = function(name, state) {
+	var on = name,
+		off = 'no-' + name;
+	return this.each(function() {
+		var $this = $(this);
+		if (state === undefined) {
+			// TODO: If no class is set on the element at all, do we want to
+			// interpret this as off, or leave it alone?
+			state = $this.is('.' + on) ? false : $this.is('.' + off) ? true : undefined;
+		}
+		if (state === undefined) return true;
+		$this.removeClass(state ? off : on).addClass(state ? on : off);
+	});
+};
+
+// TODO: This is not a generic solution (https://github.com/documentcloud/
+// underscore/issues/issue/60/), but merely a solution to the problem in
+// $.al.subtype. So implement it as part of $.al.subtype instead of as a
+// would-be re-implementation of $.extend.
+
+// [Source](http://msdn.microsoft.com/en-us/library/kb6te8d3(v=VS.85).aspx)
+var objectPrototype = [
+	'constructor',
+	'propertyIsEnumerable',
+	'isPrototypeOf',
+	'hasOwnProperty',
+	'toLocaleString',
+	'toString',
+	'valueOf',
+	// The following properties will not be enumerated over in IE8 if they are
+	// held by an object of type `Function`. This is not documented as part of
+	// JScript's DontEnum bug, but the work-around is the same. We are not
+	// sure if more properties are affected by this problem.
+	'call',
+	'apply'
+];
+// Like `jQuery.extend`, but attempts to work-around [JScript's DontEnum
+// bug](https://developer.mozilla.org/en/ECMAScript_DontEnum_attribute#
+// JScript_DontEnum_Bug). Does not support deep copy for now. Hopefully we can
+// expect this utility function to become obsolete once jQuery decides to
+// [incorporate a fix](http://bugs.jquery.com/ticket/7467).
+$.al.extend = function(target) {
+	var result = $.extend.apply(undefined, arguments),
+		p, n, prop;
+	
+	// TODO: Ideally we would only run this if our current environment suffers
+	// from the said bug, but we do not want to invest any more time in this
+	// before jQuery has decided if they will be taking care of this problem
+	// for us (see ticket as linked above).
+	for (var i = typeof arguments[0] === 'boolean' ? 1 : 0, l = arguments.length - i; i < l && arguments[i]; i++) {
+		for (p = 0, n = objectPrototype.length; p < n; p++) {
+			prop = objectPrototype[p];
+			if (arguments[i].hasOwnProperty(prop)) {
+				result[prop] = arguments[i][prop];
+			}
+		}
+	}
+	
+	return result;
+};
+
+// ## Type inheritance
+
+// Inspired by [Correct OOP for Javascript](http://www.coolpage.com/developer/
+// javascript/Correct%20OOP%20for%20Javascript.html) and [Simple JavaScript
+// Inheritance](http://ejohn.org/blog/simple-javascript-inheritance/).
+// Argument `Base` should be either `Object` or a non-native class function.
 
 var initializing = false;
-var Flag = function() {};
-var flag = new Flag();
-$.al.MolendijkClass = function() {
-	if (!(this instanceof $.al.MolendijkClass)) {
-		return new $.al.MolendijkClass();
-	}
-};
-
-// WISHLIST:
-// - subclassing native objects (other than Object), f.e. Array.
-// - ability to alter constructor arguments, f.e. to have $.record.Array()
-//	work with different instantiation parameters than Array(). ==> not sure if
-//	we really want/need this.
-// - find out if a class is a subclass of another, f.e. to check if class x
-//	is the same as or a subclass of $.al.Class.
-// - allow supplying a name upon subclassing, which is used in toString.
-// - create an Array class in a class property.
-// - put/keep stuff in prototype whenever it is possible.
-// - instantiation is curried if no new operator is used.
-// - can/should $.al.Value.Array be of type $.al.Value?
-
-// Problem: because we are trying to emulate inheritance by merely *wrapping*
-// an instance of another class, there is some unexpected behavior. If an
-// instance of the extended class overrides a method, one would expect other
-// methods from the superclass that use that method to start using that new
-// method instead. That's how classical OOP works. But that's not the case
-// here. Also; if the instance of the superclass has methods that return
-// 'this', one would expect these to return these to be of the type of the
-// subclass. Yet, that's not the case.
-$.al.MolendijkClass.extend = function(wrap) {
-	// TODO: Make it possible to extend native classes (other than Object) --
-	// should work for most (not for Function, RegExp(?)).
-	var Class = this;
-	var Subclass = function() {
-		// idea: i can also instantiate Subclass without arguments if
-		// this is not an instance of Subclass, and then use the supplied
-		// arguments to this function call (as it's not an instantiation)
-		// in the remainder. Then at last return the instantiated Subclass.
-		if (!(this instanceof Subclass)) {
-			return new Subclass(flag, arguments);
-		}
-		if (!initializing) {
-			var args;
-			if (arguments[0] === flag) {
-				args = arguments[1];
-			} else {
-				args = $.makeArray(arguments);
-			}
-			var parent = Class.apply(undefined, args);
-			// TODO: don't copy properties that are only present
-			// on the parent's prototype (and not on its instance) -- one of
-			// them: constructor
-			var self = this;
-			$.each(parent, function(key, value) {
-				self[key] = value;
-				// if ($.isFunction(value)) {
-				// 	self[key] = function() {
-				// 		console.log(key + ': pass to parent');
-				// 		console.log(this);
-				// 		console.log(value);
-				// 		console.log('with arguments:');
-				// 		console.log(arguments);
-				// 		var t = value.apply(this, arguments);
-				// 		console.log('returned by parent (' + key + ')');
-				// 		console.log(t);
-				// 		return t;
-				// 	};
-				// } else {
-				// 	self[key] = value;
-				// }
-			});
-			// for (p in parent) {
-			// 	// this[p] = parent[p];
-			// 	if ($.isFunction(parent[p])) {
-			// 		this[p] = function() {
-			// 			console.log('pass to parent');
-			// 			console.log(this);
-			// 			console.log(parent[p]);
-			// 			var t = parent[p].apply(this, arguments);
-			// 			console.log(t);
-			// 			return t;
-			// 		};
-			// 	} else {
-			// 		this[p] = parent[p];
-			// 	}
-			// }
-			wrap.apply(this, args);
-		}
-	};
+var initialize = function(Type) {
 	initializing = true;
-	Subclass.prototype = new Class();
+	var initialized = new Type;
 	initializing = false;
-	Subclass.extend = this.prototype.constructor.extend;
-	Subclass.prototype.constructor = Subclass;
-	return Subclass;
+	return initialized;
 };
-// TODO: add 'create' class method.
 
-// TODO: Support for supplying an object instance as value for methods.
-$.al.Meta = $.al.MolendijkClass.extend(function(type, instance, playback) {
-	if (typeof instance !== 'string') {
-		instance = 'instance';
-	}
-	if (typeof playback !== 'string') {
-		playback = 'playback';
-	}
+var defaultOpts = {
+	base: Object,
+	name: undefined,
+	construct: $.noop,
+	args: $.noop,
+	proto: {},
+	type: {}
+};
+
+// TODO: Rename `opts.base` to `opts.parent` because it better describes what
+// it is (`base` sounds too much like a root), and we want to use the same
+// term as the type method (to be done) that returns the type that a type was
+// extended from.
+$.al.subtype = function(opts) {
+	// Make sure not to mutate the original `opts` object, as we do not know
+	// where it came from and what else might depends on it.
+	opts = $.extend({}, defaultOpts, opts);
 	
-	this[instance] = function() {
-		return type.apply(this, arguments);
-	};
+	var isNamed = typeof opts.name === 'string' && opts.name.length > 0,
+		// If either this type or one of its parents is named, use it to
+		// name the type function: replace any prepending numbers with `$`,
+		// any other non-valid function name characters with `_`.
+		funcName = (isNamed ? opts.name : opts.base.getName ? opts.base.getName() : '').
+			replace(/^[0-9]+/, function(prefix) {
+				return _.map(prefix, function() { return '$'; }).join('');
+			}).
+			replace(/[^a-zA-Z0-9_$]/g, '_');
 	
-	this[playback] = function(on) {
-		if (!(on instanceof type)) {
-			on = this[instance].apply(this, arguments);
+	var Type = Function('run',
+		"return function " + funcName + "() {\
+			return run.apply(this, arguments);\
+		};"
+	)(function() {
+		if (!(this instanceof Type)) return Type.call.apply(Type, arguments);
+		if (!initializing) Type.instantiate.apply(this, arguments);
+	});
+	
+	Type.prototype = $.al.extend(
+		initialize(opts.base),
+		{ constructor: Type },
+		opts.proto
+	);
+	
+	// TODO: Solve this in a more generic way, i.e. moving it into
+	// `$.al.extend`.
+	// Make sure we ignore `prototype` because obviously we do not want to
+	// replace `Type`'s prototype with the `opts.base`'s prototype. In most
+	// browsers this won't happen, but at least in Firefox (3.6) the
+	// `prototype` property is included in the extend.
+	var baseProps = $.al.extend({}, opts.base);
+	delete baseProps.prototype;
+	
+	// TODO: Make sure we don't copy `__events__` properties. (Also move into
+	// `$.al.extend`?)
+	
+	return $.al.extend(
+		Type,
+		// We make these overridable by methods in `baseProps` as we always
+		// want to use the implementation that is lowest in the type chain.
+		{
+			
+			subtype: function(o) {
+				return $.al.subtype($.extend({}, o, { base: this }));
+			},
+			
+			call: function() {
+				// Default behavior for calling a type without `new` operator
+				// is to return an instance, as seems to be the convention in
+				// jQuery (cf. `$.Event`).
+				return this.instantiate.apply(this, arguments);
+			}
+			
+		},
+		baseProps,
+		isNamed ? {
+			
+			getName: function() {
+				return opts.name;
+			},
+			
+			toString: function() {
+				return this.getName();
+			}
+			
+		} : {},
+		opts.type,
+		{
+			
+			instantiate: function() {
+				var instance = this instanceof Type ? this : initialize(Type);
+				
+				// Note that calling `opts.base` as a regular function will
+				// not do anything useful if `opts.base === Object`, but it
+				// doesn't harm either.
+				var parentArgs = $.isFunction(opts.args) ? opts.args.apply(instance, arguments) : opts.args;
+				opts.base.apply(instance, parentArgs === undefined ? arguments :
+					$.isArray(parentArgs) ? parentArgs : [parentArgs]);
+				opts.construct.apply(instance, arguments);
+				
+				return instance;
+			}
+			
 		}
-		for (var i = 0, l = record.length; i < l; i++) {
-			on[record[i].method].apply(on, record[i].arguments);
-		}
-		return on;
-	};
+	);
+};
+
+// ## Base types
+
+// Every (non-native) type in **jQuery App Layer** is a subtype of this one.
+$.al.Object = $.al.subtype({
 	
-	var self = this,
-		methods = _.keys(this[instance]()),
-		record = [];
-	$.each(methods, function(i, method) {
-		self[method] = function() {
-			record.push({
-				method: method,
-				// context: this,
-				arguments: arguments
-			});
+	name: 'jQuery.al.Object',
+	
+	construct: function(v) {
+		var value;
+		this.valueOf = function(v, notify) {
+			if (arguments.length === 0) {
+				return value;
+			}
+		
+			var change = value !== v;
+			value = v;
+			if (notify === true || change && notify !== false) {
+				$(this).trigger('valuechange', { to: value });
+			}
 			return this;
 		};
-	});
+		
+		// Don't bother to notify `valuechange` upon object instantiation, as
+		// nobody has had the chance to bind an actual handler yet. Not even
+		// an imaginary subtype of `$.al.Object`, as its constructor is
+		// executed after this one.
+		this.valueOf(v, false);
+	},
+	
+	proto: {
+		
+		toString: function() {
+			// We must not omit `.valueOf()` as it would result in an infinite
+			// loop.
+			return this.valueOf() + '';
+		}
+		
+	}
+});
+
+$.al.Boolean = $.al.Object.subtype({
+	
+	name: 'jQuery.al.Boolean',
+	
+	construct: function() {
+		
+		var _valueOf = this.valueOf;
+		this.valueOf = function() {
+			var args = _.toArray(arguments);
+			if (args.length > 0) {
+				// If a new value has been provided, make sure that is gets
+				// passed on as a boolean.
+				args[0] = !!args[0];
+			}
+			return _valueOf.apply(this, args);
+		};
+		
+	}
 	
 });
 
-$.al.Field = $.al.MolendijkClass.extend(function(base, context) {
-	var $registry = $('<div />');
+$.al.Array = $.al.Object.subtype({
 	
-	var lastSignal = {};
-	var signal = function(type) {
-		var change = {
-			from: type in lastSignal ? lastSignal[type] : this.base(),
-			to: this.val()
+	name: 'jQuery.al.Array',
+	
+	construct: function() {
+		// We want $.al.Array to represent array identity, like Array, so do not
+		// allow setting another array instance.
+		var _valueOf = this.valueOf;
+		this.valueOf = function() {
+			// Never output the internal array, as it may be altered without us
+			// being able to detect that and trigger a valuechange event.
+			return _valueOf.call(this).slice();
 		};
-		if (change.from !== change.to) {
-			lastSignal[type] = change.to;
-			$registry.trigger('fieldchange' + type, change);
-		}
-	};
-	var notify = function() {
-		if (this.sleep()) {
-			return;
-		}
-		signal.call(this, 'silent');
-		if (this.notifies()) {
-			signal.call(this, 'notify');
-		}
-	};
-	
-	// The idea behind base is that it is the field's baseline value; the
-	// value against which is decided if a value change has occurred or not.
-	// Setting the base value will never cause notifications.
-	// FIXME: Get rid of this concept.
-	this.base = function(i) {
-		if (arguments.length === 0) {
-			return base;
-		}
-		base = i;
-		return this;
-	};
-	
-	var val;
-	this.val = function(v) {
-		if (arguments.length === 0) {
-			return val === undefined ? this.base() : val;
-		}
-		val = v;
-		notify.call(this);
-		return this;
-	};
-	
-	this.context = function(c) {
-		if (arguments.length === 0) {
-			return context === undefined ? this : context;
-		}
-		context = c;
-		return this;
-	};
-	
-	// TODO: We can move this one to prototype (but do we want to?)
-	this.bind = function() {
-		var args = arguments,
-			binding;
 		
-		// Scenario 1: binding is defined in a setup function.
-		if (args.length === 1 && $.isFunction(args[0])) {
-			binding = args[0];
+		// All mutator methods are defined in terms of `splice`, which is
+		// therefore the only method that cannot be defined on the prototype
+		// because it needs access to the internal (uncloned) array, which is
+		// not (and should not be) possible from the outside.
+		this.splice = function() {
+			var array = _valueOf.call(this),
+				size = array.length,
+				result = Array.prototype.splice.apply(array, arguments);
+	
+			if (array.length !== size || result.length > 0) {
+				$(this).trigger('valuechange', { to: array.slice() });
+			}
+	
+			return result;
+		};
+	},
+	
+	args: function(length) {
+		// If one numeric argument has been passed we follow Array's
+		// interpretation and create an empty array of that length.
+		if (arguments.length === 1 && _.isNumber(length)) {
+			return [new Array(length)];
+		}
+		// The full list of arguments should be stored by the parent constructor
+		// as one array value.
+		// TODO: Do we really need to do the `_.toArray()` here?
+		return [_.toArray(arguments)];
+	},
+	
+	proto: {
+		
+		// TODO: Implement all other [JavaScript 1.5 Array mutator methods](
+		// https://developer.mozilla.org/en/JavaScript/Reference/
+		// Global_Objects/Array#Methods_2).
+		
+		push: function() {
+			this.splice.apply(this, $.merge([this.valueOf().length, 0], arguments));
+			
+			return this.valueOf().length;
+		},
+		
+		size: function(s) {
+			var array = this.valueOf();
+			if (arguments.length === 0) {
+				return array.length;
+			}
+			var change = array.length !== s;
+			this.valueOf().length = s;
+			if (change) {
+				$(this).trigger('valuechange', { to: array.slice() });
+			}
+			return this;
+		},
+		
+		// TODO: Get rid of this `each` concept, as it seems to have no use case.
+		each: function(cb) {
+			var array = this.valueOf();
+			for (var i = 0, l = array.length; i < l; i++) {
+				// TODO: Handle return values (false = break, non-false = continue)
+				cb.call(array[i], i, array[i]);
+			}
+			return this;
 		}
 		
-		// Scenario 2: binding is defined as an event handler and optional
-		// data tree path.
-		else if (args.length >= 2 && typeof args[1] === 'string') {
-			binding = function(val) {
-				var on = args[0];
-				if (!(on instanceof $)) {
-					on = $(on);
-				}
-				on.bind(args[1], function(e, data) {
-					for (var i = 2, l = args.length; i < l; i++) {
-						if ($.isFunction(args[i])) {
-							return args[i].apply(this, $.merge([val], arguments));
-						}
-						data = data[args[i]];
-					}
-					val(data);
+	}
+	
+});
+
+$.al.VirtualArray = $.al.Array.subtype({
+	
+	name: 'jQuery.al.VirtualArray',
+	
+	construct: function(l) {
+		var length;
+		
+		var _size = this.size;
+		this.size = function(s) {
+			var size = _size.call(this);
+			if (arguments.length === 0) {
+				return length === undefined ? size : length;
+			}
+			length = undefined;
+			if (s < size) {
+				_size.call(this, s);
+			} else if (s > size) {
+				length = s;
+				$(this).trigger('sizechange', { to: length });
+			}
+			return this;
+		};
+		
+		// TODO: Move to `.size('loaded')`.
+		this.loaded = function() {
+			return _size.call(this);
+		};
+		
+		var loader,
+			isPristine = true;
+		this.loader = function(l) {
+			loader = l;
+			return this;
+		};
+		this.load = function(cb) {
+			this.isPristine(false);
+			loader.call(this, $.proxy(cb, this));
+			return this;
+		};
+		this.isPristine = function(p) {
+			if (arguments.length === 0) {
+				return isPristine;
+			}
+			isPristine = !!p;
+			return this;
+		};
+		
+		if ($.isFunction(l)) {
+			this.loader(l);
+		}
+	},
+	
+	args: function(loader) {
+		if ($.isFunction(loader)) {
+			return [];
+		}
+	},
+	
+	proto: {
+		
+		each: function(cb) {
+			var _each = this.each;
+			if (this.isPristine()) {
+				return this.load(function() {
+					_each.call(this, cb);
 				});
-			};
+			}
+			return _each.call(this, cb);
 		}
 		
-		// Scenario 3: binding is defined as an observer for a field which is
-		// held in a property of our context.
-		else if (args.length >= 1 && typeof args[0] === 'string') {
-			binding = function(val) {
-				this[args[0]].observe(function(v) {
-					if ($.isFunction(args[1])) {
-						return args[1].call(this, val, v);
-					}
-					val(v);
-				}, args[2]);
-			};
-		}
-		
-		if ($.isFunction(binding)) {
-			binding.call(this.context(), $.proxy(this, 'val'));
-		}
-		
-		return this;
-	};
+	}
 	
-	this.observe = function(observer, condition) {
-		var self = this,
-			observerCondition = true,
-			d, evt;
-		var callObserver = function(e, data) {
-			if (!e || !data || !observerCondition) {
-				d = data;
-				evt = e;
-				return;
-			}
-			// TODO: Supply of data.from is not documented/tested.
-			if (observer.call(self.context(), data.to, data.from) === false) {
-				// TODO: Using return value for this purpose should be tested.
-				$registry.unbind(e);
-			}
-			d = undefined;
-			evt = undefined;
+});
+
+$.al.Wrapper = $.al.Object.subtype({
+	
+	name: 'jQuery.al.Wrapper',
+	
+	construct: function(w, filter) {
+		
+		// TODO: Implement use of `filter`, as a "volatile condition."
+		
+		var _valueOf = this.valueOf;
+		this.valueOf = function() {
+			return _valueOf.call(this);
 		};
-		if (condition instanceof $.al.Field) {
-			condition.observe(function(v) {
-				observerCondition = !!v;
-				callObserver(evt, d);
+		
+		var update = function() {
+			_valueOf.call(this, wrapped.valueOf());
+		};
+		
+		var wrapped;
+		this.wrapped = function(w) {
+			
+			if (arguments.length === 0) {
+				return wrapped;
+			}
+			
+			if (wrapped !== w) {
+				
+				if (wrapped !== undefined) $([wrapped]).unbind('valuechange', update);
+				
+				// TODO: We should make sure that `w` is an instance of
+				// `Object`.
+				wrapped = w;
+				
+				if (wrapped !== undefined) $([wrapped]).bind('valuechange', $.proxy(update, this));
+				
+				_valueOf.call(this, wrapped === undefined ? undefined : wrapped.valueOf());
+				
+			}
+			
+			return this;
+		};
+		
+		// Wrapping `undefined` is interpreted as wrapping nothing, so we can
+		// safely pass `w` on regardless of whether it was actually provided
+		// by the caller of this constructor.
+		this.wrapped(w);
+	},
+	
+	args: []
+	
+});
+
+/*
+$.al.Wrapper = $.al.Object.subtype({
+	
+	name: 'jQuery.al.Wrapper',
+	
+	construct: function() {
+		
+		var _valueOf = this.valueOf;
+		this.valueOf = function(v, notify) {
+			var self = this;
+			
+			if (arguments.length > 0) {
+				$([v]).bind('valuechange', function() {
+					$.fn.trigger.apply($(self), arguments);
+				});
+			}
+			return _valueOf.call(this, arguments);
+		};
+		
+	}
+	
+});
+
+$.al.Decorator = $.al.Object.subtype({
+	
+	name: 'jQuery.al.Decorator',
+	
+	construct: function() {
+		var _valueOf = this.valueOf;
+		this.valueOf = function() {
+			// TODO: Is it a problem that we are returning an uncloned object
+			// (in case of an array for instance). Doesn't `$.al.Record` do
+			// the same?
+			return _valueOf.call(this);
+		};
+		
+		var decorate;
+		this.decorate = function(d) {
+			var self = this;
+			decorate = d;
+			delete this.decorate;
+			$([decorate]).bind('valuechange', function() {
+				_valueOf.call(self, this.valueOf());
 			});
-			observerCondition = condition.val();
-		}
-		$registry.bind('fieldchange' + (condition === null ? 'silent' : 'notify'), function(e, data) {
-			callObserver(e, data);
-		});
-		return this;
-	};
+			_valueOf.call(self, decorate.valueOf());
+			return this;
+		};
+	}
 	
-	var triggersOn;
-	this.triggersOn = function(on) {
-		if (arguments.length === 0) {
-			return triggersOn === undefined ? this.context() : triggersOn;
-		}
-		triggersOn = on;
-		return this;
-	};
+});
+*/
+$.al.Conditional = $.al.Object.subtype({
 	
-	var triggers = {};
-	var always = function() {
-		return true;
-	};
-	this.triggers = function(events) {
-		if (arguments.length === 0) {
-			return triggers;
-		}
+	name: 'jQuery.al.Conditional',
+	
+	construct: function(object, condition) {
+		var self = this,
+			pending;
 		
-		var extension = {};
-		
-		// Short-cut to trigger on every change.
-		if (typeof events === 'string') {
-			extension[events] = always;
-		}
-		// Any sort of object is interpreted as a collection of trigger
-		// behavior.
-		else if (typeof events === 'object') {
-			$.each(events, function(key, value) {
-				if ($.isFunction(value)) {
-					extension[key] = value;
-				} else {
-					extension[key] = function(v) {
-						return v === value;
-					}
-				}
-			});
-		}
-		
-		if (!$.isEmptyObject(extension)) {
-			$.extend(triggers, extension);
-		}
-		// A falsy value means trigger no events at all.
-		else if (!events) {
-			triggers = {};
-		}
-		
-		return this;
-	};
-	
-	// We do not create a field instance before notifies is explicitly set
-	// because otherwise we would end up in a field instantiation loop.
-	var notifies;
-	this.notifies = function(condition) {
-		if (arguments.length === 0) {
-			return notifies === undefined ? true : !!notifies.val();
-		}
-		// TODO: Functions should not be evaluated now but every time the
-		// notifies value is needed. It would be nice if we can implement this
-		// behavior by adding this feature to the general field
-		// implementation.
-		if ($.isFunction(condition)) {
-			condition = condition.call(this.context());
-		}
-		// String values are interpreted as properties of our context.
-		else if (typeof condition === 'string') {
-			condition = this.context()[condition];
-		}
-		if (!(condition instanceof $.al.Field)) {
-			condition = $.al.Field(condition);
-		}
-		// notifies is now guaranteed to be a field.
-		var self = this;
-		notifies = condition.observe(function() {
-			// notify can be safely called at any time, regardless of the
-			// value of notifies and the value that was last notified, as it
-			// will check for itself if it needs to do actual signaling.
-			notify.call(self);
-		});
-		// Observer is not called for current value of notifies, so call
-		// notify right now as well.
-		notify.call(this);
-		return this;
-	};
-	// FIXME: temporary
-	this.notifiesField = function() {
-		return notifies instanceof $.al.Field ? notifies : undefined;
-	};
-	
-	var sleep = false;
-	this.sleep = function(s) {
-		if (arguments.length < 1) {
-			return sleep;
-		}
-		sleep = !!s;
-		notify.call(this);
-		return this;
-	};
-	
-	// Triggering events is always done along with notification, so we can
-	// define one in terms of the other.
-	var self = this;
-	this.observe(function(v) {
-		var eventData = {
-				to: v
-			};
-		$.each(self.triggers(), function(type, condition) {
-			if (condition.call(self.context(), v) === true) {
-				var on = self.triggersOn();
-				if (!(on instanceof $)) {
-					on = $(on);
-				}
-				on.trigger(type, eventData);
+		$(object).bind('valuechange', function(e, data) {
+			if (condition.valueOf()) {
+				$(self).trigger('valuechange', data);
+			} else {
+				pending = arguments;
 			}
 		});
-	});
+		
+		$(condition).bind('valuechange', function(e, data) {
+			if (data.to && pending !== undefined) {
+				pending[0] = pending[0].type;
+				$.fn.trigger.apply($(self), pending);
+				pending = undefined;
+			}
+		});
+	}
 	
 });
-
-$.al.ConjunctionField = $.al.Field.extend(function() {
-	var operands = [];
-	
-	delete this.bind;
-	
-	// TODO: use 'bind' instead of 'operand'.
-	this.operand = function() {
-		var self = this,
-			operand = $.al.Field(false, this.context());
-		operand.
-			observe(function(v) {
-				var conjunction = true;
-				for (var i = 0, l = operands.length; i < l; i++) {
-					conjunction = conjunction && !!operands[i].val();
-				}
-				// TODO: self is here *always* an instance of
-				// $.al.ConjunctionField, even if this constructor is being
-				// called as the result of the instantiation of a subclass.
-				// Is this safe??
-				self.val(conjunction);
-			}).
-			bind.apply(operand, arguments);
-		operands.push(operand);
-		return this;
-	};
-	
-});
-
-$.al.List = $.al.Field.extend(function() {
-	var fetcher;
-	this.fetcher = function(f) {
-		if (arguments.length < 1) {
-			return fetcher;
-		}
-		fetcher = f;
-		return this;
-	};
-	
-	this.fetch = function() {
-		if ($.isFunction(this.fetcher())) {
-			this.fetcher().call(this.context(), $.proxy(this, 'val'));
-		}
-		return this;
-	};
-	
-});
-
 
 }(jQuery));
-
-/* Simple JavaScript Inheritance
- * By John Resig http://ejohn.org/
- * MIT Licensed.
- */
-// Inspired by base2 and Prototype
-(function(){
-  var initializing = false, fnTest = /xyz/.test(function(){xyz;}) ? /\b_super\b/ : /.*/;
-  // The base Class implementation (does nothing)
-  this.al.ResigClass = function(){};
-  
-  // Create a new Class that inherits from this class
-  this.al.ResigClass.extend = function(prop) {
-    var _super = this.prototype;
-    
-    // Instantiate a base class (but only create the instance,
-    // don't run the init constructor)
-    initializing = true;
-    var prototype = new this();
-    initializing = false;
-    
-    // Copy the properties over onto the new prototype
-    for (var name in prop) {
-      // Check if we're overwriting an existing function
-      prototype[name] = typeof prop[name] == "function" && 
-        typeof _super[name] == "function" && fnTest.test(prop[name]) ?
-        (function(name, fn){
-          return function() {
-            var tmp = this._super;
-            
-            // Add a new ._super() method that is the same method
-            // but on the super-class
-            this._super = _super[name];
-            
-            // The method only need to be bound temporarily, so we
-            // remove it when we're done executing
-            var ret = fn.apply(this, arguments);        
-            this._super = tmp;
-            
-            return ret;
-          };
-        })(name, prop[name]) :
-        prop[name];
-    }
-    
-    // The dummy class constructor
-    function Class() {
-      // All construction is actually done in the init method
-      if ( !initializing && this.init )
-        this.init.apply(this, arguments);
-    }
-    
-    // Populate our constructed prototype object
-    Class.prototype = prototype;
-    
-    // Enforce the constructor to be what we expect
-    Class.constructor = Class;
-
-    // And make this class extendable
-    Class.extend = arguments.callee;
-    
-    return Class;
-  };
-}).call(jQuery);
-
-
-
-// Idea for a state-less kind of $.Widget
-// 
-// $.al.plugin = function(methods) {
-// 	
-// }
-// 
-// $.fn.flirt = $.al.plugin({
-// 	
-// 	closest: function() {
-// 		
-// 	},
-// 	
-// 	template: function() {
-// 		
-// 	}
-// 	
-// });
