@@ -1,7 +1,5 @@
 (function($, undefined) {
 
-// TODO: Move `$.al.Selection` to here?
-
 $.fn.selection = function(opts) {
 	// TODO: Iterate over elements in `this`.
 	var $this = this;
@@ -13,6 +11,11 @@ $.fn.selection = function(opts) {
 	}
 	
 	// See if we can obtain settings from `dataview`.
+	// TODO: This logic is incorrect, as it ignores the fact that there can be
+	// several data views active within the current context. That's the reason
+	// we have `$.fn.selection` accept a `template` option to begin with. But
+	// we don't make this distinction when we simply use a filter like
+	// `:dataview-item`.
 	if ($.fn.dataview && $this.dataview('template', opts.template)) {
 		if (!opts.elements) {
 			// TODO: Change `:data(dataview.item)` to something like
@@ -21,10 +24,12 @@ $.fn.selection = function(opts) {
 		}
 		if (!opts.data) {
 			opts.data = function() {
-				// TODO: First check for `.data('selection')`, then for
-				// `.dataview('get')`.
-				var data = $(this).dataview('get');
-				return data === undefined ? $(this).data('selection') : data;
+				var $this = $(this),
+					data = $this.data('selection');
+				// TODO: We should provide `opts.template` to
+				// `.dataview('get')`. See also discussion above.
+				if (data === undefined) data = $this.dataview('get');
+				return data;
 			};
 		}
 	}
@@ -52,7 +57,7 @@ $.fn.selection = function(opts) {
 		opts[opts.selection.contains(opts.data.call(e.target)) ? 'select' : 'unselect'].call($(e.target));
 	});
 	
-	$(opts.selection).bind('valuechange', function(e, data) {
+	var invalidate = function() {
 		var invalidate = {
 			select: [],
 			unselect: []
@@ -68,7 +73,11 @@ $.fn.selection = function(opts) {
 		if (invalidate.unselect.length > 0) {
 			opts.unselect.call($(invalidate.unselect));
 		}
-	});
+	};
+	
+	$(opts.selection).bind('valuechange', invalidate);
+	
+	invalidate();
 	
 	$.each(opts.changeOn || {}, function(eventType, target) {
 		$this.delegate([opts.elements, target].join(' '), eventType, function() {
@@ -126,16 +135,20 @@ $.al.Selection = $.al.Object.subtype({
 	
 	proto: {
 		
-		// TODO: Doesn't work.
 		toggle: function(items) {
+			if (!$.isArray(items)) {
+				items = [items];
+			}
+			
 			var toggle = new HashSet();
 			toggle.addAll(items);
 			
 			var current = new HashSet();
 			current.addAll(this.valueOf());
-			var set = current.union(toggle);
-			var subtract = current.intersection(toggle).values();
 			
+			var set = current.union(toggle);
+			
+			var subtract = current.intersection(toggle).values();
 			for (var i = 0, l = subtract.length; i < l; i++) {
 				set.remove(subtract[i]);
 			}

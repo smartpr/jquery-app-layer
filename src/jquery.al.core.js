@@ -5,6 +5,15 @@
 
 $.al = {};
 
+$.event.special.valuechange = {
+	
+	add: function(handleObj) {
+		var handler = handleObj.handler;
+		handleObj.handler = $.debounce(100, handler);
+	}
+	
+};
+
 // ## Utilities
 
 // // TODO: We can (and should) probably move this delay into `$.event.special`.
@@ -245,7 +254,15 @@ $.al.Boolean = $.al.Object.subtype({
 	
 	name: 'jQuery.al.Boolean',
 	
-	construct: function() {
+	args: [],
+	
+	construct: function(v) {
+		
+		$(this).bind('valuechange', function() {
+			var args = arguments;
+			args[0] = this.valueOf() ? 'valuetrue' : 'valuefalse';
+			$.fn.trigger.apply($(this), args);
+		});
 		
 		var _valueOf = this.valueOf;
 		this.valueOf = function() {
@@ -258,6 +275,89 @@ $.al.Boolean = $.al.Object.subtype({
 			return _valueOf.apply(this, args);
 		};
 		
+		// We want to distinguish between instantiation without a value and
+		// instantiation with a falsy value, as we want to be able to be
+		// certain to be notified of the first value change, regardless of its
+		// value (either `true` or `false`).
+		if (arguments.length > 0) {
+			this.valueOf(v);
+		}
+	}
+	
+});
+
+
+var getObservables = function(value) {
+	if (!(value instanceof Object)) {
+		return [];
+	}
+	// TODO: Work-around JScript's DontEnum bug in the following
+	// iterations.
+	return _(value).chain().
+		values().
+		select(function(property) { return property instanceof Object; }).
+	value();
+};
+
+$.al.Composite = $.al.Object.subtype({
+	
+	name: 'jQuery.al.Composite',
+	
+	args: [],
+	
+	construct: function(v) {
+		
+		var _valueOf = this.valueOf;
+		this.valueOf = function() {
+			// Never provide the original composite object to the outside
+			// world, for two reasons:
+			// 1. As soon as we pass out the original object reference, the
+			//    object can be altered without us being able to detect it and
+			//    trigger a `valuechange` event. By not allowing this from
+			//    happening we will probably prevent more problems and
+			//    confusion than we will cause frustration, because the
+			//    premise is simpler: if the composite changes, we can be
+			//    certain that it will be notified through a `valuechange`
+			//    event.
+			// 2. In order for an object of any type (including a composite)
+			//    to work with `$.al.Wrapper` it requires that the object's
+			//    value is actually changed when it triggers a `valuechange`
+			//    event. In the case of a composite; the composite object
+			//    value's reference needs to be changed. Otherwise the change
+			//    that is notified by the composite simply gets lost inside
+			//    the wrapper who decides that the value has not actually
+			//    changed and does not trigger a `valuechange` event in turn.
+			return $.extend({}, _valueOf.call(this));
+		};
+		
+		var onPropertyChange = function() {
+			_valueOf.call(this, _valueOf.call(this), true);
+		};
+		
+		// TODO: We should be able to unbind these somehow, in order to allow
+		// garbage collection to do its work. Probably leverage an
+		// `$.al.Object`-level `destroy` method for this.
+		$(getObservables(v)).bind('valuechange', $.proxy(onPropertyChange, this));
+		
+		// This condition is not technically necessary (I think), but it makes
+		// sense only to set a value if this was explicitly requested by the
+		// instantiating party.
+		if (arguments.length > 0) {
+			_valueOf.apply(this, arguments);
+		}
+	},
+	
+	proto: {
+		
+		// TODO: Should we DRY up this `get` with `$.al.Record`'s `get`?
+		get: function(path) {
+			if (arguments.length === 0) {
+				return this.valueOf();
+			}
+			// TODO: This deep lookup doesn't really have any use here.
+			return $.getObject(path, this.valueOf());
+		}
+		
 	}
 	
 });
@@ -265,6 +365,18 @@ $.al.Boolean = $.al.Object.subtype({
 $.al.Array = $.al.Object.subtype({
 	
 	name: 'jQuery.al.Array',
+	
+	args: function(length) {
+		// If one numeric argument has been passed we follow Array's
+		// interpretation and create an empty array of that length.
+		if (arguments.length === 1 && _.isNumber(length)) {
+			return [new Array(length)];
+		}
+		// The full list of arguments should be stored by the parent constructor
+		// as one array value.
+		// TODO: Do we really need to do the `_.toArray()` here?
+		return [_.toArray(arguments)];
+	},
 	
 	construct: function() {
 		// We want $.al.Array to represent array identity, like Array, so do not
@@ -291,18 +403,6 @@ $.al.Array = $.al.Object.subtype({
 	
 			return result;
 		};
-	},
-	
-	args: function(length) {
-		// If one numeric argument has been passed we follow Array's
-		// interpretation and create an empty array of that length.
-		if (arguments.length === 1 && _.isNumber(length)) {
-			return [new Array(length)];
-		}
-		// The full list of arguments should be stored by the parent constructor
-		// as one array value.
-		// TODO: Do we really need to do the `_.toArray()` here?
-		return [_.toArray(arguments)];
 	},
 	
 	proto: {
@@ -347,6 +447,12 @@ $.al.Array = $.al.Object.subtype({
 $.al.VirtualArray = $.al.Array.subtype({
 	
 	name: 'jQuery.al.VirtualArray',
+	
+	args: function(loader) {
+		if ($.isFunction(loader)) {
+			return [];
+		}
+	},
 	
 	construct: function(l) {
 		var length;
@@ -396,12 +502,6 @@ $.al.VirtualArray = $.al.Array.subtype({
 		}
 	},
 	
-	args: function(loader) {
-		if ($.isFunction(loader)) {
-			return [];
-		}
-	},
-	
 	proto: {
 		
 		each: function(cb) {
@@ -422,9 +522,41 @@ $.al.Wrapper = $.al.Object.subtype({
 	
 	name: 'jQuery.al.Wrapper',
 	
-	construct: function(w, filter) {
-		
-		// TODO: Implement use of `filter`, as a "volatile condition."
+	args: [],
+	
+	// The `updater` argument determines when `filter` is executed (and
+	// consequently the possibility of change of this object's value). One
+	// could argue that this idea contradicts with **jQuery App Layer**'s
+	// basic premise that It All Just Works™ as long as an object has a
+	// `valueOf` method and triggers `valuechange` events to notify changes.
+	// `$.al.Wrapper` should not be an exception, and if you want DOM elements
+	// to be wrapable you should define a dedicated type that acts as a thin
+	// shell around the element. *But*; such a shell would have basically the
+	// same implementation as `$.al.Wrapper`, except for a few minor element-
+	// specific differences. So then we would end up with a bunch of unDRY
+	// code. Which leads us to the conclusion that `$.al.Wrapper`'s
+	// responsibility needs to include being capable of dealing with "custom"
+	// objects (i.e. objects that do not comply to **jQuery App Layer**'s
+	// conventions). That is where the `updater` arguments comes in.
+	construct: function(wrapped, filter, updater) {
+		// We need `wrapped` to be of type `Object`. If it isn't already we
+		// use `$.al.Object` instead of `Object` due to the embarrassing fact
+		// that the following holds true in IE8:
+		//   `new Object([object HTMLElement]) instanceof Object === false`
+		if (!(wrapped instanceof Object)) wrapped = $.al.Object(wrapped);
+		// TODO: A(n small) optimization would be to just skip calling a
+		// function if `filter` is not one.
+		if (!$.isFunction(filter)) filter = function(value) { return value; };
+		// `updater` can be defined as a string of event type(s) which should
+		// be observed, or as a function that calls its argument whenever an
+		// update should be done.
+		if (updater === undefined) updater = 'valuechange';
+		if (typeof updater === 'string') {
+			var eventType = updater;
+			updater = function(update) {
+				$([wrapped]).bind(eventType, update);
+			};
+		}
 		
 		var _valueOf = this.valueOf;
 		this.valueOf = function() {
@@ -432,117 +564,60 @@ $.al.Wrapper = $.al.Object.subtype({
 		};
 		
 		var update = function() {
-			_valueOf.call(this, wrapped.valueOf());
+			var result = filter.call(this, wrapped.valueOf());
+			// If `filter` does not return anything, don't update the
+			// wrapper's value. This allows for delays and conditions.
+			if (result !== undefined) _valueOf.call(this, result);
 		};
 		
-		var wrapped;
-		this.wrapped = function(w) {
-			
-			if (arguments.length === 0) {
-				return wrapped;
-			}
-			
-			if (wrapped !== w) {
-				
-				if (wrapped !== undefined) $([wrapped]).unbind('valuechange', update);
-				
-				// TODO: We should make sure that `w` is an instance of
-				// `Object`.
-				wrapped = w;
-				
-				if (wrapped !== undefined) $([wrapped]).bind('valuechange', $.proxy(update, this));
-				
-				_valueOf.call(this, wrapped === undefined ? undefined : wrapped.valueOf());
-				
-			}
-			
-			return this;
-		};
+		updater.call(this, $.proxy(update, this));
 		
-		// Wrapping `undefined` is interpreted as wrapping nothing, so we can
-		// safely pass `w` on regardless of whether it was actually provided
-		// by the caller of this constructor.
-		this.wrapped(w);
-	},
-	
-	args: []
-	
-});
-
-/*
-$.al.Wrapper = $.al.Object.subtype({
-	
-	name: 'jQuery.al.Wrapper',
-	
-	construct: function() {
+		update.call(this);
 		
-		var _valueOf = this.valueOf;
-		this.valueOf = function(v, notify) {
-			var self = this;
-			
-			if (arguments.length > 0) {
-				$([v]).bind('valuechange', function() {
-					$.fn.trigger.apply($(self), arguments);
-				});
-			}
-			return _valueOf.call(this, arguments);
-		};
-		
+		// TODO: Provide a means to unwrap; make this object
+		// garbage-collectible (i.e. `.unbind('valuechange', update)`). We
+		// should probably leverage an `$.al.Object`-level `destroy` method
+		// for this.
 	}
 	
 });
 
-$.al.Decorator = $.al.Object.subtype({
-	
-	name: 'jQuery.al.Decorator',
-	
-	construct: function() {
-		var _valueOf = this.valueOf;
-		this.valueOf = function() {
-			// TODO: Is it a problem that we are returning an uncloned object
-			// (in case of an array for instance). Doesn't `$.al.Record` do
-			// the same?
-			return _valueOf.call(this);
-		};
-		
-		var decorate;
-		this.decorate = function(d) {
-			var self = this;
-			decorate = d;
-			delete this.decorate;
-			$([decorate]).bind('valuechange', function() {
-				_valueOf.call(self, this.valueOf());
-			});
-			_valueOf.call(self, decorate.valueOf());
-			return this;
-		};
-	}
-	
-});
-*/
-$.al.Conditional = $.al.Object.subtype({
+$.al.Conditional = $.al.Wrapper.subtype({
 	
 	name: 'jQuery.al.Conditional',
 	
-	construct: function(object, condition) {
-		var self = this,
-			pending;
+	args: function(wrapped, condition) {
+		// `undefined` condition is interpreted as "no condition".
+		if (condition === undefined) condition = true;
+		if (!(condition instanceof Object)) condition = new Boolean(condition);
 		
-		$(object).bind('valuechange', function(e, data) {
-			if (condition.valueOf()) {
-				$(self).trigger('valuechange', data);
-			} else {
-				pending = arguments;
-			}
-		});
+		return [$.al.Composite({
+			wrapped: wrapped,
+			condition: condition
+		}), function(value) {
+			if (value.condition.valueOf()) return value.wrapped.valueOf();
+		}];
+	}
+	
+});
+
+$.al.Element = $.al.Wrapper.subtype({
+	
+	name: 'jQuery.al.Element',
+	
+	args: function(element) {
+		if (typeof element === 'string') element = $(element);
+		if (element instanceof $) element = element[0];
 		
-		$(condition).bind('valuechange', function(e, data) {
-			if (data.to && pending !== undefined) {
-				pending[0] = pending[0].type;
-				$.fn.trigger.apply($(self), pending);
-				pending = undefined;
-			}
-		});
+		return [element, function(value) {
+			return $(value).val();
+		}, function(update) {
+			$(element).bind('focus keydown change click', function() {
+				// We update asynchronously, as we need to give the element
+				// some time to update its value upon `keydown`.
+				setTimeout(update, 0);
+			});
+		}];
 	}
 	
 });

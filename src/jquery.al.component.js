@@ -16,7 +16,7 @@ $.fn.component = function(action, arg) {
 		// We do not care if `component[arg]` is still a property instance or
 		// if it is already installed, as `$.al.Property`'s constructor can
 		// deal with both and they will all eventually lead to the actual
-		// value, which is what a binding is all about.
+		// value, which is what a binding ultimately is all about.
 		return $.al.Property(function() {
 			var component = $this.fetch('component', 'definition');
 			
@@ -34,14 +34,21 @@ $.fn.component = function(action, arg) {
 		
 		this.each(function() {
 			var $this = $(this),
-				// Make sure we do not work (inherit) on the object in `arg`
-				// itself, as we may be using it on more elements than just
-				// `this`.
-				properties = $.extend({}, arg),
+				properties = {},
 				parent = $this.fetch('component', 'definition');
 			
+			// Since `arg` is a definition that may be used for more elements
+			// than just `this`, we need to derive an independent definition
+			// from it.
+			for (key in arg) {
+				properties[key] = arg[key];
+				if (properties[key] instanceof $.al.Property) {
+					properties[key] = properties[key].clone();
+				}
+			}
+			
 			// We don't inherit from components that are already setup. We are
-			// not sure if it technically or conceptually impossible, but we
+			// not sure if it's technically or conceptually impossible, but we
 			// cannot think of a decent use case. In that light, if we end up
 			// trying to do so, this is most probably not intended and can
 			// therefore best be ignored.
@@ -57,10 +64,10 @@ $.fn.component = function(action, arg) {
 			parent = $.extend({ element: this }, $.isFunction(parent) ? parent(false) : parent);
 			
 			$.each(parent, function(key, property) {
-				// Inheritance can occur directly, because the current
-				// component does not contain a definition for a particular
-				// property (or this definition is `undefined`, which means
-				// "inherit from parent component").
+				// Inheritance can occur directly, if the current component
+				// does not contain a definition for a particular property (or
+				// this definition is `undefined`, which means "inherit from
+				// parent component").
 				if (properties[key] === undefined) {
 					properties[key] = property;
 				}
@@ -83,7 +90,7 @@ $.fn.component = function(action, arg) {
 		
 		this.each(function() {
 			var $this = $(this);
-		
+			
 			var component = $this.fetch('component', 'definition');
 			
 			// If a component is already setup, move on.
@@ -116,20 +123,28 @@ $.component.setup = function(cb) {
 // it always has a value other than `undefined` (which means it is never
 // interpreted as inheriting property in the context of a component), and it
 // tries to trigger an event on the element (if available) upon value change.
-// Another way of looking at it is that this function is way of saying: create
-// an object (component) property of type `Type`.
-$.component.property = function(Type) {
-	if (Type === undefined) {
-		Type = $.al.Object;
+$.component.property = function() {
+	var property;
+	if (arguments.length === 2) {
+		// Property is defined in terms of (a binding to) another property.
+		property = $(arguments[0]).component('binding', arguments[1]);
+	} else if (arguments[0] instanceof $.al.Object) {
+		// TODO: The condition we are using in the preceding line is sloppy.
+		// Property is defined in terms of its value.
+		property = $.al.Property(arguments[0]);
+	} else {
+		// Property is defined in terms of its type.
+		var Type = arguments[0] === undefined ? $.al.Object : arguments[0];
+		property = $.al.Property(function() { return new Type(); }, true);
 	}
-	return $.al.Property(function() { return new Type(); }, true).setup(function(me, key) {
+	return property.setup(function(me, key) {
 		var component = this;
 		
 		if (!('element' in component)) return;
 		
 		$([me]).bind('valuechange', function() {
 			var args = _.toArray(arguments);
-			args[0] = 'componentchange:' + key;
+			args[0] = 'component:valuechange:' + key;
 			$.fn.trigger.apply($([component.element]), args);
 		});
 	});
@@ -137,25 +152,25 @@ $.component.property = function(Type) {
 
 // TODO: Run inherited setup(?)
 $.component.inherit = function() {
-	// Does not use `$.component.property`, as the latter is explicitly not
-	// intended for creating inheriting properties.
-	return $.al.Property();
+	// Does not use `$.component.property`, as it is explicitly not intended
+	// for creating inheriting properties.
+	return $.al.Property().setup(function(me, key, setupParent) {
+		if ($.isFunction(setupParent)) setupParent();
+	});
 };
 
-$.component.binding = function(element, key) {
-	return $(element).component('binding', key);
-};
-
+// The interface of `$.component.flag` is identical to that of
+// `$.component.property`, with the slight difference that if no type has been
+// specified (which is the usual scenario for a flag), it will use
+// `$.al.Boolean` (where a `$.component.property` uses `$.al.Object`).
 $.component.flag = function() {
-	return $.component.property($.al.Boolean).setup(function(me, key) {
+	return $.component.property.apply(this, arguments.length === 0 ? [$.al.Boolean] : arguments).setup(function(me, key) {
 		var component = this;
-		
 		if ('element' in component) {
 			$([me]).bind('valuechange', function() {
 				$([component.element]).toggleSwitch(key, this.valueOf());
 			});
 		}
-		
 		me.valueOf(false);
 	});
 };
@@ -255,6 +270,14 @@ $.al.Property = $.al.Object.subtype({
 		this.setup = function(s) {
 			setups.push(s);
 			return this;
+		};
+		
+		this.clone = function() {
+			var clone = $.al.Property(_valueOf.call(this), isLazy);
+			for (var i = 0, l = setups.length; i < l; i++) {
+				clone.setup(setups[i]);
+			}
+			return clone;
 		};
 		
 		this.install = function(context, key) {

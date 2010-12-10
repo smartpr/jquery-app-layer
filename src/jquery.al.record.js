@@ -28,7 +28,8 @@ $.al.Record = $.al.Object.subtype({
 		
 		// TODO: Use `$.fn.data` in order to be compatible with
 		// jquery-datalink.
-		// TODO: Make sure `valuechange` is triggered appropriately.
+		// TODO: Make sure `valuechange` is triggered appropriately: leverage
+		// `$.al.Composite`!(?)
 		set: function(path, value) {
 			if (arguments.length > 0) {
 
@@ -103,8 +104,9 @@ $.al.Record = $.al.Object.subtype({
 				var read = opts.type.read;
 				opts.type.read = function(query, cb) {
 					var Type = this;
+					$([Type]).trigger('read:beforeSend')
 					return read.call(Type, query, function() {
-						$([Type]).trigger('readsuccess');
+						$([Type]).trigger('read:success');
 						if ($.isFunction(cb)) {
 							// TODO: Map data items in `arguments[0]` to
 							// instances of `Type`?

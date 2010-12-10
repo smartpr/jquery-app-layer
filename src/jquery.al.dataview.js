@@ -1,5 +1,7 @@
 (function($, undefined) {
 
+var templateCounter = 0;
+
 $.fn.dataview = function(action, opts) {
 	if (typeof action !== 'string') {
 		opts = action;
@@ -9,6 +11,8 @@ $.fn.dataview = function(action, opts) {
 	switch (action) {
 		
 		// TODO: This action needs some tightening up.
+		// TODO: `template` is not really an action that should be exposed to
+		// the outside I guess, as there is no direct use case for doing so.
 		case 'template':
 			// Prevent infinite loop in case of no template to be found.
 			if (this.length === 0) return;
@@ -69,23 +73,7 @@ $.fn.dataview = function(action, opts) {
 				if ($template.fetch('dataview') === undefined) {
 					$template.store('dataview', {
 						compiled: $.flirt(/^\S*\s([\s\S]*)$/.exec(template.data)[1]),
-						onSetChange: function() {
-							$template.dataview('set');
-						},
-						onItemChange: function() {
-							var $nodes = this,
-								item = $nodes.fetch('dataview', 'item');
-							$nodes.
-								eq(0).before($.flirt($template.fetch('dataview', 'compiled'), [item], function(item) {
-									this.store('dataview', 'item', item);
-									$nodes = this;
-								})).end().
-								remove();
-							// `$nodes` is now the newly rendered item, which
-							// is different from its value in the previous
-							// line of code.
-							$nodes.trigger('invalidate');
-						}
+						id: templateCounter++
 					});
 				}
 			}
@@ -114,10 +102,13 @@ $.fn.dataview = function(action, opts) {
 		case 'get':
 			if (!$.isPlainObject(opts)) opts = { template: opts };
 			
+			// TODO: If `this` is a template node, we can make a short-cut.
+			
 			// If context is part of rendered view, return the closest
 			// (smallest) data piece (item) whose representation it is part
 			// of.
 			// TODO: What to do in case of multiple elements in `this`?
+			// TODO: DRY up with same code under `template`.
 			var $rendered = this.eq(0);
 			if ($rendered.fetch('dataview', 'item') === undefined) {
 				$rendered = $rendered.closest(':data(dataview.item)');
@@ -135,18 +126,11 @@ $.fn.dataview = function(action, opts) {
 		case 'set':
 			// TODO: Can we make this method for judging if data is supplied
 			// directly or not more robust?
-			if (!$.isPlainObject(opts) || !opts.data) opts = { data: opts };
+			opts = (!$.isPlainObject(opts) || !opts.data) ? { data: opts } : $.extend({}, opts);
 			
-			// Make sure `opts.data` always is a set (as opposed to an
-			// item).
+			// Make sure `opts.data` always is a set (as opposed to an item).
 			if (opts.data && !$.isArray(opts.data.valueOf())) opts.data = [opts.data];
 		
-			// TODO: It would be better to have `$.al.Conditional` deal with
-			// `opts.conditional` being `undefined`.
-			if (!('condition' in opts)) {
-				opts.condition = new Boolean(true);
-			}
-			
 			// Use value from `template` to create view of data. Different
 			// types of context are dealt with by `template`. If no
 			// `opts.data` has been provided, use data that is currently
@@ -154,19 +138,46 @@ $.fn.dataview = function(action, opts) {
 			return this.each(function() {
 				var $this = $(this),
 					$template = $($this.dataview('template', opts.template)),
-					data = opts.data || $template.fetch('dataview', 'set');
+					data = opts.data || $template.fetch('dataview', 'set'),
+					boundTo;
+				
+				// TODO: In many scenarios we can introduce a big optimization
+				// by not clearing and rebinding and all that is done here if
+				// we are setting without data (i.e. with the data that is
+				// already being viewed).
 				
 				$this.dataview('clear', opts.template);
 				
-				$template.store('dataview', 'set', data);
+				boundTo = $.al.Conditional(data, opts.condition);
+				$template.
+					store('dataview', 'set', data).
+					store('dataview', 'boundTo', boundTo);
 				
-				$([$.al.Conditional(data, opts.condition)]).bind('valuechange', $template.fetch('dataview', 'onSetChange'));
+				// TODO: DRY up event type construction.
+				$([boundTo]).bind('valuechange.dataview' + $template.fetch('dataview', 'id'), function() {
+					$template.dataview('set');
+				});
 				
 				var invalidate = [];
 				$template.before($.flirt($template.fetch('dataview', 'compiled'), data.valueOf(), function(item) {
 					var $nodes = this;
-					$nodes.store('dataview', 'item', item);
-					$([$.al.Conditional(item, opts.conditional)]).bind('valuechange', $.proxy($template.fetch('dataview', 'onItemChange'), $nodes));
+					boundTo = $.al.Conditional(item, opts.condition);
+					$nodes.store('dataview', {
+						item: item,
+						boundTo: boundTo
+					});
+					$([boundTo]).bind('valuechange.dataview' + $template.fetch('dataview', 'id'), function() {
+						$nodes.
+							eq(0).before($.flirt($template.fetch('dataview', 'compiled'), [item], function(item) {
+								$nodes = this;
+								$nodes.store('dataview', 'item', item);
+							})).end().
+							remove();
+						// `$nodes` is now the newly rendered item, which
+						// is different from its value in the previous
+						// (conceptual) line of code.
+						$nodes.trigger('invalidate');
+					});
 					invalidate.push.apply(invalidate, $nodes.get());
 				}));
 				$(invalidate).trigger('invalidate');
@@ -186,10 +197,19 @@ $.fn.dataview = function(action, opts) {
 				
 				// TODO: Check for existence instead of fetch.
 				if ($template.fetch('dataview', 'set') !== undefined) {
-					$([$template.fetch('dataview', 'set')]).unbind('valuechange', $template.fetch('dataview', 'onSetChange'));
-					$template.del('dataview', 'set');
+					$([$template.fetch('dataview', 'boundTo')]).unbind('valuechange.dataview' + $template.fetch('dataview', 'id'));
+					$template.
+						del('dataview', 'set').
+						del('dataview', 'boundTo');
 					$this.dataview('rendered', opts.template).each(function() {
-						$([$(this).fetch('dataview', 'item')]).unbind('valuechange', $template.fetch('dataview', 'onItemChange'));
+						// TODO: Should we also manually remove data from the
+						// node in order to prevent memory leaks? Remember
+						// that data contains the conditional that is bound
+						// to under `set`, which in turns is done inside a
+						// closure which holds reference to a lot of stuff,
+						// like the nodes that we are currently iterating
+						// over. Doesn't that comprise a circular reference?
+						$([$(this).fetch('dataview', 'boundTo')]).unbind('valuechange.dataview' + $template.fetch('dataview', 'id'));
 					}).remove();
 				}
 				
