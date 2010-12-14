@@ -9,41 +9,33 @@
 			CSS
 		</title>
 		
-	    <script type="text/javascript" src="../lib/modernizr-1.5.min.js"></script>
-		<style type="text/css">
-			
-			div {
-				position: absolute;
-				top: 0;
-				right: 0;
-				bottom: 0;
-				left: 0;
-				background-color: red;
-				-webkit-transition: opacity 1s;
-			}
-			div.no-display {
-				bottom: 100%;
-				opacity: 0;
-				-webkit-transition: opacity 1s, bottom 0s 1s;
-			}
-			
-		</style>
+		<script type="text/javascript" src="http://assets.smartpr.dev/smartpr/js/modernizr-1.6.min.js"></script>
+		<script type="text/javascript" src="http://ajax.googleapis.com/ajax/libs/jquery/1.4.4/jquery.js"></script>
+		<!-- // <script type="text/javascript" src="http://assets.smartpr.dev/jquery.app-layer/lib/flexie.js"></script> -->
+		<link rel="stylesheet" type="text/css" href="css.css" />
 	</head>
 	
 	<body>
 		
-		<div class="no-display">
-			blaaa
+		<div id="view">
+			<div id="header">header <textarea>resizable</textarea></div>
+			<div id="body">
+				<p>
+				lot of content<br />
+				lot of content<br />
+				lot of content<br />
+				lot of content<br />
+				lot of content<br />
+				</p>
+				<p>
+				lot of content<br />
+				lot of content<br />
+				lot of content<br />
+				lot of content<br />
+				lot of content<br />
+				</p>
+			</div>
 		</div>
-		
-		<script type="text/javascript" src="http://ajax.googleapis.com/ajax/libs/jquery/1.4.2/jquery.js"></script>
-		<script type="text/javascript">
-			
-			$('html').click(function() {
-				$('div').toggleClass('display no-display');
-			});
-			
-		</script>
 		
 	</body>
 

@@ -313,20 +313,20 @@ $.al.Composite = $.al.Object.subtype({
 			// world, for two reasons:
 			// 1. As soon as we pass out the original object reference, the
 			//    object can be altered without us being able to detect it and
-			//    trigger a `valuechange` event. By not allowing this from
-			//    happening we will probably prevent more problems and
-			//    confusion than we will cause frustration, because the
-			//    premise is simpler: if the composite changes, we can be
-			//    certain that it will be notified through a `valuechange`
-			//    event.
+			//    trigger a `valuechange` event. By not allowing this to
+			//    happen we will probably prevent more problems and confusion
+			//    than we will cause frustration, because the premise is
+			//    simpler: if the composite changes, we can be certain that it
+			//    will be notified through a `valuechange` event.
 			// 2. In order for an object of any type (including a composite)
 			//    to work with `$.al.Wrapper` it requires that the object's
 			//    value is actually changed when it triggers a `valuechange`
 			//    event. In the case of a composite; the composite object
 			//    value's reference needs to be changed. Otherwise the change
 			//    that is notified by the composite simply gets lost inside
-			//    the wrapper who decides that the value has not actually
-			//    changed and does not trigger a `valuechange` event in turn.
+			//    the wrapper who decides that the value did not actually
+			//    change and does not trigger a `valuechange` event as a
+			//    result.
 			return $.extend({}, _valueOf.call(this));
 		};
 		
@@ -526,18 +526,19 @@ $.al.Wrapper = $.al.Object.subtype({
 	
 	// The `updater` argument determines when `filter` is executed (and
 	// consequently the possibility of change of this object's value). One
-	// could argue that this idea contradicts with **jQuery App Layer**'s
-	// basic premise that It All Just Works™ as long as an object has a
-	// `valueOf` method and triggers `valuechange` events to notify changes.
-	// `$.al.Wrapper` should not be an exception, and if you want DOM elements
-	// to be wrapable you should define a dedicated type that acts as a thin
-	// shell around the element. *But*; such a shell would have basically the
-	// same implementation as `$.al.Wrapper`, except for a few minor element-
-	// specific differences. So then we would end up with a bunch of unDRY
-	// code. Which leads us to the conclusion that `$.al.Wrapper`'s
-	// responsibility needs to include being capable of dealing with "custom"
-	// objects (i.e. objects that do not comply to **jQuery App Layer**'s
-	// conventions). That is where the `updater` arguments comes in.
+	// could argue that the necessity of such a function contradicts with
+	// **jQuery App Layer**'s basic premise that It All Just Works™ as long as
+	// an object has a `valueOf` method and triggers `valuechange` events to
+	// notify changes. `$.al.Wrapper` should not be an exception, and if you
+	// want DOM elements to be wrapable you should define a dedicated type
+	// that acts as a thin shell around the element. *But*; such a shell would
+	// have basically the same implementation as `$.al.Wrapper`, except for a
+	// few minor element-specific differences. So then we would end up with a
+	// bunch of non-DRY code. Which leads us to the conclusion that
+	// `$.al.Wrapper`'s responsibility needs to include being capable of
+	// dealing with "custom"  objects (i.e. objects that do not comply to
+	// **jQuery App Layer**'s conventions). That is where the `updater`
+	// arguments comes in.
 	construct: function(wrapped, filter, updater) {
 		// We need `wrapped` to be of type `Object`. If it isn't already we
 		// use `$.al.Object` instead of `Object` due to the embarrassing fact
@@ -601,6 +602,9 @@ $.al.Conditional = $.al.Wrapper.subtype({
 	
 });
 
+// TODO: Allow setting of an element's value through this object.
+// TODO: Allow setting (changing) the represented element.
+// TODO: Use this type to represent components's `element`?
 $.al.Element = $.al.Wrapper.subtype({
 	
 	name: 'jQuery.al.Element',

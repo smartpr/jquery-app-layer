@@ -28,7 +28,8 @@ $.fn.component = function(action, arg) {
 		}, true);
 	}
 	
-	// `arg` is the properties that need to go on the component.
+	// `arg` is a definition of the properties that need to go on the
+	// component.
 	
 	if (arg !== undefined) {
 		
@@ -72,9 +73,15 @@ $.fn.component = function(action, arg) {
 					properties[key] = property;
 				}
 				// Or the current component contains a property without a
-				// value (i.e. a value of `undefined`), in which case the
-				// parent property will be assigned as its value.
-				else if (properties[key] instanceof $.al.Property && properties[key].valueOf() === undefined) {
+				// value, in which case the parent property will be assigned
+				// as its value. Note that `.isEmpty()` is used to as opposed
+				// to `.valueOf() === undefined` because the latter would
+				// evaluate lazily defined values, which is not something we
+				// would like to do at this stage, as they might refer to
+				// other properties or values that have yet to be defined
+				// (defined; as in constructed without installation and
+				// setup).
+				else if (properties[key] instanceof $.al.Property && properties[key].isEmpty()) {
 					properties[key].valueOf(property);
 				}
 			});
@@ -129,6 +136,10 @@ $.component.property = function() {
 		// Property is defined in terms of (a binding to) another property.
 		property = $(arguments[0]).component('binding', arguments[1]);
 	} else if (arguments[0] instanceof $.al.Object) {
+		// TODO: We should verify if we really need to take instances, as it
+		// doesn't really make things more intuitive. On top of that, it is
+		// impossible to always guess correctly if an argument is intended as
+		// an instance or a type.
 		// TODO: The condition we are using in the preceding line is sloppy.
 		// Property is defined in terms of its value.
 		property = $.al.Property(arguments[0]);
@@ -262,8 +273,23 @@ $.al.Property = $.al.Object.subtype({
 				// We are dealing with a "get" call, and the value is to be
 				// evaluated lazily.
 				value = value.call(this);
+				// A property should be consistent with respect to its value.
+				// I.e. it should not deliver a different value upon every
+				// request. In case of a lazily defined value this means that
+				// we should make sure that the evaluation function is only
+				// executed once, after which the property turns into a non-
+				// lazy state.
+				this.valueOf(value, false, false);
 			}
 			return value;
+		};
+		
+		// This enables one to check for emptiness without losing potential
+		// laziness.
+		this.isEmpty = function() {
+			// Known laziness entails non-emptiness. Make sure to preserve
+			// lazy state in that scenario.
+			return isLazy !== true && this.valueOf() === undefined;
 		};
 		
 		var setups = [];
@@ -291,9 +317,9 @@ $.al.Property = $.al.Object.subtype({
 				// This property holds another property, so delegate
 				// installation and store its setup function.
 				valueSetup = value.install(context, key);
-				// `this.valueOf()` may not have returned the actual value,
-				// but an inherited property, so update `value` as soon as we
-				// can be certain that we have found the property value.
+				// `this.valueOf()` has not returned the actual value, but an
+				// inherited property, so update `value` as soon as we can be
+				// certain that we have found the property value.
 				value = context[key];
 			} else {
 				context[key] = value;
