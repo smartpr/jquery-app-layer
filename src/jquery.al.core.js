@@ -5,15 +5,6 @@
 
 $.al = {};
 
-$.event.special.valuechange = {
-	
-	add: function(handleObj) {
-		var handler = handleObj.handler;
-		handleObj.handler = $.debounce(100, handler);
-	}
-	
-};
-
 // ## Utilities
 
 // // TODO: We can (and should) probably move this delay into `$.event.special`.
@@ -337,6 +328,9 @@ $.al.Composite = $.al.Object.subtype({
 		// TODO: We should be able to unbind these somehow, in order to allow
 		// garbage collection to do its work. Probably leverage an
 		// `$.al.Object`-level `destroy` method for this.
+		// TODO: Somehow signal to `$.event.special.valuechange` that we want
+		// all upcoming changes among the observables to be completed before
+		// a `valuechange` handlers is being called.
 		$(getObservables(v)).bind('valuechange', $.proxy(onPropertyChange, this));
 		
 		// This condition is not technically necessary (I think), but it makes
@@ -625,5 +619,21 @@ $.al.Element = $.al.Wrapper.subtype({
 	}
 	
 });
-
+/*
+$.al.Conjunction = $.al.Wrapper.subtype({
+	
+	name: 'jQuery.al.Conjunction',
+	
+	args: [$.al.Composite()],
+	
+	construct: function() {
+		
+		this.operand = function(o) {
+			
+		};
+		
+	}
+	
+});
+*/
 }(jQuery));

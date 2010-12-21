@@ -97,6 +97,12 @@ $.al.Selection = $.al.Object.subtype({
 	
 	name: 'jQuery.al.Selection',
 	
+	args: function() {
+		var set = new HashSet();
+		set.addAll(arguments);
+		return [set];
+	},
+	
 	construct: function() {
 		
 		var _valueOf = this.valueOf;
@@ -104,6 +110,7 @@ $.al.Selection = $.al.Object.subtype({
 			return _valueOf.call(this).values();
 		};
 		
+		// TODO: Isn't this *exactly* like `valueOf`?
 		this.change = function(items) {
 			if (!$.isArray(items)) {
 				items = [items];
@@ -125,12 +132,6 @@ $.al.Selection = $.al.Object.subtype({
 			return subset.isSubsetOf(_valueOf.call(this));
 		};
 		
-	},
-	
-	args: function() {
-		var set = new HashSet();
-		set.addAll(arguments);
-		return [set];
 	},
 	
 	proto: {

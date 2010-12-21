@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en" class="no-js">
+
+	<head>
+		<meta http-equiv="X-UA-Compatible" content="IE=Edge">
+		<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+		
+		<title>
+			$.component
+		</title>
+		
+		<style type="text/css">
+		</style>
+	</head>
+	
+	<body>
+		
+		<label><input type="checkbox" /> Display</label>
+		
+		<button class="load">Load</button>
+		<button class="delete">Delete selected</button>
+		
+		<hr />
+		
+		<div id="component">
+			
+			<input type="checkbox" />
+			
+			<span><!-- selected <%= selected.size() %>, displayed <%= contacts.loaded() %>, out of <%= contacts.size() %> contacts --></span>
+			
+			<input type="search" />
+			
+			<ul>
+				<!--
+					<li data-id="<%= get('id') %>">
+						<input type="text" value="<%= get('contact_name') || get('medium_name') || get('emails').join(', ') || safe('&ndash;') %>" />
+						<button>Save contact with id <%= get('id') %></button>
+					</li>
+				-->
+			</ul>
+			
+			<blockquote>
+				<!--tester
+					<span>${}</span>
+				-->
+			</blockquote>
+			
+		</div>
+		
+		<script type="text/javascript" src="../lib/underscore.js"></script>
+		<script type="text/javascript" src="http://ajax.microsoft.com/ajax/jQuery/jquery-1.4.3.js"></script>
+		<script type="text/javascript" src="http://ajax.microsoft.com/ajax/jquery.templates/beta1/jquery.tmpl.js"></script>
+		<script type="text/javascript" src="../lib/jshashtable-2.1_src.js"></script>
+		<script type="text/javascript" src="../lib/jshashset_src.js"></script>
+		<script type="text/javascript" src="../lib/jquery.ba-getobject.js"></script>
+		<script type="text/javascript" src="../lib/jquery.ba-throttle-debounce.js"></script>
+		<script type="text/javascript" src="../src/jquery.al.core/base.js"></script>
+		<script type="text/javascript" src="../src/jquery.al.core/flag.js"></script>
+		<script type="text/javascript" src="../src/jquery.al.core/valuechange.js"></script>
+		<script type="text/javascript" src="../src/jquery.al.core/subtype.js"></script>
+		<script type="text/javascript" src="../src/jquery.al.core/object.js"></script>
+		<script type="text/javascript" src="../src/jquery.al.core/boolean.js"></script>
+		<script type="text/javascript" src="../src/jquery.al.core/wrapper.js"></script>
+		<script type="text/javascript" src="../src/jquery.al.core/composite.js"></script>
+		<script type="text/javascript" src="../src/jquery.al.core/conjunction.js"></script>
+		<script type="text/javascript" src="../src/jquery.al.core/element.js"></script>
+		<script type="text/javascript">
+			
+			// ...
+			
+		</script>
+		
+	</body>
+
+</html>

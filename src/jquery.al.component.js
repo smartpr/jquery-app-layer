@@ -95,6 +95,8 @@ $.fn.component = function(action, arg) {
 	
 	if (action === 'setup') {
 		
+		$.events.hold();
+		
 		this.each(function() {
 			var $this = $(this);
 			
@@ -108,6 +110,8 @@ $.fn.component = function(action, arg) {
 			needSetup.remove(this);
 		});
 		
+		$.events.release();
+		
 	}
 	
 	return this;
@@ -117,12 +121,8 @@ $.component = function() {
 	return $.al.Component.apply(undefined, arguments);
 };
 
-$.component.setup = function(cb) {
+$.component.setup = function() {
 	$(needSetup.values()).component('setup');
-	// TODO: Replace this dumb timeout with a mechanism which observes the
-	// call stack and calls `cb` when it is empty. Should probably go into
-	// `$.event.special.valuechange`.
-	setTimeout(cb, 1000);
 };
 
 // The significance of `$.component.property` as opposed to `$.al.Property` is
@@ -135,14 +135,6 @@ $.component.property = function() {
 	if (arguments.length === 2) {
 		// Property is defined in terms of (a binding to) another property.
 		property = $(arguments[0]).component('binding', arguments[1]);
-	} else if (arguments[0] instanceof $.al.Object) {
-		// TODO: We should verify if we really need to take instances, as it
-		// doesn't really make things more intuitive. On top of that, it is
-		// impossible to always guess correctly if an argument is intended as
-		// an instance or a type.
-		// TODO: The condition we are using in the preceding line is sloppy.
-		// Property is defined in terms of its value.
-		property = $.al.Property(arguments[0]);
 	} else {
 		// Property is defined in terms of its type.
 		var Type = arguments[0] === undefined ? $.al.Object : arguments[0];
@@ -178,6 +170,8 @@ $.component.flag = function() {
 	return $.component.property.apply(this, arguments.length === 0 ? [$.al.Boolean] : arguments).setup(function(me, key) {
 		var component = this;
 		if ('element' in component) {
+			// TODO: Trigger `'component:valuetrue:' + key` and
+			// `'component:valuefalse:' + key` events.
 			$([me]).bind('valuechange', function() {
 				$([component.element]).toggleSwitch(key, this.valueOf());
 			});

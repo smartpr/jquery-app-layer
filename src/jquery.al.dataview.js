@@ -162,6 +162,8 @@ $.fn.dataview = function(action, opts) {
 				$template.before($.flirt($template.fetch('dataview', 'compiled'), data.valueOf(), function(item) {
 					var $nodes = this;
 					boundTo = $.al.Conditional(item, opts.condition);
+					// TODO: We might be able to just store `boundTo` and
+					// obtain `item` from it when we need it.
 					$nodes.store('dataview', {
 						item: item,
 						boundTo: boundTo
@@ -170,7 +172,10 @@ $.fn.dataview = function(action, opts) {
 						$nodes.
 							eq(0).before($.flirt($template.fetch('dataview', 'compiled'), [item], function(item) {
 								$nodes = this;
-								$nodes.store('dataview', 'item', item);
+								$nodes.store('dataview', {
+									item: item,
+									boundTo: boundTo
+								});
 							})).end().
 							remove();
 						// `$nodes` is now the newly rendered item, which
