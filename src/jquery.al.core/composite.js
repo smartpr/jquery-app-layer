@@ -42,11 +42,19 @@ $.al.Composite = $.al.Object.subtype({
 			//    the composite simply gets lost inside the wrapper who decides
 			//    that the value did not actually change and does not trigger a
 			//    `valuechange` event as a result.
-			return _.clone(_valueOf.call(this));
+			
+			// TODO: There is a problem with returning a different value when
+			// the value is not actually changed: it incorrectly results in
+			// a change of value in case this object is wrapped.
+			var obj = _valueOf.call(this);
+			// TODO: These are temporary work-arounds until we make
+			// composite a subtype of dict.
+			if (arguments.length === 1) return obj[arguments[0]];
+			return obj;
 		};
 		
 		var onPropertyChange = function() {
-			_valueOf.call(this, this.valueOf());
+			_valueOf.call(this, _.clone(this.valueOf()));
 		};
 		
 		// TODO: We should be able to unbind these somehow, in order to allow

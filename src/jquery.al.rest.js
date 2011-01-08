@@ -35,11 +35,10 @@ $.Rest = function(url, dataType, error, validate) {
 				data: contentType === 'application/json' ? JSON.stringify(data) : data,
 				cache: false,	// IE tends to cache xhr responses.
 				// TODO: smartpr api expects traditional (I think?)
-				// traditional: true,
+				traditional: true,
 				complete: function(xhr, textStatus) {
 					// console.log('$.ajax complete:');
 					// console.log(textStatus);
-					
 					// TODO: We probably want to cancel the request as soon
 					// as the xhr does not validate...
 					if ($.isFunction(validate)) {

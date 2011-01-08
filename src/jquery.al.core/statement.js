@@ -12,7 +12,12 @@ $.al.Statement = $.al.Wrapper.subtype({
 		
 		this.operand = function(setup) {
 			var operand = $.al.Boolean(false),
-				operands = _wraps.call(this).valueOf();
+				operands = _.clone(_wraps.call(this).valueOf());
+				// TODO: The clone above is fix the following BUG. Test case:
+				// Understand why!
+				/*
+				o = $.al.Object(false); c = $.al.Conjunction().operand(function(operand) { operand.valueOf(true); }).operand(function(operand) { $(o).bind('valuechange', function() { operand.valueOf(this.valueOf()); }); });$(c).bind('valuechange', function() { console.log(this.valueOf()); });
+				*/
 			
 			// Setup before assigning updated collection of operands, as
 			// setting new `wraps` will trigger value re-evaluation already.
@@ -32,9 +37,11 @@ $.al.Statement = $.al.Wrapper.subtype({
 	
 });
 
-$.al.Conjunction = $.al.Statement.subtype({
+// TODO: Subtypes below could be a bit DRYer.
+
+$.al.And = $.al.Statement.subtype({
 	
-	name: 'jQuery.al.Conjunction',
+	name: 'jQuery.al.And',
 	
 	args: [$.al.Composite([]), function(operands) {
 		return operands.length === 0 ? undefined :
@@ -43,9 +50,9 @@ $.al.Conjunction = $.al.Statement.subtype({
 	
 });
 
-$.al.Disjunction = $.al.Statement.subtype({
+$.al.Or = $.al.Statement.subtype({
 	
-	name: 'jQuery.al.Disjunction',
+	name: 'jQuery.al.Or',
 	
 	args: [$.al.Composite([]), function(operands) {
 		return operands.length === 0 ? undefined :

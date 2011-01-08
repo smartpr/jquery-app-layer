@@ -34,29 +34,29 @@ $.al.VirtualArray = $.al.Array.subtype({
 			return _size.call(this);
 		};
 		
-		var loader,
-			isPristine = true;
-		this.loader = function(l) {
-			loader = l;
-			return this;
-		};
-		this.load = function(cb) {
-			this.isPristine(false);
-			loader.call(this, $.proxy(cb, this));
-			return this;
-		};
-		this.isPristine = function(p) {
-			if (arguments.length === 0) {
-				return isPristine;
-			}
-			isPristine = !!p;
-			return this;
-		};
-		
-		if ($.isFunction(l)) {
-			this.loader(l);
-		}
-	},
+		// var loader,
+		// 	isPristine = true;
+		// this.loader = function(l) {
+		// 	loader = l;
+		// 	return this;
+		// };
+		// this.load = function(cb) {
+		// 	this.isPristine(false);
+		// 	loader.call(this, $.proxy(cb, this));
+		// 	return this;
+		// };
+		// this.isPristine = function(p) {
+		// 	if (arguments.length === 0) {
+		// 		return isPristine;
+		// 	}
+		// 	isPristine = !!p;
+		// 	return this;
+		// };
+		// 
+		// if ($.isFunction(l)) {
+		// 	this.loader(l);
+		// }
+	}/*,
 	
 	proto: {
 		
@@ -71,7 +71,7 @@ $.al.VirtualArray = $.al.Array.subtype({
 			return _each.call(this, cb);
 		}
 		
-	}
+	}*/
 	
 });
 

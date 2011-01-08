@@ -6,8 +6,15 @@ $.fn.selection = function(opts) {
 	
 	opts = $.extend({}, opts);
 	
-	if (!opts.selection) {
-		opts.selection = $.al.Selection();
+	var selection = $.al.Selection();
+	// TODO: Checking if `opts.selection` is an array should not be required
+	// in order to prevent errors (as is currently the case). `$.al.selection`
+	// should simply not be called with a non-array `opts.selection`.
+	if (opts.selection instanceof $.al.Array) {
+		$([selection]).bind('valuechange', function() {
+			opts.selection.valueOf(this.valueOf());
+		});
+		selection.change(opts.selection.valueOf());
 	}
 	
 	// See if we can obtain settings from `dataview`.
@@ -54,7 +61,7 @@ $.fn.selection = function(opts) {
 	// TODO: Move from `select` and `unselect` to `invalidate`?
 	
 	$this.bind('invalidate', function(e) {
-		opts[opts.selection.contains(opts.data.call(e.target)) ? 'select' : 'unselect'].call($(e.target));
+		opts[selection.contains(opts.data.call(e.target)) ? 'select' : 'unselect'].call($(e.target));
 	});
 	
 	var invalidate = function() {
@@ -64,7 +71,7 @@ $.fn.selection = function(opts) {
 		};
 		
 		$this.find(opts.elements).each(function() {
-			invalidate[opts.selection.contains(opts.data.call(this)) ? 'select' : 'unselect'].push(this);
+			invalidate[selection.contains(opts.data.call(this)) ? 'select' : 'unselect'].push(this);
 		});
 		
 		if (invalidate.select.length > 0) {
@@ -75,20 +82,26 @@ $.fn.selection = function(opts) {
 		}
 	};
 	
-	$(opts.selection).bind('valuechange', invalidate);
+	$([selection]).bind('valuechange', invalidate);
 	
 	invalidate();
 	
 	$.each(opts.changeOn || {}, function(eventType, target) {
 		$this.delegate([opts.elements, target].join(' '), eventType, function() {
-			opts.selection.change(opts.data.call(this));
+			selection.change(opts.data.call(this));
 		});
 	});
 	$.each(opts.toggleOn || {}, function(eventType, target) {
 		$this.delegate([opts.elements, target].join(' '), eventType, function() {
-			opts.selection.toggle(opts.data.call(this));
+			selection.toggle(opts.data.call(this));
 		});
 	});
+
+	if (opts.selection instanceof $.al.Array) {
+		$([opts.selection]).bind('valuechange', function() {
+			selection.change(this.valueOf());
+		});
+	}
 	
 	return this;
 };
@@ -105,9 +118,10 @@ $.al.Selection = $.al.Object.subtype({
 	
 	construct: function() {
 		
-		var _valueOf = this.valueOf;
+		var _valueOf = this.valueOf,
+			values = [];
 		this.valueOf = function() {
-			return _valueOf.call(this).values();
+			return values;
 		};
 		
 		// TODO: Isn't this *exactly* like `valueOf`?
@@ -119,7 +133,14 @@ $.al.Selection = $.al.Object.subtype({
 			var set = _valueOf.call(this);
 			set.clear();
 			set.addAll(items);
-			if (change) $(this).trigger('valuechange', { to: items });
+			// We must cache a representation of the set's values at this
+			// point, because we want to make sure that the object reference
+			// only changes when the selection's actual value changes. If we
+			// create a new selection value every time it is requested (in
+			// `this.valueOf`) then we will get problems with wrappers
+			// thinking that the selection has changed while it hasn't.
+			values = _valueOf.call(this).values();
+			if (change) $(this).trigger('valuechange', { to: values });
 			return this;
 		};
 		
