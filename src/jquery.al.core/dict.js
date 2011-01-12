@@ -23,6 +23,8 @@ $.al.Dict = $.al.Object.subtype({
 			// and tighter way:
 			// - `onItemChange` should be called once instead of once for
 			//   every item.
+			// - If the new value is not different from the current one, no
+			//   `valuechange` should be triggered.
 			// - Use object creator as in:
 			//   (http://github.com/documentcloud/underscore/issues/90).
 			if (arguments.length === 1 && typeof key !== 'string') {
@@ -101,11 +103,16 @@ $.al.Dict = $.al.Object.subtype({
 			return self;
 		},
 		
-		destroy: function() {
-			this.clear();
-			
-			return this;
-		}
+		// destroy: function() {
+		// 	// TODO: Why is this?
+		// 	// this.clear();
+		// 	
+		// 	// TODO: We should not have to repeat this code (which is already
+		// 	// present in `$.al.Object.destroy`).
+		// 	$(this).triggerHandler('destroy');
+		// 	
+		// 	return this;
+		// }
 		
 	}
 	

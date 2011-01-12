@@ -61,23 +61,24 @@ var initialize = function(Type) {
 	return initialized;
 };
 
-var defaultOpts = {
-	base: Object,
-	name: undefined,
-	construct: $.noop,
-	args: $.noop,
-	proto: {},
-	type: {}
-};
-
 // TODO: Rename `opts.base` to `opts.parent` because it better describes what
 // it is (`base` sounds too much like a root), and we want to use the same
 // term as the type method (to be done) that returns the type that a type was
-// extended from.
+// extended from. Or rename to `opts.supertype`.
 $.al.subtype = function(opts) {
 	// Make sure not to mutate the original `opts` object, as we do not know
 	// where it came from and what else might depends on it.
-	opts = $.extend({}, defaultOpts, opts);
+	opts = $.extend({
+		base: Object,
+		name: undefined,
+		construct: $.noop,
+		args: $.noop,
+		proto: {},
+		type: {}
+	}, opts);
+	
+	// TODO: If `opts.base` has a `subtype` method, simply use that one and
+	// we're done.
 	
 	var isNamed = typeof opts.name === 'string' && opts.name.length > 0,
 		// If either this type or one of its parents is named, use it to
@@ -148,6 +149,17 @@ $.al.subtype = function(opts) {
 		} : {},
 		opts.type,
 		{
+			
+			// TODO: Not sure if we want to support this, as it might trigger
+			// a way of thinking that is not recommended: as if it is a good
+			// idea for type methods to forward their implementation to a
+			// method on a supertype. This is generally not a good idea,
+			// because the supertype can be anything -- including types that
+			// were not created by `$.al.subtype` (and therefore probably do
+			// not have many of the type methods that `$.al.subtype` creates).
+			supertype: function() {
+				return opts.base;
+			},
 			
 			instantiate: function() {
 				var instance = this instanceof Type ? this : initialize(Type);

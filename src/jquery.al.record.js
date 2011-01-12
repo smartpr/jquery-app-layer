@@ -1,3 +1,418 @@
+(function($, undefined) {
+
+var interval = 250;
+
+var index = new Hashtable(function(record) {
+	// TODO: Increase bucket granularity by introducing some sort of
+	// identifier to this hashcode.
+	return record.constructor.toString();
+});
+var normalize = function(records, Type) {
+	var n = _.map(records, function(record) {
+		if (!(record instanceof Type)) record = Type.instantiate(record);
+		
+		var indexed = index.get(record);
+		
+		if (indexed !== null) return indexed.valueOf(record.valueOf());
+		
+		index.put(record, record);
+		$(record).one('destroy', function() {
+			index.remove(this);
+		});
+		return record;
+	});
+	console.log('index size = ', index.size());
+	return n;
+};
+
+var makeMockupStoreFunction = function(verb) {
+	return function(a, b, c) {
+		console.warn("No implementation for " + verb + " on ", this, " with arguments ", arguments);
+	};
+};
+
+var makeStoreFunction = function(type, operation, verb) {
+	
+	var request = {
+		now: $.debounce(interval, true, operation),
+		soon: $.debounce(interval, false, operation)
+	};
+	type[verb] = function() {
+		// TODO: We can rewrite this in a more concise manner in
+		// which the call to `request.*` is constructed right away
+		// based on `arguments` and `operation.length`. We should
+		// also make sure that the callback is always passed in
+		// the right position, that is as argument with index
+		// `operation.length - 1`.
+		// Also; approach with looking at `operation.length` currently fails
+		// with mockup functions.
+		
+		var Type = this,
+			query = _.toArray(arguments).slice(0, operation.length - 1),
+			cb = arguments[operation.length - 1] || $.noop,
+			debounce = arguments[operation.length];
+		
+		$(Type).triggerHandler(verb + ':beforeSend');
+		request[debounce ? 'soon' : 'now'].apply(Type, $.merge(query, [function(items) {
+			var args = $.merge([normalize(items, Type)], _.rest(arguments));
+			cb.apply(Type, args);
+			$(Type).triggerHandler(verb + ':success', args);
+		}]));
+		
+		return this;
+	};
+	return type;
+	
+};
+
+var makeRecordSaveMethod = function(createOperation) {
+	
+	var createRequest = {
+		now: $.debounce(interval, true, createOperation),
+		soon: $.debounce(interval, false, createOperation)
+	};
+	return function(data, cb, debounce) {
+		data = data || this.valueOf();
+		cb = cb || $.noop;
+		
+		var self = this,
+			Type = this.constructor;
+		
+		if (this.isNew()) {
+			$(Type).triggerHandler('create:beforeSend');
+			createRequest[debounce ? 'soon' : 'now'].call(Type, $.isEmptyObject(data) ? { contact_name: "0new" } : data, function(item) {
+				self.valueOf(item);
+				// TODO: supply created instance in an array (like currently)?
+				var args = $.merge([normalize([self], Type)], _.rest(arguments));
+				cb.apply(Type, args);	// TODO: `Type` as context?
+				$(Type).triggerHandler('create:success', args);
+			});
+		} else {
+			// TODO: Use same code as used for custom store methods on list.
+			Type.update.call(Type, [this], data, cb, debounce);
+		}
+		
+		return this;
+	};
+	
+};
+
+$.al.Record = $.al.Dict.subtype({
+	
+	name: 'jQuery.al.Record',
+	
+	proto: {
+		
+		isNew: function() {
+			return true;
+		},
+		
+		save: makeRecordSaveMethod(makeMockupStoreFunction('create')),
+		
+		equals: function(record) {
+			return this === record;
+		}
+		
+	},
+	
+	type: _(['read', 'update', 'del']).chain().reduce(function(type, verb) {
+		
+		return makeStoreFunction(type, makeMockupStoreFunction(verb), verb);
+		
+	}, {}).extend({
+		
+		create: function() {
+			var instance = this.instantiate();
+			instance.save.apply(instance, arguments);
+			return this;
+		},
+		
+		subtype: function(record, list, store) {
+			record = $.extend({}, record);
+			list = $.extend({}, list);
+			store = $.extend({}, store);
+			
+			var custom = _(store).chain().keys().without('create', 'read', 'update', 'del').value();
+			
+			// Construct list definition.
+			
+			list.name = list.name || record.name + '.Array';
+			
+			list.proto = _(custom).chain().reduce(function(proto, verb) {
+				
+				proto[verb] = function() {
+					if (this.valueOf().length > 0) {
+						var Type = this.constructor.recordtype();
+						Type[verb].apply(Type, $.merge([this], arguments));
+					}
+					return this;
+				};
+				return proto;
+				
+			}, {}).extend(list.proto).value();
+			
+			list.type = _.extend({
+				
+				recordtype: function() {
+					return Type;
+				}
+				
+			}, list.type);
+			
+			// Construct record definition.
+			
+			record.base = this;
+			
+			record.proto = _(custom).chain().reduce(function(proto, verb) {
+				
+				proto[verb] = function() {
+					var list = this.constructor.Array.instantiate(this);
+					list[verb].apply(list, arguments);
+					return this;
+				};
+				return proto;
+				
+			}, {}).extend(store.create ? { save: makeRecordSaveMethod(store.create) } : {}, record.proto).value();
+			
+			record.type = _(store).chain().reduce(makeStoreFunction, {}).extend({
+				
+				Array: record.base.Array.subtype(list)
+				
+			}, record.type).value();
+			
+			var Type = $.al.subtype(record);
+			
+			return Type;
+		},
+		
+		Array: $.al.Array.subtype({
+			
+			name: 'jQuery.al.Record.Array',
+			
+			construct: function() {
+				
+				var self = this;
+				$(this.constructor.recordtype()).bind('create:success', function() {
+					if (self.query()) self.read(true, true);
+				});
+				
+				var query;
+				this.query = function(q, condition) {
+					var self = this,
+						debounce = false;
+					
+					if (arguments.length === 0) return query instanceof Object ? query.valueOf() : query;
+					
+					if ($.isPlainObject(q)) {
+						if (_.keys(q).length > 1) debounce = true;
+						q = $.al.Dict(q);
+					}
+					if (arguments.length > 1) q = $.al.Conditional(q, condition);
+					 
+					query = q;
+					
+					// TODO: Do inverse stuff on value that is being
+					// overwritten.
+					$(query).bind('valuechange', function() {
+						self.read(true, debounce);
+					});
+					if (arguments.length < 2 || condition.valueOf()) self.read(true, debounce);
+					
+					return this;
+				};
+				
+				var seamless = true;
+				this.seamless = function(s) {
+					if (arguments.length === 0) return seamless;
+					seamless = !!s;
+					return this;
+				};
+				
+				// TODO: Naming
+				var destroyRemainder = function(e, data) {
+					$.each(_.without.apply(undefined, $.merge([data.from], data.to)), function(i, record) {
+						record.destroy();
+					});
+				};
+				this.master = function(m) {
+					if (m) {
+						$(this).bind('valuechange', destroyRemainder);
+					} else {
+						$(this).unbind('valuechange', destroyRemainder);
+					}
+				};
+				
+				// var config = {
+				// 	query: {},
+				// 	seamless: true
+				// };
+				// this.config = function(key, value) {
+				// 	if (arguments.length === 0) return config;
+				// 	if (arguments.length === 1) {
+				// 		if (typeof key === 'string') return config[key];
+				// 		$.each($.extend({}, config, key), $.proxy(this, 'config'));
+				// 	} else {
+				// 		// TODO: Do inverse stuff on value that is being
+				// 		// overwritten.
+				// 		config[key] = value;
+				// 		if (key === 'query') {
+				// 			var self = this,
+				// 				debounce = _.keys(value).length > 1;
+				// 			$($.al.Composite(value)).bind('valuechange', function() {
+				// 				self.read(true, debounce);
+				// 			});
+				// 			self.read(true, debounce);
+				// 		}
+				// 	}
+				// 	return this;
+				// };
+				
+			},
+			
+			proto: {
+				
+				read: function(reset, debounce) {
+					var self = this;
+					
+					if (!reset && self.valueOf().length >= self.size()) return this;
+					
+					if (reset && !self.seamless()) {
+						self.size(0);
+						self.valueOf([]);
+					}
+					
+					self.constructor.recordtype().read(self.query(), {
+						offset: reset ? 0 : self.valueOf().length,
+						after: reset ? undefined : _.last(self.valueOf())
+					}, function(records, size) {
+						if (arguments.length < 2) size = null;
+						self.size(size);
+						self.valueOf((reset ? [] : self.valueOf()).concat(records));
+					}, debounce);
+					
+					return this;
+				},
+				
+				pluck: function(key) {
+					return _.map(this.valueOf(), function(record) {
+						return record.valueOf(key);
+					});
+				}
+				
+			},
+			
+			type: {
+				
+				recordtype: function() {
+					return $.al.Record;
+				}
+				
+			}
+			
+		})
+		
+	}).value()
+	
+});
+
+}(this.jQuery));
+
+
+
+/*
+var debounce = 250;
+
+$.record = function(Base, name, proto, crud) {
+	if (arguments.length < 4) {
+		crud = proto;
+		proto = name;
+		name = supertype;
+		Base = $.al.Record;
+	}
+	
+	var index = new Hashtable();
+	var normalize = function() {
+		
+	};
+	
+	var type = {};
+	
+	if (crud.read) {
+		var read = {
+			now: $.debounce(debounce, true, crud.read),
+			soon: $.debounce(debounce, false, crud.read)
+		};
+		type.read = function(query, latency, cb) {
+			if ($.isFunction(latency)) {
+				cb = latency;
+				latency = false;
+			}
+			
+			var Type = this;
+			$(Type).triggerHandler('read:beforeSend');
+			read[latency === true ? 'soon' : 'now'].call(Type, query, function(records) {
+				records = normalize(records);
+				if ($.isFunction(cb)) cb.apply(this, $.merge([records], _.rest(arguments)));
+				$(Type).triggerHandler('read:success', records);
+			});
+		};
+	}
+	
+	var arrayProto = {};
+	
+	if (type.read)
+		arrayProto.load = function(query, hardReset) {
+			
+		};
+		arrayProto.read = function() {
+			this.constructor.recordtype().read
+		};
+	}
+
+
+		var activeRead = $.debounce(250, true, opts.type.read),
+			passiveRead = $.debounce(250, false, opts.type.read);
+		opts.type.read = function(query, cb, passive) {
+			var Type = this;
+			query = $.extend({}, query);
+			for (var key in query) {
+				if (query[key] instanceof Object) query[key] = query[key].valueOf();
+			}
+			$([Type]).trigger('read:beforeSend');
+			(passive ? passiveRead : activeRead).call(Type, query, function() {
+				$([Type]).trigger('read:success');
+				
+				// TODO: Move to `read:success` handler?
+				var args = _.toArray(arguments);
+				if ($.isArray(args[0])) {
+					args[0] = _.map(args[0], function(item) {
+						return normalize(item instanceof Type ? item : Type.instantiate(item));
+					});
+				}
+				
+				if ($.isFunction(cb)) cb.apply(this, args);
+			});
+		};
+	}
+	
+	return Base.subtype({
+		
+		name: name,
+		
+		proto: proto,
+		
+		type: type
+		
+	}, {
+		
+		proto: arrayProto
+		
+	});
+};
+*/
+
+
+
 (function($) {
 
 $.al.Record = $.al.Dict.subtype({
@@ -16,18 +431,17 @@ $.al.Record = $.al.Dict.subtype({
 			obj = obj || self.valueOf();
 			
 			if (self.isNew()) {
+				// TODO: new instances are not in record store yet, but we
+				// want to make sure that this instance is the one that ends
+				// up there upon save (as opposed to a newly created instance)
 				self.constructor.create({
 					// TODO: Get rid of fake empty object.
 					data: $.isEmptyObject(obj) ? { contact_name: "0new" } : obj
-				}, function(item) {
-					self.valueOf(item);
 				});
 			} else {
 				self.constructor.update({
 					id: self.valueOf('id'),
 					data: obj
-				}, function(item) {
-					self.valueOf(item);
 				});
 			}
 			
@@ -41,6 +455,22 @@ $.al.Record = $.al.Dict.subtype({
 				// TODO: What to do?
 				// - destroy instance
 			});
+		},
+		
+		// TODO: Shouldn't we leverage a `valueEquals` (which one?)
+		equals: function(other) {
+			return this.constructor === other.constructor && this.valueOf('id') === other.valueOf('id');
+		},
+		
+		// TODO: The implementation of this method influences performance of
+		// record store. Wouldn't it be wiser to implement it as a
+		// `hashcodeFunction` on `Hashtable`? So to eliminate the risk that
+		// an overrider of `toString` accidently kills record store
+		// performance. Everybody always just wants optimal performance, so it
+		// does not serve any purpose to leave that responsibility up to the
+		// JAL user.
+		toString: function() {
+			return '[' + this.valueOf('id') + ' ' + this.constructor.toString() + ']';
 		},
 		
 		// TODO: Remove and simply use `valueOf`.
@@ -116,12 +546,15 @@ $.al.Record = $.al.Dict.subtype({
 					$([Type]).trigger('read:beforeSend');
 					(passive ? passiveRead : activeRead).call(Type, query, function() {
 						$([Type]).trigger('read:success');
+						
+						// TODO: Move to `read:success` handler?
 						var args = _.toArray(arguments);
 						if ($.isArray(args[0])) {
 							args[0] = _.map(args[0], function(item) {
-								return item instanceof Type ? item : Type.instantiate(item);
+								return normalize(item instanceof Type ? item : Type.instantiate(item));
 							});
 						}
+						
 						if ($.isFunction(cb)) cb.apply(this, args);
 					});
 				};
@@ -136,8 +569,8 @@ $.al.Record = $.al.Dict.subtype({
 					(debounce ? debouncedUpdate : update).call(Type, query, function() {
 						$([Type]).trigger('update:success');
 						var args = _.toArray(arguments);
-						if (args.length > 0 && !(args[0] instanceof Type)) {
-							args[0] = Type.instantiate(args[0]);
+						if (args.length > 0) {
+							args[0] = normalize(args[0] instanceof Type ? args[0] : Type.instantiate(args[0]));
 						}
 						if ($.isFunction(cb)) cb.apply(this, args);
 					});
@@ -153,13 +586,23 @@ $.al.Record = $.al.Dict.subtype({
 					$([Type]).trigger('del:beforeSend');
 					(debounce ? debouncedDel : del).call(Type, query, function() {
 						$([Type]).trigger('del:success');
-						var args = _.toArray(arguments);
-						if ($.isArray(args[0])) {
-							args[0] = _.map(args[0], function(item) {
-								return item instanceof Type ? item : Type.instantiate(item);
-							});
-						}
-						if ($.isFunction(cb)) cb.apply(this, args);
+						
+						// TODO: Move this to a handler of `del:success`.
+						$.each(query.id, function(i, id) {
+							var rec = STORE.get(Type.instantiate({ id: id }));
+							rec.destroy();
+						});
+						
+						// var args = _.toArray(arguments);
+						// if ($.isArray(args[0])) {
+						// 	args[0] = _.map(args[0], function(item) {
+						// 		return normalize(item instanceof Type ? item : Type.instantiate(item));
+						// 	});
+						// 	$.each(args[0], function(i, record) {
+						// 		record.destroy();
+						// 	});
+						// }
+						if ($.isFunction(cb)) cb.apply(this, arguments);
 					});
 				};
 			}
@@ -236,6 +679,23 @@ $.al.Record = $.al.Dict.subtype({
 	}
 	
 });
+
+// TODO: Make `STORE` private (and get rid of uppercase). Or; use an ordinary
+// `$.al.Array` instance?
+STORE = new Hashtable();
+var normalize = function(instance) {
+	var current = STORE.get(instance);
+	if (current === null) {
+		current = instance;
+		$(current).one('destroy', function() {
+			STORE.remove(this);
+		});
+		STORE.put(current, current);
+	} else {
+		current.valueOf(instance.valueOf());
+	}
+	return current;
+};
 
 /*
 $.al.Record = $.al.Object.subtype({
@@ -409,7 +869,7 @@ $.al.Record = $.al.Object.subtype({
 	
 });
 */
-}(jQuery));
+}/*(jQuery)*/);
 
 (function($) {
 

@@ -37,6 +37,21 @@ $.al.Array = $.al.Object.subtype({
 	
 	construct: function() {
 		
+		var self = this;
+		var onDestroy = function() {
+			var current = _.clone(self.valueOf());
+			current.splice($.inArray(this, current), 1);
+			self.valueOf(current);
+		};
+		$(this).bind('valuechange', function(e, data) {
+			$.each(data.from, function(i, item) {
+				if (item instanceof Object) $([item]).unbind('destroy', onDestroy);
+			});
+			$.each(data.to, function(i, item) {
+				if (item instanceof Object) $([item]).one('destroy', onDestroy);
+			});
+		});
+		
 		var _valueOf = this.valueOf;
 		this.valueOf = function() {
 			var args = _.toArray(arguments);
@@ -47,7 +62,7 @@ $.al.Array = $.al.Object.subtype({
 				args[0] = _.toArray(args[0]);
 				// If the artificial size is superseded by the actual size,
 				// the `size` variable no longer has a function.
-				if (args[0].length >= size) size = undefined;
+				if (size !== null && args[0].length >= size) size = undefined;
 			}
 			return _valueOf.apply(this, args);
 		};
@@ -68,7 +83,7 @@ $.al.Array = $.al.Object.subtype({
 			
 			// TODO: Should we prune internal array if specified size is
 			// lower than current value's length?
-			size = s > l ? s : undefined;
+			size = (s === null || s > l) ? s : undefined;
 			
 			return this;
 		};

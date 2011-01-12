@@ -13,6 +13,7 @@ $.al.Object = $.al.subtype({
 			var from = value;
 			value = v;
 			if (notify === true || !this.valueEquals(from) && notify !== false) {
+				// TODO: Use `triggerHandler`?
 				$(this).trigger('valuechange', { from: from, to: value });
 			}
 			return this;
@@ -35,7 +36,12 @@ $.al.Object = $.al.subtype({
 	proto: {
 		
 		destroy: function() {
+			$(this).triggerHandler('destroy');
 			return this;
+		},
+		
+		equals: function(other) {
+			return this === other;
 		},
 		
 		toString: function() {

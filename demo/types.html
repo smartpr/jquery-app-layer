@@ -49,24 +49,63 @@
 		
 		<script type="text/javascript" src="../lib/underscore.js"></script>
 		<script type="text/javascript" src="http://ajax.microsoft.com/ajax/jQuery/jquery-1.4.3.js"></script>
-		<script type="text/javascript" src="http://ajax.microsoft.com/ajax/jquery.templates/beta1/jquery.tmpl.js"></script>
 		<script type="text/javascript" src="../lib/jshashtable-2.1_src.js"></script>
 		<script type="text/javascript" src="../lib/jshashset_src.js"></script>
-		<script type="text/javascript" src="../lib/jquery.ba-getobject.js"></script>
 		<script type="text/javascript" src="../lib/jquery.ba-throttle-debounce.js"></script>
 		<script type="text/javascript" src="../src/jquery.al.core/base.js"></script>
-		<script type="text/javascript" src="../src/jquery.al.core/flag.js"></script>
-		<script type="text/javascript" src="../src/jquery.al.core/valuechange.js"></script>
 		<script type="text/javascript" src="../src/jquery.al.core/subtype.js"></script>
 		<script type="text/javascript" src="../src/jquery.al.core/object.js"></script>
-		<script type="text/javascript" src="../src/jquery.al.core/boolean.js"></script>
-		<script type="text/javascript" src="../src/jquery.al.core/wrapper.js"></script>
-		<script type="text/javascript" src="../src/jquery.al.core/composite.js"></script>
-		<script type="text/javascript" src="../src/jquery.al.core/conjunction.js"></script>
-		<script type="text/javascript" src="../src/jquery.al.core/element.js"></script>
+		<script type="text/javascript" src="../src/jquery.al.core/array.js"></script>
+		<script type="text/javascript" src="../src/jquery.al.core/dict.js"></script>
+		<script type="text/javascript" src="../src/jquery.al.record.js"></script>
+		<script type="text/javascript" src="../src/jquery.al.rest.js"></script>
 		<script type="text/javascript">
 			
-			// ...
+			api = new $.Rest('http://app.smartpr.dev/api/', 'jsonp');
+			
+			Contact = $.al.Record.subtype({
+				
+				name: 'Contact'
+				
+			}, {}, {
+				
+				read: function(query, cb) {
+					api.get('contacts/', $.extend({
+						offset: 0,
+						limit: 50
+					}, query), function(response) {
+						cb(response.result);
+					});
+				}
+				
+			});
+			
+			// Contact = BASE.subtype({
+			// 	
+			// 	type: {
+			// 		
+			// 		create: 
+			// 	}
+			// 	
+			// });
+			// 
+			// Contact = $.record(BASE, 'Contact', {
+			// 	
+			// 	name: function() {
+			// 		return this.valueOf('first_name');
+			// 	}
+			// 	
+			// }, {
+			// 	
+			// 	create: $.noop,
+			// 	
+			// 	read: $.noop,
+			// 	
+			// 	update: $.noop,
+			// 	
+			// 	del: $.noop
+			// 	
+			// });
 			
 		</script>
 		

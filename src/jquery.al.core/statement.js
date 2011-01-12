@@ -24,8 +24,9 @@ $.al.Statement = $.al.Wrapper.subtype({
 			setup.call(this, operand);
 			operands.push(operand);
 			
-			// TODO: destroy current composite.
-			_wraps.call(this).destroy();
+			// TODO: destroy current composite. Destroying entails removing it
+			// from all parts of the app! Do we really want this?
+			// _wraps.call(this).destroy();
 			_wraps.call(this, $.al.Composite(operands));
 			
 			return this;

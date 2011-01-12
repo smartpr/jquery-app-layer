@@ -121,6 +121,7 @@ $.component = function() {
 	return $.al.Component.apply(undefined, arguments);
 };
 
+// TODO: What about using `$.readyWait` to automatically call this?
 $.component.setup = function() {
 	$(needSetup.values()).component('setup');
 };
