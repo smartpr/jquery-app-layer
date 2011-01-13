@@ -113,9 +113,7 @@ $.al.subtype = function(opts) {
 	// `prototype` property is included in the extend.
 	var baseProps = $.al.extend({}, opts.base);
 	delete baseProps.prototype;
-	
-	// TODO: Make sure we don't copy `__events__` properties. (Also move into
-	// `$.al.extend`?)
+	delete baseProps.__events__;
 	
 	return $.al.extend(
 		Type,

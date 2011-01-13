@@ -2,22 +2,29 @@
 
 var interval = 250;
 
-var index = new Hashtable(function(record) {
+var hashingFunction = function(record) {
 	// TODO: Increase bucket granularity by introducing some sort of
 	// identifier to this hashcode.
 	return record.constructor.toString();
-});
+};
+var index = new Hashtable(hashingFunction);
+// var counts = new Hashtable(hashingFunction);
 var normalize = function(records, Type) {
 	var n = _.map(records, function(record) {
 		if (!(record instanceof Type)) record = Type.instantiate(record);
 		
 		var indexed = index.get(record);
 		
-		if (indexed !== null) return indexed.valueOf(record.valueOf());
+		if (indexed !== null) {
+			// counts.put(indexed, counts.get(indexed) + 1);
+			return indexed.valueOf(record.valueOf());
+		}
 		
 		index.put(record, record);
+		// counts.put(record, 1);
 		$(record).one('destroy', function() {
 			index.remove(this);
+			// counts.remove(this);
 		});
 		return record;
 	});
@@ -31,13 +38,13 @@ var makeMockupStoreFunction = function(verb) {
 	};
 };
 
-var makeStoreFunction = function(type, operation, verb) {
+var makeStoreFunction = function(operation, verb) {
 	
 	var request = {
 		now: $.debounce(interval, true, operation),
 		soon: $.debounce(interval, false, operation)
 	};
-	type[verb] = function() {
+	return function() {
 		// TODO: We can rewrite this in a more concise manner in
 		// which the call to `request.*` is constructed right away
 		// based on `arguments` and `operation.length`. We should
@@ -46,6 +53,9 @@ var makeStoreFunction = function(type, operation, verb) {
 		// `operation.length - 1`.
 		// Also; approach with looking at `operation.length` currently fails
 		// with mockup functions.
+		// Also; in case of `update` and `del`; do not proceed if no records
+		// were supplied to operate on. Are there more of such generic CRUD
+		// requirements that can be enforced at this level?
 		
 		var Type = this,
 			query = _.toArray(arguments).slice(0, operation.length - 1),
@@ -61,9 +71,29 @@ var makeStoreFunction = function(type, operation, verb) {
 		
 		return this;
 	};
-	return type;
 	
 };
+
+// var makeStoreDelFunction = function(delOperation) {
+// 	
+// 	var delRequest = {
+// 		now: $.debounce(interval, true, delOperation),
+// 		soon: $.debounce(interval, false, delOperation)
+// 	};
+// 	return function(records, cb, debounce) {
+// 		cb = cb || .noop;
+// 		
+// 		var Type = this;
+// 		
+// 		$(Type).triggerHandler('del:beforeSend');
+// 		delRequest[debounce ? 'soon' : 'now'].call(Type, records, function(items) {
+// 			var args = $.merge([normalize(items, Type)], _.rest(arguments));
+// 			cb.apply(Type, args);
+// 			$(Type).triggerHandler('del:success')
+// 		});
+// 	};
+// 	
+// };
 
 var makeRecordSaveMethod = function(createOperation) {
 	
@@ -80,7 +110,7 @@ var makeRecordSaveMethod = function(createOperation) {
 		
 		if (this.isNew()) {
 			$(Type).triggerHandler('create:beforeSend');
-			createRequest[debounce ? 'soon' : 'now'].call(Type, $.isEmptyObject(data) ? { contact_name: "0new" } : data, function(item) {
+			createRequest[debounce ? 'soon' : 'now'].call(Type, data, function(item) {
 				self.valueOf(item);
 				// TODO: supply created instance in an array (like currently)?
 				var args = $.merge([normalize([self], Type)], _.rest(arguments));
@@ -88,7 +118,7 @@ var makeRecordSaveMethod = function(createOperation) {
 				$(Type).triggerHandler('create:success', args);
 			});
 		} else {
-			// TODO: Use same code as used for custom store methods on list.
+			// TODO: Use same code as used for custom store methods on list??
 			Type.update.call(Type, [this], data, cb, debounce);
 		}
 		
@@ -109,6 +139,12 @@ $.al.Record = $.al.Dict.subtype({
 		
 		save: makeRecordSaveMethod(makeMockupStoreFunction('create')),
 		
+		del: function() {
+			var list = this.constructor.Array.instantiate(this);
+			list.del();
+			return this;
+		},
+		
 		equals: function(record) {
 			return this === record;
 		}
@@ -117,7 +153,8 @@ $.al.Record = $.al.Dict.subtype({
 	
 	type: _(['read', 'update', 'del']).chain().reduce(function(type, verb) {
 		
-		return makeStoreFunction(type, makeMockupStoreFunction(verb), verb);
+		type[verb] = makeStoreFunction(makeMockupStoreFunction(verb), verb);
+		return type;
 		
 	}, {}).extend({
 		
@@ -174,13 +211,30 @@ $.al.Record = $.al.Dict.subtype({
 				
 			}, {}).extend(store.create ? { save: makeRecordSaveMethod(store.create) } : {}, record.proto).value();
 			
-			record.type = _(store).chain().reduce(makeStoreFunction, {}).extend({
+			record.type = _(store).chain().reduce(function(type, operation, verb) {
+				
+				if (verb !== 'create') type[verb] = makeStoreFunction(operation, verb);
+				return type;
+				
+			}, {}).extend({
 				
 				Array: record.base.Array.subtype(list)
 				
 			}, record.type).value();
 			
 			var Type = $.al.subtype(record);
+			
+			// TODO: Do we need such a handler on `$.al.Record` as well?
+			// > Yes because it is a 'volwaardig' record type.
+			// > No because it will never trigger `del:success` (at least in
+			//   the current implementation, assuming no monkey-patches are
+			//   being applied by externals).
+			$(Type).bind('del:success', function(e, records) {
+				// TODO: Can we expect `records` to be a `$.al.Array`?
+				$.each(records.valueOf(), function(i, record) {
+					record.destroy();
+				});
+			});
 			
 			return Type;
 		},
@@ -192,6 +246,7 @@ $.al.Record = $.al.Dict.subtype({
 			construct: function() {
 				
 				var self = this;
+				// TODO: Put this behavior in a config option. Also for `del:success`.
 				$(this.constructor.recordtype()).bind('create:success', function() {
 					if (self.query()) self.read(true, true);
 				});
@@ -276,20 +331,33 @@ $.al.Record = $.al.Dict.subtype({
 					
 					if (!reset && self.valueOf().length >= self.size()) return this;
 					
-					if (reset && !self.seamless()) {
-						self.size(0);
-						self.valueOf([]);
-					}
-					
+					// if (reset && !self.seamless()) {
+					// 	self.size(0);
+					// 	self.valueOf([]);
+					// }
+					$(self).trigger('changing');
 					self.constructor.recordtype().read(self.query(), {
 						offset: reset ? 0 : self.valueOf().length,
 						after: reset ? undefined : _.last(self.valueOf())
 					}, function(records, size) {
 						if (arguments.length < 2) size = null;
 						self.size(size);
-						self.valueOf((reset ? [] : self.valueOf()).concat(records));
+						// Force notify because we need a way of unsetting
+						// the result of `changing`. Also, it may be
+						// conceptually weird to trigger `changing` and then
+						// no `change`.
+						self.valueOf((reset ? [] : self.valueOf()).concat(records), true);
 					}, debounce);
 					
+					return this;
+				},
+				
+				del: function() {
+					// TODO: Use same code as used for custom store methods on list.
+					if (this.valueOf().length > 0) {
+						var Type = this.constructor.recordtype();
+						Type.del(this);
+					}
 					return this;
 				},
 				

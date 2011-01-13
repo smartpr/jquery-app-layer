@@ -129,7 +129,7 @@ $.fn.dataview = function(action, opts) {
 			opts = (!$.isPlainObject(opts) || !opts.data) ? { data: opts } : $.extend({}, opts);
 			
 			// Make sure `opts.data` always is a set (as opposed to an item).
-			if (opts.data && !$.isArray(opts.data.valueOf())) opts.data = [opts.data];
+			// if (opts.data && !$.isArray(opts.data.valueOf())) opts.data = [opts.data];
 		
 			// Use value from `template` to create view of data. Different
 			// types of context are dealt with by `template`. If no
@@ -161,6 +161,7 @@ $.fn.dataview = function(action, opts) {
 				var invalidate = [];
 				$template.before($.flirt($template.fetch('dataview', 'compiled'), data.valueOf(), function(item) {
 					var $nodes = this;
+					
 					boundTo = $.al.Conditional(item, opts.condition);
 					// TODO: We might be able to just store `boundTo` and
 					// obtain `item` from it when we need it.

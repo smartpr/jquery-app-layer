@@ -38,10 +38,16 @@ $.al.Array = $.al.Object.subtype({
 	construct: function() {
 		
 		var self = this;
+		var destroyed = [];
+		var doDestroy = $.debounce(0, function() {
+			self.valueOf(_.select(self.valueOf(), function(item) {
+				return $.inArray(item, destroyed) === -1;
+			}));
+			destroyed = [];
+		});
 		var onDestroy = function() {
-			var current = _.clone(self.valueOf());
-			current.splice($.inArray(this, current), 1);
-			self.valueOf(current);
+			destroyed.push(this);
+			doDestroy();
 		};
 		$(this).bind('valuechange', function(e, data) {
 			$.each(data.from, function(i, item) {

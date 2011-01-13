@@ -50,6 +50,7 @@ $.al.Element = $.al.Wrapper.subtype({
 		};
 		
 		$(this).bind('valuechange', function() {
+			// TODO: This is not working in IE(?!?)
 			$(this.element()).val(this.valueOf());
 		});
 		
