@@ -1,5 +1,10 @@
 (function($, undefined) {
 
+// TODO: What if a change in wrapped object occurs, but condition is not true,
+// so change is pending, then wrapped object changes back to original value,
+// then condition switches to true ==> no `valuechange` should ideally trigger
+// I think... but I have the idea that currently this is not how it behaves.
+
 $.al.Conditional = $.al.Wrapper.subtype({
 	
 	name: 'jQuery.al.Conditional',

@@ -53,7 +53,7 @@ $.al.Dict = $.al.Object.subtype({
 			onItemChange.call(this);
 			
 			// TODO: Do we really need this type to be two-way compatible with
-			// `jquery-datalink`?
+			// `jquery-datalink`? Yeah I think so, I have a use case in note-add
 			// $(this).triggerHandler('changeData!', [key, value]);
 			
 			if (obj[key] instanceof Object) $([obj[key]]).bind('valuechange', $.proxy(onItemChange, this));

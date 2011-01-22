@@ -1,5 +1,8 @@
 (function($, undefined) {
 
+// TODO: Why not implement this type in terms of jquery-datalink? Or even;
+// ditch this type for datalink?
+
 $.al.Element = $.al.Wrapper.subtype({
 	
 	name: 'jQuery.al.Element',
