@@ -6,16 +6,20 @@
 // of jsonp requested and html retrieved -- not sure about behavior in other
 // scenarios).
 
-$.Rest = function(url, dataType, error, validate) {
+$.Rest = function(url, dataType, err, validate) {
 	if (!(this instanceof $.Rest)) {
-		return new $.Rest(url, dataType, error, validate);
+		return new $.Rest(url, dataType, err, validate);
 	}
 	
-	if (!$.isFunction(error)) {
-		error = $.noop;
-	}
+	// TODO: What about implementing success and error handlers as promises:
+	//   api.get(...).success(function() { ... }).error(function() { ... })
 	
-	this.request = function(verb, handler, data, success) {
+	this.request = function(verb, handler, data, success, requestErr) {
+		var error = function() {
+			if ($.isFunction(err)) err.apply(this, arguments);
+			if ($.isFunction(requestErr)) requestErr.apply(this, arguments);
+		};
+		
 		setTimeout(function() {
 			var contentType = (verb === 'POST' || verb === 'PUT') ?
 				'application/json' :
@@ -76,17 +80,17 @@ $.Rest.prototype = {
 	// I think this is only useful if it accepts a 'lazy data object', with
 	// functions in the fields, that are only evaluated when the actual request
 	// is done.
-	get: function(handler, data, success) {
-		this.request('GET', handler, data, success);
+	get: function(handler, data, success, error) {
+		this.request('GET', handler, data, success, error);
 	},
-	post: function(handler, data, success) {
-		this.request('POST', handler, data, success);
+	post: function(handler, data, success, error) {
+		this.request('POST', handler, data, success, error);
 	},
-	put: function(handler, data, success) {
-		this.request('PUT', handler, data, success);
+	put: function(handler, data, success, error) {
+		this.request('PUT', handler, data, success, error);
 	},
-	del: function(handler, data, success) {
-		this.request('DELETE', handler, data, success);
+	del: function(handler, data, success, error) {
+		this.request('DELETE', handler, data, success, error);
 	}
 	
 };

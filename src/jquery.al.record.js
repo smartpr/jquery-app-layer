@@ -28,7 +28,7 @@ var normalize = function(records, Type) {
 		});
 		return record;
 	});
-	console.log('index size = ', index.size());
+	// console.log('index size = ', index.size());
 	return n;
 };
 
@@ -58,15 +58,21 @@ var makeStoreFunction = function(operation, verb) {
 		// requirements that can be enforced at this level?
 		
 		var Type = this,
-			query = _.toArray(arguments).slice(0, operation.length - 1),
-			cb = arguments[operation.length - 1] || $.noop,
+			query = _.toArray(arguments).slice(0, operation.length - 2),
+			success = arguments[operation.length - 2] || $.noop,
+			error = arguments[operation.length - 1] || $.noop,
 			debounce = arguments[operation.length];
 		
+		// TODO: Supply arguments that indicate on which records the operation
+		// is about to take place (in case of update & del at least)
 		$(Type).triggerHandler(verb + ':beforeSend');
 		request[debounce ? 'soon' : 'now'].apply(Type, $.merge(query, [function(items) {
 			var args = $.merge([normalize(items, Type)], _.rest(arguments));
-			cb.apply(Type, args);
+			success.apply(Type, args);
 			$(Type).triggerHandler(verb + ':success', args);
+		}, function() {
+			error.apply(Type, arguments);
+			$(Type).triggerHandler(verb + ':error', arguments);
 		}]));
 		
 		return this;
@@ -101,9 +107,10 @@ var makeRecordSaveMethod = function(createOperation) {
 		now: $.debounce(interval, true, createOperation),
 		soon: $.debounce(interval, false, createOperation)
 	};
-	return function(data, cb, debounce) {
+	return function(data, success, error, debounce) {
 		data = data || this.valueOf();
-		cb = cb || $.noop;
+		success = success || $.noop;
+		error = error || $.noop;
 		
 		var self = this,
 			Type = this.constructor;
@@ -114,12 +121,15 @@ var makeRecordSaveMethod = function(createOperation) {
 				self.valueOf(item);
 				// TODO: supply created instance in an array (like currently)?
 				var args = $.merge([normalize([self], Type)], _.rest(arguments));
-				cb.apply(Type, args);	// TODO: `Type` as context?
+				success.apply(Type, args);	// TODO: `Type` as context?
 				$(Type).triggerHandler('create:success', args);
+			}, function() {
+				error.apply(Type, arguments);
+				$(Type).triggerHandler('create:error', arguments);
 			});
 		} else {
 			// TODO: Use same code as used for custom store methods on list??
-			Type.update.call(Type, [this], data, cb, debounce);
+			Type.update.call(Type, [this], data, success, error, debounce);
 		}
 		
 		return this;
@@ -162,6 +172,10 @@ $.al.Record = $.al.Dict.subtype({
 			var instance = this.instantiate();
 			instance.save.apply(instance, arguments);
 			return this;
+		},
+		
+		toPrettyString: function(plural) {
+			return plural ? "records" : "record";
 		},
 		
 		subtype: function(record, list, store) {
@@ -347,7 +361,7 @@ $.al.Record = $.al.Dict.subtype({
 						// conceptually weird to trigger `changing` and then
 						// no `change`.
 						self.valueOf((reset ? [] : self.valueOf()).concat(records), true);
-					}, debounce);
+					}, $.noop, debounce);
 					
 					return this;
 				},
