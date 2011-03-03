@@ -1,8 +1,3 @@
-lib/underscore.js
-lib/jshashtable-2.1_src.js
-lib/jshashset_src.js
-lib/jquery.ba-getobject.js
-lib/jquery.ba-throttle-debounce.js
 src/jquery.al.core/base.js
 src/jquery.al.core/flag.js
 src/jquery.al.core/subtype.js
