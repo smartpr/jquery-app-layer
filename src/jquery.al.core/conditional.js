@@ -18,7 +18,8 @@ $.al.Conditional = $.al.Wrapper.subtype({
 			wrapped: wrapped,
 			condition: condition
 		}), function(value) {
-			if (value.condition.valueOf()) return value.wrapped.valueOf();
+			// TODO: how to know when we can call value.wrapped.valueOf() and when not??
+			if (value.condition.valueOf()) return (value.wrapped === undefined || value.wrapped === null) ? value.wrapped : value.wrapped.valueOf();
 		}];
 	}
 	
