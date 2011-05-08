@@ -699,7 +699,8 @@ $.al.list.Record = $.al.list.Value.subtype({
 						// that is, in the order that the corresponding
 						// requests were issued.
 						self.constructor.recordType().read(query, offset).
-							done(function(records, total) {
+							done(function(records, total, rest) {
+								self._hack = rest;
 								// TODO: size before value, or event after size change?
 								self.size(total);
 								self.valueOf(reset === true ? records : self.valueOf().concat(records));
