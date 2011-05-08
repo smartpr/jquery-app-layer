@@ -28,7 +28,7 @@ $.events.hold = function() {
 };
 
 $.events.release = function() {
-	console.log("RELEASE: start");
+	// console.log("RELEASE: start");
 	var args, e, i = 0;
 	while (pending.length || i++ > 100) {
 		var pl = pending.length;
@@ -37,7 +37,7 @@ $.events.release = function() {
 		// console.log('shift from pending: ', pl, ' to ', pending.length);
 		overridden.apply(undefined, p);
 	}
-	console.log("RELEASE: end");
+	// console.log("RELEASE: end");
 	hold = false;
 };
 

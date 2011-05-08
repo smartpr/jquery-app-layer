@@ -519,11 +519,11 @@ var unregister = function(instance) {
 		// Can happen with instances that were new and then saved, and then
 		// are attempted to be unregistered before they are registered by
 		// record.save.
-		console.warn("STORE: Cannot unregister record that is not registered!", instance.valueOf());
+		// console.warn("STORE: Cannot unregister record that is not registered!", instance.valueOf());
 		return;
 	}
 	if (current.count <= 0) {
-		console.warn("STORE: Cannot unregister record that has zero registrations!", current.record.valueOf());
+		// console.warn("STORE: Cannot unregister record that has zero registrations!", current.record.valueOf());
 	}
 	current.count--;
 	// console.log("unregister", current.record.valueOf(), current.count);
@@ -770,7 +770,7 @@ $.al.list.Record = $.al.list.Value.subtype({
 			var intersect = _.intersect(from, to);
 			_.map(_.without.apply(this, $.merge([from], intersect)), unregister);
 			_.map(_.without.apply(this, $.merge([to], intersect)), register);
-			console.log("STORE: size = ", STORE.entries().length);
+			// console.log("STORE: size = ", STORE.entries().length);
 		});
 		
 	},
