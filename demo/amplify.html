@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="en" class="no-js">
+
+	<head>
+		<meta http-equiv="X-UA-Compatible" content="IE=Edge,chrome=1">
+		<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+		
+		<title>
+			Amplify + easyXDM
+		</title>
+		
+		<style type="text/css">
+		</style>
+	</head>
+	
+	<body>
+		
+		<script type="text/javascript" src="http://ajax.googleapis.com/ajax/libs/jquery/1.5.1/jquery.js"></script>
+		<script type="text/javascript" src="../lib/underscore.js"></script>
+		<script type="text/javascript" src="../lib/amplify.core.js"></script>
+		<script type="text/javascript" src="../lib/amplify.request.js"></script>
+		<script type="text/javascript" src="../lib/easyXDM.debug.js"></script>
+		<script type="text/javascript">
+		$(function() {
+
+			var rpc = new easyXDM.Rpc({
+				remote: "http://api.smart.prd/"
+			},
+			{
+				remote: {
+					request: {}
+				}
+			});
+
+			rpc.request({
+				url: "http://api.smart.prd/v1/contacts/",
+				method: "GET"/*,
+				data: {name: "Tim"}*/
+			}, function(response){
+				console.log(_.pluck($.parseJSON(response.data).data, 'name'));
+			});
+
+			// var socket = new easyXDM.Socket({
+			//     remote: "http://api.",
+			//     onMessage: function(message, origin){
+			//         alert("Received '" + message + "' from '" + origin + "'");
+			//     },
+			//     onReady: function() {
+			//         console.log("let's post message");
+			//         socket.postMessage("Yay, it works!");
+			//     }
+			// });
+
+			// amplify.request.define("blub", "ajax", {
+			// 	url: "http://api.smart.prd/v1/contacts/",
+			// 	dataType: 'jsonp',
+			// 	type: 'GET'
+			// });
+
+		});
+
+		</script>
+		
+	</body>
+
+</html>

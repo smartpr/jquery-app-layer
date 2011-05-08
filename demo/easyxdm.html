@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="en" class="no-js">
+
+	<head>
+		<meta http-equiv="X-UA-Compatible" content="IE=Edge,chrome=1">
+		<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+		
+		<title>
+			easyXDM provider
+		</title>
+		
+		<style type="text/css">
+		</style>
+	</head>
+	
+	<body>
+		
+		<script type="text/javascript" src="../lib/easyXDM.debug.js"></script>
+		<script type="text/javascript">
+			
+			var socket = new easyXDM.Socket({
+				onMessage: function(message, origin) {
+					socket.postMessage("Provider received " + message + " from " + origin);
+				}
+			});
+
+		</script>
+		
+	</body>
+
+</html>

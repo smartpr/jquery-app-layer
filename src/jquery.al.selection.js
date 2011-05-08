@@ -10,12 +10,16 @@ $.fn.selection = function(opts) {
 	// TODO: Checking if `opts.selection` is an array should not be required
 	// in order to prevent errors (as is currently the case). `$.al.selection`
 	// should simply not be called with a non-array `opts.selection`.
-	if (opts.selection instanceof $.al.Array) {
+	// if (opts.selection instanceof $.al.Array) {
 		$([selection]).bind('valuechange', function() {
-			opts.selection.valueOf(this.valueOf());
+			if (opts.selection instanceof $.al.wrapper.Value) {
+				opts.selection.valueOf(this.valueOf()[0] || undefined);
+			} else {
+				opts.selection.valueOf(this.valueOf() || []);
+			}
 		});
-		selection.change(opts.selection.valueOf());
-	}
+		selection.change(opts.selection.valueOf() || []);
+	// }
 	
 	// See if we can obtain settings from `dataview`.
 	// TODO: This logic is incorrect, as it ignores the fact that there can be
@@ -61,7 +65,9 @@ $.fn.selection = function(opts) {
 	// TODO: Move from `select` and `unselect` to `invalidate`?
 	
 	$this.bind('invalidate', function(e) {
-		opts[selection.contains(opts.data.call(e.target)) ? 'select' : 'unselect'].call($(e.target));
+		var $t = $(e.target);
+		var context = $t.is(opts.elements) ? $t[0] : $t.find(opts.elements)[0];
+		opts[selection.contains(opts.data.call(context)) ? 'select' : 'unselect'].call($(context));
 	});
 	
 	var invalidate = function() {
@@ -86,22 +92,20 @@ $.fn.selection = function(opts) {
 	
 	invalidate();
 	
-	$.each(opts.changeOn || {}, function(eventType, target) {
+	$.each(opts.change || {}, function(eventType, target) {
 		$this.delegate([opts.elements, target].join(' '), eventType, function() {
 			selection.change(opts.data.call(this));
 		});
 	});
-	$.each(opts.toggleOn || {}, function(eventType, target) {
+	$.each(opts.toggle || {}, function(eventType, target) {
 		$this.delegate([opts.elements, target].join(' '), eventType, function() {
 			selection.toggle(opts.data.call(this));
 		});
 	});
 
-	if (opts.selection instanceof $.al.Array) {
-		$([opts.selection]).bind('valuechange', function() {
-			selection.change(this.valueOf());
-		});
-	}
+	$([opts.selection]).bind('change', function() {
+		selection.change(this.valueOf() || []);
+	});
 	
 	return this;
 };

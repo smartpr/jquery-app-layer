@@ -1,0 +1,337 @@
+<!DOCTYPE html>
+<html lang="en">
+
+	<head>
+		<meta http-equiv="X-UA-Compatible" content="IE=Edge,chrome=1">
+		<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+		
+		<title>
+			New data types
+		</title>
+		
+		<style type="text/css">
+			body {
+				position: absolute;
+				top: 0;
+				right: 0;
+				bottom: 0;
+				left: 0;
+			}
+			ol {
+				display: none;
+			}
+			ol.display {
+				display: block;
+			}
+			ol.changing {
+				color: grey;
+			}
+		</style>
+	</head>
+	
+	<body>
+		
+		<button class="proactive">Proactive</button><button class="lazy">Lazy</button>
+		<ol>
+			<!-- <li>{{= $data.valueOf().name || $data.valueOf().media.join(", ") || $data.valueOf().emails.join(", ") }}</li> -->
+		</ol>
+		<button class="more">Show more&hellip;</button>
+		
+		<script type="text/javascript" src="http://ajax.googleapis.com/ajax/libs/jquery/1.5.2/jquery.js"></script>
+		<script type="text/javascript" src="../lib/underscore.js"></script>
+		<script type="text/javascript" src="../lib/jquery.tmpl.js"></script>
+		<script type="text/javascript" src="../lib/jshashtable-2.1_src.js"></script>
+		<script type="text/javascript" src="../lib/jshashset_src.js"></script>
+		<script type="text/javascript" src="http://assets.smart.pr/ccbc313daea5e7942b9fa4a4f258d426d03ad2c6b44e7a7bc71b2dd2e0b50f7e/api.js"></script>
+		<script type="text/javascript" src="../src.new/base.js"></script>
+		<script type="text/javascript" src="../src/jquery.al.core/subtype.js"></script>
+		<script type="text/javascript" src="../src.new/object.js"></script>
+		<script type="text/javascript" src="../src/jquery.al.data.js"></script>
+		<script type="text/javascript" src="../src/jquery.al.events.js"></script>
+		<script type="text/javascript" src="../src/jquery.al.flirt.js"></script>
+		<script type="text/javascript" src="../src.new/dataview.js"></script>
+		<script type="text/javascript" src="../src.new/component.js"></script>
+		<script type="text/javascript" src="../src.new/value.js"></script>
+		<script type="text/javascript" src="../src.new/boolean.js"></script>
+		<script type="text/javascript" src="../src.new/record.js"></script>
+		
+		<script type="text/javascript">
+			
+			(function($, undefined) {
+				
+				// $.record('Contact', 'Base', { proto }, { type });
+				
+				CUSTOM = {
+					Contact: $.al.type.Record.subtype({
+						
+						name: "Contact",
+						
+						proto: {
+
+							id: function() {
+								return this.valueOf().id;
+							}
+
+						}/*,
+
+						type: {
+
+							// apiName: 'contacts',
+
+							read: function(query) {
+								var Type = this,
+									d = $.Deferred();
+
+								(query instanceof Object ? API.get('contacts/', query) : API.get('contacts/' + query + '/')).
+									done(function(response) {
+										var data = response.data;
+										if ($.isArray(data)) {
+											data = _.map(data, function(item) {
+												return normalize(Type.instantiate(item));
+											});
+										} else {
+											data = normalize(Type.instantiate(data));
+										}
+										d.resolve.call(this, data, response.total);
+									}).
+									fail(d.reject);
+
+								return d.promise();
+							}
+
+						}*/
+
+					}, {
+						/*
+						attach: {
+							request: function(tags, contacts, success, error) {
+								
+							}
+							
+						}
+						*/
+						
+						//readSet
+						read: function(query, offset, success, error) {
+							if (query instanceof Object &&
+									query.field instanceof Object &&
+									_.isArray(query.field.valueOf()) &&
+									!_.include(query.field.valueOf(), 'id')) {
+								query.field.valueOf().unshift('id');
+								// TODO: get 'id' from type definition
+							}
+							
+							var start = offset ? offset.count : 0;
+							query = $.extend({
+								slice: [start, start + 50].join(':')
+							}, query);
+							
+							// this.api.get(query).
+							(query instanceof Object ? API.get('contacts/', query) : API.get('contacts/' + query + '/')).
+								done(function(response) {
+									success(response.data, response.total);
+								}).
+								fail(error);
+						}
+						
+					}),
+					ContactWrapper: $.al.wrapper.Record.subtype({
+
+						type: {
+
+							recordType: function() {
+								return CUSTOM.Contact;
+							}
+
+						}
+					}),
+					ContactList: $.al.list.Record.subtype({
+
+						type: {
+
+							recordType: function() {
+								return CUSTOM.Contact;
+							}
+
+						}
+
+					})
+				};
+
+				$.property.Contact = function(setup) {
+					var property = $.component.property(CUSTOM.ContactWrapper);
+					property.setup(setup);
+					return property;
+				};
+
+				$.property.Contacts = function(setup) {
+					var property = $.component.property(CUSTOM.ContactList);
+					property.setup(setup);
+					return property;
+				};
+				
+				API = {
+					rpc: new easyXDM.Rpc({
+						remote: "http://api.smart.pr/provider"
+					},
+					{
+						remote: {
+							request: {}
+						}
+					}),
+					// TODO: normalize error callback arguments?
+					// TODO: use promises for success and error callbacks(?)
+					post: function(url, data, success, error) {
+						this.rpc.request({
+							url: "/v1/" + url,
+							method: "POST",
+							data: data
+						}, function(response) {
+							response.data = $.parseJSON(response.data);
+							success.apply(this, [response.data]);
+						}, error);
+					},
+					get: function(url, data) {
+						// console.log('issue request:', url, data);
+						var dfd = $.Deferred();
+						
+						this.rpc.request({
+							// TODO: session param is only necessary for requests that need
+							// authentication (f.e. sessions can be read without)
+							// TODO: Conceptually it would be better to obtain the session
+							// key from the component on window, so that the fact that the
+							// key is stored in localStorage is a matter that is local to
+							// the session property on the window component and we don't
+							// depend on that here.
+							// TODO: smartpr-sessionkey can be null (if item doesn't exist)
+							url: "/v1/" + url,// + '/?session=' + $.cookie(SPR.apiSessionCookieName),
+							method: "GET",
+							data: data
+						}, function(response) {
+							response.data = $.parseJSON(response.data);
+							dfd.resolve.call(this, response.data);
+						}, dfd.reject);
+						
+						return dfd.promise();
+					},
+					put: function(url, data, success, error) {
+						this.rpc.request({
+							url: "/v1/" + url,
+							method: "PUT",
+							data: data
+						}, function(response) {
+							response.data = $.parseJSON(response.data);
+							success.apply(this, [response.data]);
+						}, error);
+					},
+					del: function(url, data, success, error) {
+						this.rpc.request({
+							url: "/v1/" + url,
+							method: "DELETE",
+							data: data
+						}, function(response) {
+							response.data = $.parseJSON(response.data);
+							success.apply(this, [response.data]);
+						}, error);
+					}
+				};
+				
+				// $(window).
+				// 	bind('component:value:change:before', function(e, to) {
+				// 		return to <= 5;
+				// 	}).
+				// 	bind('component:value:change', function(e, to) {
+				// 		console.log("#clicked:", to);
+				// 	}).
+				// 	bind('component:values:change', function(e, to) {
+				// 		console.log(_.last(to).valueOf().x, _.last(to).valueOf().y);
+				// 	});
+				
+				$('ol').component({
+					
+					// value: $.property.Value(function(me) {
+					// 	
+					// 	$(this.values).bind('change', function(e, to) {
+					// 		me.valueOf(to.length);
+					// 	});
+					// 	
+					// }),
+					// 
+					// values: $.property.Values(function(me) {
+					// 	
+					// 	$('body').bind('click', function(e) {
+					// 		me.valueOf(me.valueOf().concat([$.al.type.Object({ x: e.clientX, y: e.clientY })]));
+					// 	});
+					// 	
+					// }),
+					
+					display: $.property.flag(function(me) {
+						var self = this;
+						
+						me.and(function(and) {
+							$(self.contacts).bind('change', function(e, to) {
+								and.valueOf(to.length >= 100);
+							});
+						}).and(function(and) {
+							$('body').dblclick(function() {
+								and.valueOf(!and.valueOf());
+							});
+						});
+						
+					}),
+					
+					contacts: $.property.Contacts(function(me) {
+						
+						$('button.proactive').bind('click', function() {
+							
+							me.read({
+								// slice: $('input').val()
+							});
+							// .fail(function() {
+							// 	console.warn.apply(console, arguments);
+							// });
+						});
+						
+						$('button.lazy').bind('click', function() {
+							me.read({
+								// slice: $('input').val(),
+								field: ['name', 'media', 'emails']
+							});
+							// .fail(function() {
+							// 	console.warn.apply(console, arguments);
+							// });
+						});
+						
+						$('.more').bind('click', function() {
+							me.read();
+						});
+						
+					}),
+					
+					element: $.component.inherit().setup(function(me) {
+						
+						$(me).dataview(this.contacts);
+						
+						$(this.contacts).
+							bind('read:before', function() {
+								console.log('read:before');
+								$(me).addClass('changing');
+							}).
+							bind('read:done read:fail', function() {
+								console.log('read:done / read:fail');
+								$(me).removeClass('changing');
+							});
+						
+					})
+					
+				});
+				
+				$.component.setup();
+				
+			}(this.jQuery));
+			
+		</script>
+		
+	</body>
+
+</html>

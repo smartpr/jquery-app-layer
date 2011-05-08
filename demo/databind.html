@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en" class="no-js">
+
+	<head>
+		<meta http-equiv="X-UA-Compatible" content="IE=Edge">
+		<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+		
+		<title>
+			databind
+		</title>
+		
+		<style type="text/css">
+		</style>
+	</head>
+	
+	<body>
+		
+		<input type="text" name="anything" />
+		<input type="text" name="anything" />
+		
+		<input type="checkbox" name="boolean" value="true" /> true
+		<input type="checkbox" name="boolean" value="false" /> false
+		
+		<input type="radio" name="xor" value="true" /> true
+		<input type="radio" name="xor" value="false" /> false
+		
+		<button>serialize</button>
+		
+		<marquee>holadiee</marquee>
+		
+		<script type="text/javascript" src="http://ajax.googleapis.com/ajax/libs/jquery/1.5.2/jquery.js"></script>
+		<script type="text/javascript">
+			
+			jQuery(function($, undefined) {
+				
+				$('body').bind('focusin focusout', function(e) {
+					
+					console.log(e.type);
+					
+				});
+				
+				$('button').click(function() {
+					
+					console.log($('body').find(':input').serializeArray());
+					
+				});
+				
+			});
+			
+		</script>
+		
+	</body>
+
+</html>

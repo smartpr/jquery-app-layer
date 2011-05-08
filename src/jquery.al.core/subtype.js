@@ -1,5 +1,10 @@
 (function($, undefined) {
 
+// TODO: Investigate why the following statements hold true (I think that is
+// incorrect?):
+// Contact.prototype.constructor !== jQuery.al.type.Record
+// Contact.prototype.constructor === Contact.prototype.constructor.prototype.constructor
+
 // TODO: This is not a generic solution (https://github.com/documentcloud/
 // underscore/issues/issue/60/), but merely a solution to the problem in
 // $.al.subtype. So implement it as part of $.al.subtype instead of as a
@@ -161,6 +166,18 @@ $.al.subtype = function(opts) {
 			
 			instantiate: function() {
 				var instance = this instanceof Type ? this : initialize(Type);
+				
+				// TODO: Define some sort of instance method that enables
+				// calling methods on the parent "class" (i.e. `_super()`)?
+				// (Is this even possible? Note that walking up the prototype
+				// chain may not be possible in IE8.)
+				// UPDATE: I think we don't want this, because it gives the
+				// wrong signal. People should not depend on parent type
+				// implementations, as that would require them knowing what
+				// exactly these implementations do. And that would mean that
+				// we can no longer sprinkle all sorts of magic upon type
+				// construction. F.e. constructing operation methods, wrapping
+				// destroy and invalidate methods.
 				
 				// Note that calling `opts.base` as a regular function will
 				// not do anything useful if `opts.base === Object`, but it

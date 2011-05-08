@@ -65,6 +65,8 @@ var makeStoreFunction = function(operation, verb) {
 		
 		// TODO: Supply arguments that indicate on which records the operation
 		// is about to take place (in case of update & del at least)
+		// TODO: Can't we offer some kind of 'global events' as well? -->
+		// useful in #session-expired to detect 403 errors.
 		$(Type).triggerHandler(verb + ':beforeSend');
 		request[debounce ? 'soon' : 'now'].apply(Type, $.merge(query, [function(items) {
 			var args = $.merge([normalize(items, Type)], _.rest(arguments));
@@ -103,6 +105,10 @@ var makeStoreFunction = function(operation, verb) {
 
 var makeRecordSaveMethod = function(createOperation) {
 	
+	// TODO: We probably want to move debouncing to the array/container/
+	// whatever-we-are-gonna-call-it, as we want to debounce requests on the
+	// same dataset, as opposed to requests on the same type. I.e. two datasets
+	// of the same type should not debounce each other's requests.
 	var createRequest = {
 		now: $.debounce(interval, true, createOperation),
 		soon: $.debounce(interval, false, createOperation)
