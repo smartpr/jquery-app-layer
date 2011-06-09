@@ -66,8 +66,11 @@ $.fn.selection = function(opts) {
 	
 	$this.bind('invalidate', function(e) {
 		var $t = $(e.target);
-		var context = $t.is(opts.elements) ? $t[0] : $t.find(opts.elements)[0];
-		opts[selection.contains(opts.data.call(context)) ? 'select' : 'unselect'].call($(context));
+		var $context = $t.is(opts.elements) ? $t : $t.find(opts.elements);
+		// console.log('invalidate event with context', context);
+		$context.each(function() {
+			opts[selection.contains(opts.data.call(this)) ? 'select' : 'unselect'].call($(this));
+		});
 	});
 	
 	var invalidate = function() {

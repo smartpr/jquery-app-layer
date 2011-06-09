@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1" />
+	</head>
+	<body>
+		
+		<h3>Data service</h3>
+		<button>Retrieve data</button>
+		
+		<h3>Authentication service</h3>
+		<form>
+			<input name="username" type="text" />
+			<input name="password" type="password" />
+			<input type="submit" value="Authenticate!" />
+		</form>
+		
+		<script type="text/javascript" src="http://ajax.googleapis.com/ajax/libs/jquery/1.5.2/jquery.js"></script>
+		<script type="text/javascript">
+		
+			jQuery(function($) {
+				
+				var sessionkey;
+				var request = function(data) {
+					return $.ajax({
+						url: 'http://www.timmolendijk.nl/sandbox/api.php?callback=?',
+						data: data,
+						dataType: 'jsonp',
+						cache: false
+					}).done(function(data) {
+						alert('RESPONSE => ' + data);
+					});
+				};
+				
+				$('button').click(function() {
+					request($.extend(
+						{ svc: 'data' },
+						sessionkey ? { oursessionname: sessionkey } : {}
+					));
+				});
+				
+				$('form').submit(function(e) {
+					e.preventDefault();
+					
+					request({
+						svc: 'auth',
+						username: $('[name="username"]', this).val(),
+						password: $('[name="password"]', this).val()
+					}).done(function(key) {
+						sessionkey = key;
+					});
+					
+				});
+				
+			});
+			
+		</script>
+	</body>
+</html>

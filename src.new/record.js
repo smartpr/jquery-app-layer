@@ -58,6 +58,7 @@ $.record = function(parent, name, definition, operations) {
 		return p;
 	};
 	
+	return $.record[name];
 };
 
 $.record.Record = $.al.wrapper.Dict.subtype({
@@ -145,7 +146,7 @@ $.record.Record = $.al.wrapper.Dict.subtype({
 							
 							params.push(function(data) {
 								var args = _.toArray(arguments);
-							
+								
 								self.valueOf(data);
 								args[0] = self;
 								register(self);
@@ -245,11 +246,10 @@ $.record.Record = $.al.wrapper.Dict.subtype({
 							});
 
 							params.push(function() {
-								$(Type).triggerHandler('read:fail'); // TODO: Provide args?
+								$(Type).triggerHandler('read:error', arguments); // TODO: Provide args?
 								
 								d.rejectWith(this, arguments);
 							});
-
 							operations.read.apply(Type, params);
 						
 						}).promise();
@@ -565,14 +565,28 @@ $.al.wrapper.Record = $.al.wrapper.Value.subtype({
 				// TODO: This cancels requests -- is (probably) not what we want
 				if (request) return;
 				
-				request = self.constructor.recordType().read(query, undefined).
+				var Type = self.constructor.recordType();
+				if (query instanceof Object && query.type) {
+					Type = query.type.valueOf();
+					// delete query.type;
+				}
+				request = Type.read(query, undefined).
 					done(function(record) {
 						// console.log("set wrapper value: ", self, record);
-						self.valueOf(record);
+						self.valueOf(_.isArray(record) ? record[0] : record);
 						done.apply(this, arguments);
 						request = undefined;
 					}).
-					fail(function() {
+					fail(function(code) {
+						// TODO: Implement by handling read:error (?)
+						if (code === 403) {
+							// TODO: Binding to both types (explicitly)
+							// is obviously not an attractive solution...
+							$(DPL.Session).one('create', function() {
+								// console.log('invalidate', self);
+								self.invalidate();
+							});
+						}
 						fail.apply(this, arguments);
 						request = undefined;
 					});
@@ -584,7 +598,7 @@ $.al.wrapper.Record = $.al.wrapper.Value.subtype({
 		this.read = function(q, c) {
 			
 			if (arguments.length > 0) {
-				if (q instanceof Object && !_.isArray(value)) {
+				if (q instanceof Object && !_.isArray(q)) {
 					$(q).bind('change', $.proxy(this, 'invalidate'));
 				}
 				// TODO: unbind: upon new query supplied.
@@ -698,7 +712,12 @@ $.al.list.Record = $.al.list.Value.subtype({
 						// callbacks (done/fail) are called in sequence --
 						// that is, in the order that the corresponding
 						// requests were issued.
-						self.constructor.recordType().read(query, offset).
+						var Type = self.constructor.recordType();
+						if (query instanceof Object && query.type) {
+							Type = query.type.valueOf();
+							// delete query.type; 	deleting makes invalidation not work
+						}
+						Type.read(query, offset).
 							done(function(records, total, rest) {
 								self._hack = rest;
 								// TODO: size before value, or event after size change?
@@ -706,7 +725,16 @@ $.al.list.Record = $.al.list.Value.subtype({
 								self.valueOf(reset === true ? records : self.valueOf().concat(records));
 								done.apply(this, arguments);
 							}).
-							fail(function() {
+							fail(function(code) {
+								// TODO: Implement by handling read:error (?)
+								if (code === 403) {
+									// TODO: Binding to both types (explicitly)
+									// is obviously not an attractive solution...
+									$(/*[SPR.Session, */DPL.Session/*]*/).one('create', function() {
+										// console.log('invalidate', self);
+										self.invalidate();
+									});
+								}
 								fail.apply(this, arguments);
 							});
 					}, debounce === true ? 200 : debounce || 0);
@@ -780,7 +808,7 @@ $.al.list.Record = $.al.list.Value.subtype({
 		// TODO: Are we using this one?
 		pluck: function(key, fallback) {
 			return _.map(this.valueOf(), function(record) {
-				return record.valueOf(key, fallback);
+				return key in record ? record[key]() : record.valueOf(key, fallback);
 			});
 		},
 		

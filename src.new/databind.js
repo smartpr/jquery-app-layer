@@ -1,5 +1,22 @@
 (function($, undefined) {
 
+// TODO: Existential point:
+// What databind is, essentially, is I think a way for binding data to certain
+// properties of *existing* DOM nodes. While dataview always creates new
+// DOM nodes.
+// This means that anytime a new DOM node does not necessarily have to be
+// created we should be able to use databind instead of dataview. Example:
+// changing the placeholder text in a search box does not necessarily require
+// creating a new search box. On the other hand; what's the problem with
+// recreating DOM nodes? databind should be capable of dealing with
+// invalidation anyway right? Even stronger; what is it exactly that databind
+// can do that dataview does *not* do? I mean; when it comes to morphing data
+// to DOM. (...) Well, that's the answer I guess. It cannot get data from DOM,
+// which means we will always need it in some cases. In order to prevent we
+// need the tricky orchestration of both dataview and databind to have two-way
+// binding would be not very attractive I guess.
+
+
 // TODO: I think databind should listen to and act upon invalidate events
 // TODO: Use jQuery 1.6's val() hooks?
 
@@ -82,7 +99,7 @@ $.fn.databind = function(data, serialize, deserialize) {
 		// TODO: Checking for length===1 is not correct, because it makes it
 		// impossible to represent data objects in forms containing 1 field.
 		if ($inputs.length === 1) {
-			// console.log('databind interpreted as a one-field binding');
+			// console.log('databind interpreted as a one-field binding', $inputs, $inputs.val());
 			data.valueOf($inputs.val());	// TODO: will this work in case of non-text boxes?
 			
 		} else {
@@ -118,6 +135,7 @@ $.fn.databind = function(data, serialize, deserialize) {
 	
 	var timer;
 	var onFocus = function() {
+		// console.log('onFocus');
 		timer = setTimeout(function() {
 			fromDom();
 			onFocus();
@@ -127,6 +145,7 @@ $.fn.databind = function(data, serialize, deserialize) {
 	$this.
 		bind('focusin', onFocus).
 		bind('focusout', function() {
+			// console.log('focusout');
 			clearTimeout(timer);
 		}).
 		delegate(':checkbox, :radio, select', 'change', fromDom);
