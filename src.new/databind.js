@@ -20,6 +20,10 @@
 // TODO: I think databind should listen to and act upon invalidate events
 // TODO: Use jQuery 1.6's val() hooks?
 
+// TODO: Support a convention in which inputs can have a name like:
+// `personalization.male`, which is then automatically interpreted as a nested
+// object definition(?)
+
 $.fn.databind = function(data, serialize, deserialize) {
 	serialize = serialize || function(data) {
 		return data;
@@ -29,7 +33,7 @@ $.fn.databind = function(data, serialize, deserialize) {
 	var $this = this;
 	
 	var toDom = function(data) {
-		var $inputs = $this.find(':input').andSelf().filter(':input');
+		var $inputs = $this.find(':input, .textareaplus').andSelf().filter(':input, .textareaplus');
 		
 		if ($inputs.length === 1) {
 			
@@ -94,7 +98,8 @@ $.fn.databind = function(data, serialize, deserialize) {
 	};
 	
 	var fromDom = function() {
-		var $inputs = $this.find(':input').andSelf().filter(':input');
+		// TODO: Remove `.textareaplus` hack (replace with `:textareaplus` or something)
+		var $inputs = $this.find(':input, .textareaplus').andSelf().filter(':input, .textareaplus');
 		
 		// TODO: Checking for length===1 is not correct, because it makes it
 		// impossible to represent data objects in forms containing 1 field.
@@ -124,7 +129,10 @@ $.fn.databind = function(data, serialize, deserialize) {
 			
 			// console.log(d);
 			
-			data.valueOf(d);
+			// TODO: We extend (instead of override) -- does this cause problems?
+			// Also, should this 'extend-logic' be delegated to the extended object
+			// -- Dict in this case?
+			data.valueOf(_.extend({}, data.valueOf(), d));
 						
 		}
 	};
