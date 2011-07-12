@@ -24,6 +24,9 @@
 // `personalization.male`, which is then automatically interpreted as a nested
 // object definition(?)
 
+// TODO: Field values may change with the focus currently not in them -- how
+// do we deal with that??
+
 $.fn.databind = function(data, serialize, deserialize) {
 	serialize = serialize || function(data) {
 		return data;
@@ -156,7 +159,7 @@ $.fn.databind = function(data, serialize, deserialize) {
 			// console.log('focusout');
 			clearTimeout(timer);
 		}).
-		delegate(':checkbox, :radio, select', 'change', fromDom);
+		delegate(':checkbox, :radio, select, .textareaplus', 'change', fromDom);
 	
 	toDom(data.valueOf());
 	

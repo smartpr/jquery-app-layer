@@ -719,6 +719,7 @@ $.al.list.Record = $.al.list.Value.subtype({
 						}
 						Type.read(query, offset).
 							done(function(records, total, rest) {
+								// console.log('_hack = ', rest);
 								self._hack = rest;
 								// TODO: size before value, or event after size change?
 								self.size(total);
