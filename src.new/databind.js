@@ -36,6 +36,7 @@ $.fn.databind = function(data, serialize, deserialize) {
 	var $this = this;
 	
 	var toDom = function(data) {
+		// console.log('toDom', data);
 		var $inputs = $this.find(':input, .textareaplus').andSelf().filter(':input, .textareaplus');
 		
 		if ($inputs.length === 1) {
@@ -52,6 +53,7 @@ $.fn.databind = function(data, serialize, deserialize) {
 					var current = $(this).val();
 					var v = typeof value[i] === 'string' ? value[i].replace(/\r/g, '') : value[i];
 					if (current !== v) {
+						// console.log('toDom', this, v);
 						$(this).val(v);
 					}
 				});
@@ -100,13 +102,26 @@ $.fn.databind = function(data, serialize, deserialize) {
 		}
 	};
 	
-	var fromDom = function() {
+	var fromDom = function(excludeSelect) {
+		// console.log('fromDom', arguments);
+		var exclude = '';
+		if (excludeSelect === true) {
+			exclude = ':not(select)';
+		} else {
+			// console.log('fromDom exclude nothing (change event)');
+		}
+		
 		// TODO: Remove `.textareaplus` hack (replace with `:textareaplus` or something)
-		var $inputs = $this.find(':input, .textareaplus').andSelf().filter(':input, .textareaplus');
+		// TODO: Exclude select because in Firefox it will cause in too real-time
+		// value changes (when hovering the mouse over an option the value is changed already)
+		var $inputs = $this.find(':input' + exclude + ', .textareaplus').andSelf().filter(':input' + exclude + ', .textareaplus');
+		
+		if ($inputs.length === 0) return;
 		
 		// TODO: Checking for length===1 is not correct, because it makes it
 		// impossible to represent data objects in forms containing 1 field.
 		if ($inputs.length === 1) {
+			// console.log($inputs.val());
 			// console.log('databind interpreted as a one-field binding', $inputs, $inputs.val());
 			data.valueOf($inputs.val());	// TODO: will this work in case of non-text boxes?
 			
@@ -141,25 +156,33 @@ $.fn.databind = function(data, serialize, deserialize) {
 	};
 	
 	$([data]).bind('change', function(e, to) {
+		// console.log('data changed to ', to, ' - run toDom');
 		toDom(to);
 	});
 	
 	var timer;
 	var onFocus = function() {
-		// console.log('onFocus');
 		timer = setTimeout(function() {
-			fromDom();
+			fromDom(true);
 			onFocus();
 		}, 50);
 	};
 	
 	$this.
+		// delegate(':input, .textareaplus', 'focus', onFocus).
+		// delegate(':input, .textareaplus', 'blur', function() {
+		// 	console.log('clear timeout');
+		// 	clearTimeout(timer);
+		// }).
 		bind('focusin', onFocus).
 		bind('focusout', function() {
 			// console.log('focusout');
 			clearTimeout(timer);
 		}).
-		delegate(':checkbox, :radio, select, .textareaplus', 'change', fromDom);
+		delegate(':checkbox, :radio, select, .textareaplus', 'change', function() {
+			// console.log(this, 'change');
+			fromDom();
+		});
 	
 	toDom(data.valueOf());
 	
