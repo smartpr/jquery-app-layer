@@ -127,7 +127,7 @@ $.fn.databind = function(data, serialize, deserialize) {
 			
 		} else {
 			
-			var d = serialize(_($inputs.filter('[name]').serializeArray()).chain().
+			var d = serialize(_($inputs.filter('[name]' + exclude).serializeArray()).chain().
 				reduce(function(serialized, control) {
 					
 					if (control.name in serialized) {
