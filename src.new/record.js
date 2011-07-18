@@ -413,7 +413,8 @@ $.record.Record = $.al.wrapper.Dict.subtype({
 								
 								if ($.isArray(data)) {
 									args[0] = _.map(data, function(item) {
-										return normalize(Type.instantiate(item)).destroy();
+										// console.log(item.email);
+										return normalize(Type.instantiate(item), true).destroy();
 									});
 								} else {
 									args[0] = normalize(Type.instantiate(data)).destroy();
@@ -478,7 +479,7 @@ $.record.Record = $.al.wrapper.Dict.subtype({
 STORE = new Hashtable(function(item) {
 	return '[' + item.id() + ' ' + item.constructor.toString() + ']';
 });
-var normalize = function(instance) {
+var normalize = STOREnormalize = function(instance, noUpdate) {
 	if (!(instance instanceof $.record.Record) || instance.isNew()) return instance;
 	// if ($.isArray(instance)) return _.map(instance, normalize);
 	
@@ -487,13 +488,15 @@ var normalize = function(instance) {
 		current = current.record;
 		// TODO: Delegate update logic to instance.
 		// console.log('update', current.valueOf(), 'with', instance.valueOf());
-		current.valueOf(_.extend({}, current.valueOf(), instance.valueOf()));
+		if (noUpdate !== true) current.valueOf(_.extend({}, current.valueOf(), instance.valueOf()));
 	} else {
 		current = instance;
 	}
 	return current;
 };
-var register = function(instance) {
+var removeQueue = [];
+var deferredRemoveAction;
+var register = /*STOREregister =*/ function(instance) {
 	if (!(instance instanceof $.record.Record) || instance.isNew()) return;
 	
 	var current = STORE.get(instance);
@@ -501,9 +504,24 @@ var register = function(instance) {
 		// console.error("Trying to register management of record that is not in STORE -- should not be possible!");
 		current = { record: instance, count: 1 };
 		$(current.record).bind('destroy', function() {
+			// console.log('destroy', this.valueOf('email'));
 			// Can be called twice (once manually, second time from unregister)
 			// TODO: Should be implemented more tightly. (using one instead of bind perhaps?)
-			if (STORE.get(this) && STORE.get(this).count <= 0) STORE.remove(this);
+			var entry = STORE.get(this);
+			if (entry && entry.count <= 0) {
+				removeQueue.push(this);
+				if (!deferredRemoveAction) {
+					deferredRemoveAction = function() {
+						for (var i = 0, l = removeQueue.length; i < l; i++) {
+							STORE.remove(removeQueue[i]);
+						}
+						removeQueue = [];
+						deferredRemoveAction = undefined;
+					};
+					_.defer(deferredRemoveAction);
+				}
+			}
+			// if (STORE.get(this) && STORE.get(this).count <= 0) STORE.remove(this);
 		});
 		STORE.put(current.record, current);
 	} else {
@@ -511,7 +529,7 @@ var register = function(instance) {
 	}
 	// console.log("register", current.record.valueOf(), current.count);
 };
-var unregister = function(instance) {
+var unregister = /*STOREunregister =*/ function(instance) {
 	if (!(instance instanceof $.record.Record) || instance.isNew()) return;
 	
 	var current = STORE.get(instance);
@@ -820,6 +838,8 @@ $.al.list.Record = $.al.list.Value.subtype({
 		},
 		
 		// TODO: Alright, this implementation is obviously completely nuts.
+		// TODO: We want to be able to specify which fields we want in the
+		// response!!
 		save: function() {
 			var create = []
 			

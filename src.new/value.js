@@ -16,7 +16,8 @@ $.al.wrapper.Value = $.al.type.Object.subtype({
 			return $(this).triggerHandler(e.type.replace('change', 'deepchange'), [this.valueOf()]);
 		};
 		var destroy = function() {
-			if (self.valueEquals(this)) self.valueOf(undefined);
+			// if (self.valueEquals(this)) self.valueOf(undefined);
+			self.valueOf(undefined);
 		};
 		
 		$(this).

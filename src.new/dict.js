@@ -61,13 +61,20 @@ $.al.wrapper.Dict = $.al.wrapper.Value.subtype({
 			//         want to overwrite the current value with the new value?
 			//         only when !valueEquals()? or simply always?
 			
-			var a = _.reduce(this.valueOf(), function(memo, value, key) {
+			var a = this.valueOf(),
+				b = v;
+			
+			if (_.isArray(a) && _.isArray(b) && a.length !== b.length) {
+				return false;
+			}
+			
+			a = _.reduce(a, function(memo, value, key) {
 				if (key.substr(0, 6) !== 'jQuery') {
 					memo[key] = value;
 				}
 				return memo;
 			}, {});
-			var b = _.reduce(v, function(memo, value, key) {
+			b = _.reduce(b, function(memo, value, key) {
 				if (key.substr(0, 6) !== 'jQuery') memo[key] = value;
 				return memo;
 			}, {});

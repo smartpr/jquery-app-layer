@@ -1,3 +1,8 @@
+// TODO: Suggested rename: dataselect
+
+// TODO: As soon as we start refactory of this plugin we should take a look
+// at `#recipient-list-edit .contact-list` as an advanced use case.
+
 (function($, undefined) {
 
 $.fn.selection = function(opts) {
