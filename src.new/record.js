@@ -122,7 +122,6 @@ $.record.Record = $.al.wrapper.Dict.subtype({
 		subtype: function(opts, operations) {
 			// all implementations that depend on `operations` need to be
 			// done here.
-			
 			opts = _.extend({}, opts);
 			
 			opts.proto = _.extend({}, opts.proto, {
@@ -671,20 +670,29 @@ $.al.list.Record = $.al.list.Value.subtype({
 	construct: function() {
 		
 		var self = this;
+		// console.log('bind create on ', this.constructor.recordType());
 		$(this.constructor.recordType()).bind('create', function() {
 			// TODO: Depending on the record type, we can sometimes leave out
 			// this invalidate. F.e. if this list represents a bunch of tags
 			// that belong to a contact, we know for sure that a mere create
 			// operation will not impact our data representation, as attaching
 			// a tag to a contact requires an update operation.
-			// console.log(self, ' invalidated as the result of a create of type ', self.constructor);
-			if (cond && cond.valueOf()) self.invalidate();
+			// console.log(self, ' invalidated as the result of a create of type ', self.constructor.recordType());
+			if (cond && cond.valueOf()) {
+				self.invalidate();
+			} else {
+				pending = true;
+			}
 		});
 		
 		// TODO: Alright, this obviously is specific to $.al.list.Tag.
 		$(this.constructor.recordType()).bind('attach detach', function() {
-			if (query && query.contact && cond && cond.valueOf()) {
-				self.invalidate();
+			if (query && query.contact) {
+				if (cond && cond.valueOf()) {
+					self.invalidate();
+				} else {
+					pending = true;
+				}
 			}
 		});
 		
@@ -699,6 +707,8 @@ $.al.list.Record = $.al.list.Value.subtype({
 		var query, cond;
 		
 		var request;
+		
+		var pending;
 		
 		var read = function(reset, debounce) {
 			if (debounce === undefined && _.isNumber(reset)) {
@@ -775,7 +785,7 @@ $.al.list.Record = $.al.list.Value.subtype({
 				});
 				
 				var self = this;
-				var pending = !condition.valueOf();
+				pending = !condition.valueOf();
 				$(condition).bind('change', function(e, to) {
 					// console.log(self, 'condition = ', to);
 					if (to && pending) {
