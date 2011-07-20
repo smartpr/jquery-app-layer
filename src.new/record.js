@@ -245,7 +245,7 @@ $.record.Record = $.al.wrapper.Dict.subtype({
 							});
 
 							params.push(function() {
-								$(Type).triggerHandler('read:error', arguments); // TODO: Provide args?
+								$(Type).triggerHandler('read:fail', arguments); // TODO: Provide args?
 								
 								d.rejectWith(this, arguments);
 							});
