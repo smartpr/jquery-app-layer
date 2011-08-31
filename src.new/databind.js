@@ -145,8 +145,6 @@ $.fn.databind = function(data, serialize, deserialize) {
 
 				}, {}).value());
 			
-			// console.log(d);
-			
 			// TODO: We extend (instead of override) -- does this cause problems?
 			// Also, should this 'extend-logic' be delegated to the extended object
 			// -- Dict in this case?
@@ -181,7 +179,9 @@ $.fn.databind = function(data, serialize, deserialize) {
 		}).
 		delegate(':checkbox, :radio, select, .textareaplus', 'change', function() {
 			// console.log(this, 'change');
-			fromDom();
+			setTimeout(function() {
+				fromDom();
+			});
 		});
 	
 	toDom(data.valueOf());
