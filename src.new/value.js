@@ -95,7 +95,11 @@ $.al.list.Value = $.al.type.Object.subtype({
 		// safely conclude that we need to adjust this.size (?!?)
 		var destroy = function() {
 			// console.log("list.Value: destroy notification, remove ", this, " from list");
-			self.valueOf(_.without(self.valueOf(), this));
+			var shrunk = _.without(self.valueOf(), this);
+			if (self.valueOf().length === self.size()) {
+				self.size(shrunk.length);
+			}
+			self.valueOf(shrunk);
 			// _valueOf.apply(self, _.without(self.valueOf(), this));
 		};
 		
