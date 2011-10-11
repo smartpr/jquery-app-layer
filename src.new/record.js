@@ -95,8 +95,15 @@ $.record.Record = $.al.wrapper.Dict.subtype({
 			return this.constructor.del(this.id());
 		},
 		
+		// TODO: These methods clearly shouldn't be hardcoded here.
+
 		send: function(query) {
 			return this.constructor.send(_.extend({}, query, { id: this.id() }));
+		},
+
+		publish: function(query) {
+			// TODO: html_url hardcoded at this level -- really??
+			return this.constructor.publish(_.extend({}, query, { id: this.id(), html_url: this.previewUrl() }));
 		},
 		
 		attach: function(contacts) {
@@ -328,6 +335,41 @@ $.record.Record = $.al.wrapper.Dict.subtype({
 						
 					}).promise();
 				},
+
+				publish: function() {
+					var Type = this,
+						params = _.toArray(arguments);
+					
+					return $.Deferred(function(d) {
+						
+						$(Type).triggerSandwich('publish', function(done, fail) {
+							
+							params.push(function(data) {
+								var args = _.toArray(arguments);
+								
+								if ($.isArray(data)) {
+									args[0] = _.map(data, function(item) {
+										return normalize(Type.instantiate(item));
+									});
+								} else {
+									args[0] = normalize(Type.instantiate(data));
+								}
+								
+								done.apply(this, args);
+								d.resolveWith(this, args);
+							});
+							
+							params.push(function() {
+								fail.apply(this, arguments);
+								d.rejectWith(this, arguments);
+							});
+							
+							operations.publish.apply(Type, params);
+						
+						});
+						
+					}).promise();
+				},
 				
 				attach: function() {
 					var Type = this,
@@ -497,7 +539,7 @@ var removeQueue = [];
 var deferredRemoveAction;
 var register = /*STOREregister =*/ function(instance) {
 	if (!(instance instanceof $.record.Record) || instance.isNew()) return;
-	
+	// console.log('register', instance.constructor.toString(), instance.id());
 	var current = STORE.get(instance);
 	if (current === null) {
 		// console.error("Trying to register management of record that is not in STORE -- should not be possible!");
@@ -530,7 +572,7 @@ var register = /*STOREregister =*/ function(instance) {
 };
 var unregister = /*STOREunregister =*/ function(instance) {
 	if (!(instance instanceof $.record.Record) || instance.isNew()) return;
-	
+	// console.log('unregister', instance.constructor.toString(), instance.id());
 	var current = STORE.get(instance);
 	if (current === null) {
 		// Can happen with instances that were new and then saved, and then
@@ -545,6 +587,7 @@ var unregister = /*STOREunregister =*/ function(instance) {
 	current.count--;
 	// console.log("unregister", current.record.valueOf(), current.count);
 	if (current.count === 0) {
+		// console.log(current.record, 'has become unregistered, so destroy!');
 		current.record.destroy();
 	}
 	
@@ -755,6 +798,10 @@ $.al.list.Record = $.al.list.Value.subtype({
 								done.apply(this, arguments);
 							}).
 							fail(function(code) {
+								// HACK: if a request fails (for example because
+								// of authentication problem) we want it to try
+								// again next time the data is needed.
+								pending = true;
 								// TODO: Implement by handling read:error (?)
 								if (code === 403) {
 									// TODO: Binding to both types (explicitly)
@@ -790,7 +837,7 @@ $.al.list.Record = $.al.list.Value.subtype({
 					// console.log(self, 'condition = ', to);
 					if (to && pending) {
 						pending = false;
-						// console.log(self, 'latent read');
+						// console.log(self, 'latent read', q);
 						read.call(self, true, observables.length > 1);
 					}
 				});
