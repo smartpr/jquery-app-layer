@@ -5,7 +5,9 @@ $.flirt = function(template, data, cb) {
 	template = $.template(null, template);
 	if (arguments.length === 1) return template;
 	
-	if (data === undefined) return $();
+	// We cannot consider `null` a regular value because `$.tmpl` will treat it
+	// not as such (see http://api.jquery.com/jquery.tmpl/).
+	if (data === undefined || data === null) return $();
 	if (!$.isArray(data)) data = [data];
 	
 	var nodes = [], $item;
