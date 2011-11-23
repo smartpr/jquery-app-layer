@@ -106,6 +106,11 @@ $.record.Record = $.al.wrapper.Dict.subtype({
 			return this.constructor.publish(_.extend({}, query, { id: this.id(), html_url: this.previewUrl() }));
 		},
 		
+		unpublish: function(query) {
+			// TODO: html_url hardcoded at this level -- really??
+			return this.constructor.unpublish(_.extend({}, query, { id: this.id(), html_url: this.previewUrl() }));
+		},
+
 		attach: function(contacts) {
 			return this.constructor.attach([this], contacts);
 		},
@@ -371,6 +376,41 @@ $.record.Record = $.al.wrapper.Dict.subtype({
 					}).promise();
 				},
 				
+				unpublish: function() {
+					var Type = this,
+						params = _.toArray(arguments);
+					
+					return $.Deferred(function(d) {
+						
+						$(Type).triggerSandwich('unpublish', function(done, fail) {
+							
+							params.push(function(data) {
+								var args = _.toArray(arguments);
+								
+								if ($.isArray(data)) {
+									args[0] = _.map(data, function(item) {
+										return normalize(Type.instantiate(item));
+									});
+								} else {
+									args[0] = normalize(Type.instantiate(data));
+								}
+								
+								done.apply(this, args);
+								d.resolveWith(this, args);
+							});
+							
+							params.push(function() {
+								fail.apply(this, arguments);
+								d.rejectWith(this, arguments);
+							});
+							
+							operations.unpublish.apply(Type, params);
+						
+						});
+						
+					}).promise();
+				},
+
 				attach: function() {
 					var Type = this,
 						params = _.toArray(arguments);
