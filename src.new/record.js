@@ -937,24 +937,69 @@ $.al.list.Record = $.al.list.Value.subtype({
 		// TODO: Alright, this implementation is obviously completely nuts.
 		// TODO: We want to be able to specify which fields we want in the
 		// response!!
-		save: function() {
-			var create = []
+		save: function(addToList) {
+			var createRecords = []
 			
 			$.each(this.valueOf(), function(i, record) {
 				if (record.isNew()) {
-					create.push(record.valueOf());
+					createRecords.push(record);
 				} else {
 					record.save();
 				}
 			});
 			
+			/*
+			var self = this,
+				params = [create],
+				Type = this.constructor.recordType();
+			
+			var d = $.Deferred();
+			
+			if (create.length > 0) {
+				$(this).triggerSandwich('create', function(done, fail) {
+					
+					params.push(function(data) {
+						var args = _.toArray(arguments);
+						console.log('RecordType.create done => value = ', data);
+						// self.valueOf(data);
+						args[0] = self;
+						register(self);
+						
+						done.apply(this, args);
+						d.resolveWith(this, args);
+					});
+				
+					params.push(function() {
+						fail.apply(this, arguments);
+						d.rejectWith(this, arguments);
+					});
+					
+					Type.create.apply(Type, params);
+				
+				});
+			}
+
+			return d.promise();
+			*/
+
 			var p;
 			var self = this;
 			// TODO: Should the manager really trigger its own non-read events?
 			// We currently use this in #recipient-list-edit .contact-list in
 			// selectedEmails.
 			$(this).triggerSandwich('create', function(done, fail) {
-				p = self.constructor.recordType().create(create).done(done).fail(fail);
+				var items = _.map(createRecords, function(record) {
+					return record.valueOf();
+				});
+				p = self.constructor.recordType().create(_.map(createRecords, function(record) {
+						return record.valueOf();
+					}), addToList).done(function(createdRecords) {
+						for (var i = 0; i < createdRecords.length; i++) {
+							createRecords[i].valueOf(createdRecords[i].valueOf());
+							register(createRecords[i]);
+						}
+						done.apply(this, arguments);
+					}).fail(fail);
 			});
 			return p;
 		},
