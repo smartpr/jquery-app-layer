@@ -984,6 +984,10 @@ $.al.list.Record = $.al.list.Value.subtype({
 
 			var p;
 			var self = this;
+			var args = [_.map(createRecords, function(record) {
+						return record.valueOf();
+					})];
+			if (arguments.length > 0) args.push(addToList);
 			// TODO: Should the manager really trigger its own non-read events?
 			// We currently use this in #recipient-list-edit .contact-list in
 			// selectedEmails.
@@ -991,9 +995,7 @@ $.al.list.Record = $.al.list.Value.subtype({
 				var items = _.map(createRecords, function(record) {
 					return record.valueOf();
 				});
-				p = self.constructor.recordType().create(_.map(createRecords, function(record) {
-						return record.valueOf();
-					}), addToList).done(function(createdRecords) {
+				p = self.constructor.recordType().create.apply(self.constructor.recordType(), args).done(function(createdRecords) {
 						for (var i = 0; i < createdRecords.length; i++) {
 							createRecords[i].valueOf(createdRecords[i].valueOf());
 							register(createRecords[i]);
