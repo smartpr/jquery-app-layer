@@ -78,7 +78,7 @@ $.record.Record = $.al.wrapper.Dict.subtype({
 		},
 		
 		isNew: function() {
-			return this.id() === undefined;
+			return this.id() === undefined || this.id() === this;
 		},
 		
 		read: function() {
@@ -938,7 +938,7 @@ $.al.list.Record = $.al.list.Value.subtype({
 		// TODO: We want to be able to specify which fields we want in the
 		// response!!
 		save: function(addToList) {
-			var createRecords = []
+			var createRecords = [];
 			
 			$.each(this.valueOf(), function(i, record) {
 				if (record.isNew()) {
