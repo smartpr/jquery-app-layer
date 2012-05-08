@@ -93,6 +93,20 @@ $.al.list.Value = $.al.type.Object.subtype({
 		// TODO: If an item is removed from this list because it was destroyed,
 		// which in turn is the result of it being deleted, I think we can
 		// safely conclude that we need to adjust this.size (?!?)
+		var toDestroy = [];
+		var destroy = function() {
+			toDestroy.push(this);
+			actualDestroy();
+		};
+		var actualDestroy = _.debounce(function() {
+			var shrunk = _.without.apply(undefined, [self.valueOf()].concat(toDestroy));
+			toDestroy.length = 0;
+			if (self.valueOf().length === self.size()) {
+				self.size(shrunk.length);
+			}
+			self.valueOf(shrunk);
+		}, 100);
+		/*
 		var destroy = function() {
 			// console.log("list.Value: destroy notification, remove ", this, " from list");
 			var shrunk = _.without(self.valueOf(), this);
@@ -102,10 +116,12 @@ $.al.list.Value = $.al.type.Object.subtype({
 			self.valueOf(shrunk);
 			// _valueOf.apply(self, _.without(self.valueOf(), this));
 		};
+		*/
 		
 		$(this).
 			bind('change:before change:fail change:done change', deepchange).
 			bind('change:done', function(e, to, from) {
+				// console.log('unbind', from, 'bind', to);
 				$(_.select(from, function(item) { return item instanceof Object; })).
 					unbind('change:before change:fail change:done change', deepchange).
 					unbind('destroy', destroy);
